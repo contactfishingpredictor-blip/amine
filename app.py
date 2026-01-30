@@ -2050,6 +2050,10 @@ def serve_leaflet_css():
 def test_meteo_simple():
     return render_template('test_meteo_simple.html')
 
+@app.route('/test_mobile_simple')
+def test_mobile_simple():
+    return render_template('test_mobile_simple.html')
+
 if __name__=='__main__':
     # Créer les répertoires nécessaires
     os.makedirs(config.DATA_DIR, exist_ok=True)

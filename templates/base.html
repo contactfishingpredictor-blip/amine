@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>{% block title %}Fishing Predictor Pro - Prédictions Scientifiques{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
@@ -10,16 +10,99 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
+
+<style>
+    /* Styles CSS pour le menu mobile - À AJOUTER */
+    .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 10px;
+        margin-left: auto;
+    }
+    
+    /* Styles pour mobile */
+    @media (max-width: 768px) {
+        .mobile-menu-btn {
+            display: block;
+        }
+        
+        .nav-links {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 80%;
+            max-width: 300px;
+            height: 100vh;
+            background: #1e40af;
+            flex-direction: column;
+            padding: 80px 20px 20px;
+            transition: right 0.3s ease;
+            z-index: 1000;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+        }
+        
+        .nav-links.active {
+            right: 0;
+        }
+        
+        .nav-link {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+        
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        /* Overlay pour fermer le menu */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+        
+        /* Ajustements du conteneur nav */
+        .nav-container {
+            position: relative;
+        }
+    }
+    
+    /* Pour empêcher le défilement quand le menu est ouvert */
+    body.menu-open {
+        overflow: hidden;
+    }
+</style>
+
 {% block extra_css %}{% endblock %}
 </head>
 <body>
+<!-- Overlay pour fermer le menu -->
+<div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+
 <nav class="main-nav">
 <div class="nav-container">
 <div class="nav-brand">
 <div class="logo-icon"><i class="fas fa-fish"></i></div>
 <div><h1>Fishing Predictor <span class="pro-badge">PRO</span></h1><p style="font-size:0.9rem;opacity:0.9">Prédictions scientifiques pour pêcheurs tunisiens</p></div>
 </div>
-<div class="nav-links">
+<div class="nav-links" id="navLinks">
 <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" aria-label="Carte Interactive"><i class="fas fa-map-marked-alt"></i><span>Carte</span></a>
 <a href="{{ url_for('species_selector') }}" class="nav-link {% if request.endpoint == 'species_selector' %}active{% endif %}" aria-label="Sélecteur d'espèces"><i class="fas fa-fish"></i><span>Espèces</span></a>
 <a href="{{ url_for('predictions') }}" class="nav-link {% if request.endpoint == 'predictions' %}active{% endif %}" aria-label="Prévisions 10 Jours"><i class="fas fa-calendar-alt"></i><span>Prévisions</span></a>
@@ -27,7 +110,7 @@
 <a href="{{ url_for('science') }}" class="nav-link {% if request.endpoint == 'science' %}active{% endif %}" aria-label="Science Halieutique"><i class="fas fa-microscope"></i><span>Science</span></a>
 <a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint == 'alerts' %}active{% endif %}" aria-label="Alertes Intelligentes"><i class="fas fa-bell"></i><span>Alertes</span></a>
 </div>
-<button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="Menu mobile"><i class="fas fa-bars"></i></button>
+<button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="Menu mobile" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
 </div>
 </nav>
 <main>{% block content %}{% endblock %}</main>
@@ -66,7 +149,85 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/favorites.js') }}"></script>
-<script>function toggleMenu(){document.querySelector('.nav-links').classList.toggle('active')}document.addEventListener('DOMContentLoaded',function(){console.log('Base template chargé avec Leaflet');if(typeof L=='undefined'){const e=document.createElement('script');e.src="{{ url_for('static', filename='js/leaflet.js') }}",document.head.appendChild(e)}});</script>
+
+<script>
+// Gestion du menu mobile améliorée
+let menuOpen = false;
+
+function toggleMenu() {
+    const navLinks = document.getElementById('navLinks');
+    const overlay = document.getElementById('menuOverlay');
+    const body = document.body;
+    
+    menuOpen = !menuOpen;
+    
+    if (menuOpen) {
+        navLinks.classList.add('active');
+        overlay.classList.add('active');
+        body.classList.add('menu-open');
+    } else {
+        navLinks.classList.remove('active');
+        overlay.classList.remove('active');
+        body.classList.remove('menu-open');
+    }
+}
+
+function closeMenu() {
+    const navLinks = document.getElementById('navLinks');
+    const overlay = document.getElementById('menuOverlay');
+    const body = document.body;
+    
+    navLinks.classList.remove('active');
+    overlay.classList.remove('active');
+    body.classList.remove('menu-open');
+    menuOpen = false;
+}
+
+// Fermer le menu en cliquant sur un lien
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', closeMenu);
+    });
+    
+    // Fermer avec la touche Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && menuOpen) {
+            closeMenu();
+        }
+    });
+    
+    console.log('Base template chargé avec menu mobile amélioré');
+    
+    // Vérifier si on est sur mobile
+    if (window.innerWidth <= 768) {
+        console.log('Mode mobile détecté');
+    }
+});
+
+// Redirection vers index si route non trouvée (fallback)
+if (window.location.pathname !== '/' && 
+    !window.location.pathname.includes('/favorites') &&
+    !window.location.pathname.includes('/predictions') &&
+    !window.location.pathname.includes('/alertes') &&
+    !window.location.pathname.includes('/science') &&
+    !window.location.pathname.includes('/species_selector')) {
+    
+    // Vérifier si la page existe
+    fetch(window.location.pathname, { method: 'HEAD' })
+        .then(response => {
+            if (!response.ok) {
+                console.warn('Page non trouvée, redirection vers /');
+                window.location.href = '/';
+            }
+        })
+        .catch(() => {
+            console.warn('Erreur réseau, redirection vers /');
+            window.location.href = '/';
+        });
+}
+</script>
+
 {% block extra_js %}{% endblock %}
 </body>
 </html>
