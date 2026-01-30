@@ -1,0 +1,18 @@
+[
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "9B48AD0ACF56",
+    "sent": true,
+    "timestamp": "2026-01-29T00:46:28.691463",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-8DCFD6D54284",
+    "sent": true,
+    "timestamp": "2026-01-30T09:31:20.230943",
+    "server": "Gmail SMTP"
+  }
+]

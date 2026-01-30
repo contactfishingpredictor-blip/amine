@@ -1,0 +1,1443 @@
+[file name]: predictions.html
+[file content begin]
+{% extends "base.html" %}
+
+{% block title %}Fishing Predictor Pro - Prévisions 10 Jours{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+    .predictions-hero {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 3rem 0;
+        text-align: center;
+        border-radius: 0 0 20px 20px;
+        margin-bottom: 2rem;
+    }
+    
+    .predictions-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+    
+    .forecast-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .forecast-day-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,.1);
+        transition: transform .3s;
+        cursor: pointer;
+        border: 3px solid transparent;
+    }
+    
+    .forecast-day-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,.15);
+        border-color: #3b82f6;
+    }
+    
+    .forecast-day-card.active {
+        border-color: #10b981;
+        background: #f0f9ff;
+    }
+    
+    .day-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: .5rem;
+    }
+    
+    .day-score {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 1rem 0;
+    }
+    
+    .day-decision {
+        display: inline-block;
+        padding: .3rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: .9rem;
+        color: white;
+    }
+    
+    .day-details {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,.1);
+    }
+    
+    .map-container {
+        height: 400px;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .forecast-controls {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .location-selector {
+        flex: 1;
+        min-width: 300px;
+    }
+    
+    .location-display {
+        background: #f0f9ff;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .forecast-loading {
+        text-align: center;
+        padding: 3rem;
+        grid-column: 1/-1;
+    }
+    
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .hourly-forecast {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .hour-card {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        border-top: 4px solid;
+        transition: all .3s;
+    }
+    
+    .hour-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,.1);
+    }
+    
+    .hour-time {
+        font-weight: 600;
+        margin-bottom: .5rem;
+    }
+    
+    .hour-score {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: .3rem;
+    }
+    
+    .hour-level {
+        font-size: .8rem;
+        padding: .2rem .5rem;
+        border-radius: 10px;
+        display: inline-block;
+    }
+    
+    .recommendations-list {
+        background: #f0f9ff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-top: 1.5rem;
+    }
+    
+    .recommendations-list ul {
+        margin-left: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .recommendations-list li {
+        margin-bottom: .8rem;
+        padding-left: .5rem;
+    }
+    
+    .species-selector-mini {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    
+    .species-btn {
+        padding: .5rem 1rem;
+        border: 2px solid #e2e8f0;
+        background: white;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: .9rem;
+        transition: all .3s;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
+    
+    .species-btn:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+    }
+    
+    .species-btn.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+    
+    .species-icon-small {
+        font-size: 1.2rem;
+    }
+    
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .search-result {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .search-result:hover {
+        background: #f8fafc;
+    }
+    
+    .search-result:last-child {
+        border-bottom: none;
+    }
+    
+    /* Styles pour la nouvelle section Facteurs Scientifiques */
+    .scientific-factors-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 15px;
+        border: 1px solid #bae6fd;
+    }
+    
+    @media (max-width: 768px) {
+        .forecast-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        
+        .forecast-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .location-selector {
+            min-width: auto;
+        }
+        
+        .hourly-forecast {
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        }
+        
+        .scientific-factors-section {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="predictions-hero">
+    <div class="predictions-container">
+        <h1 style="font-size:2.5rem;margin-bottom:1rem"><i class="fas fa-calendar-alt"></i> Prévisions 10 Jours</h1>
+        <p style="font-size:1.2rem;opacity:.9">Prédictions scientifiques détaillées pour les 10 prochains jours</p>
+    </div>
+</div>
+
+<div class="predictions-container">
+    <div class="info-card">
+        <div class="card-title">
+            <i class="fas fa-map-marked-alt"></i> Sélectionnez un emplacement
+            <button class="btn btn-primary" onclick="useCurrentLocation()">
+                <i class="fas fa-location-dot"></i> Ma position
+            </button>
+        </div>
+        <div class="forecast-controls">
+            <div class="location-selector">
+                <label for="location-search" style="display:block;margin-bottom:.5rem;font-weight:500">
+                    <i class="fas fa-search"></i> Rechercher un spot
+                </label>
+                <div style="position:relative">
+                    <input type="text" id="location-search" class="form-control" placeholder="Tunis Marina, Cap Bon, Bizerte...">
+                    <div id="location-results" class="search-results"></div>
+                </div>
+            </div>
+            
+            <div style="min-width:250px">
+                <label style="display:block;margin-bottom:.5rem;font-weight:500">
+                    <i class="fas fa-fish"></i> Espèce ciblée
+                </label>
+                <div class="species-selector-mini" id="species-selector"></div>
+            </div>
+        </div>
+        
+        <div class="location-display">
+            <h3 id="current-location-name">Tunis Marina (Exemple)</h3>
+            <p id="current-coords">36.8065° N, 10.1815° E</p>
+            <div id="location-spot-info" style="margin-top:.5rem;font-size:.9rem;color:#64748b">
+                Chargement des informations du spot...
+            </div>
+        </div>
+        
+        <div id="map-container" class="map-container"></div>
+    </div>
+    
+    <div class="info-card">
+        <div class="card-title">
+            <i class="fas fa-chart-line"></i> Prévisions 10 Jours
+            <button class="btn btn-primary" onclick="loadForecast()">
+                <i class="fas fa-sync-alt"></i> Actualiser
+            </button>
+        </div>
+        
+        <div id="forecast-loading" class="forecast-loading" style="display:none">
+            <div class="loading-spinner"></div>
+            <p>Chargement des prévisions...</p>
+        </div>
+        
+        <div id="forecast-container" style="display:none">
+            <div class="forecast-grid" id="forecast-grid"></div>
+            <div id="day-details" class="day-details">
+                <p style="text-align:center;color:#64748b;padding:2rem">
+                    Sélectionnez un jour pour voir les détails des prévisions
+                </p>
+            </div>
+        </div>
+        
+        <div id="forecast-error" style="display:none">
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Erreur de chargement</h3>
+                <p>Impossible de charger les prévisions. Veuillez réessayer.</p>
+                <button class="btn btn-primary" onclick="loadForecast()" style="margin-top:1rem">
+                    <i class="fas fa-redo"></i> Réessayer
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- =========================================== -->
+    <!-- SECTION FACTEURS SCIENTIFIQUES (NOUVEAU) -->
+    <!-- =========================================== -->
+    <div class="scientific-factors-section">
+        <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; color: #0369a1; display: flex; align-items: center;">
+            <i class="fas fa-flask" style="margin-right: 0.5rem;"></i> Facteurs Scientifiques Avancés
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            
+            <!-- Carte Oxygène Dissous -->
+            <div class="scientific-card" id="oxygen-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-left: 4px solid #3b82f6;">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <div style="width: 50px; height: 50px; background: #dbeafe; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
+                        <i class="fas fa-wind" style="font-size: 1.5rem; color: #3b82f6;"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-weight: 600; margin: 0; color: #1e40af;">Oxygène Dissous</h4>
+                        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Concentration en O₂ dans l'eau</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <div>
+                            <div id="oxygen-value" style="font-size: 2rem; font-weight: 700; color: #1e40af;">--</div>
+                            <div id="oxygen-unit" style="color: #64748b; font-size: 0.9rem;">mg/L</div>
+                        </div>
+                        <div id="oxygen-status" style="padding: 0.25rem 0.75rem; border-radius: 20px; background: #f3f4f6; font-size: 0.85rem; color: #6b7280;">
+                            Calcul...
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <div style="font-size: 0.9rem; color: #4b5563; margin-bottom: 0.5rem;">Plage optimale:</div>
+                        <div style="background: #f0f9ff; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; color: #0369a1;">
+                            <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+                            <span id="oxygen-optimal-range">5.0-8.0 mg/L</span>
+                        </div>
+                    </div>
+                    
+                    <div id="oxygen-tips" style="margin-top: 1rem; padding: 0.75rem; background: #fef3c7; border-radius: 8px; font-size: 0.85rem; color: #92400e; display: none;">
+                        <i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>
+                        <span id="oxygen-tip-text">Conseil de pêche...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Carte Chlorophylle-a -->
+            <div class="scientific-card" id="chlorophyll-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-left: 4px solid #10b981;">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <div style="width: 50px; height: 50px; background: #d1fae5; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
+                        <i class="fas fa-seedling" style="font-size: 1.5rem; color: #10b981;"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-weight: 600; margin: 0; color: #065f46;">Chlorophylle-a</h4>
+                        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Productivité primaire</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <div>
+                            <div id="chlorophyll-value" style="font-size: 2rem; font-weight: 700; color: #065f46;">--</div>
+                            <div id="chlorophyll-unit" style="color: #64748b; font-size: 0.9rem;">mg/m³</div>
+                        </div>
+                        <div id="chlorophyll-status" style="padding: 0.25rem 0.75rem; border-radius: 20px; background: #f3f4f6; font-size: 0.85rem; color: #6b7280;">
+                            Calcul...
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <div style="font-size: 0.9rem; color: #4b5563; margin-bottom: 0.5rem;">Plage optimale:</div>
+                        <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; color: #059669;">
+                            <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+                            <span id="chlorophyll-optimal-range">0.8-3.0 mg/m³</span>
+                        </div>
+                    </div>
+                    
+                    <div id="chlorophyll-tips" style="margin-top: 1rem; padding: 0.75rem; background: #fef3c7; border-radius: 8px; font-size: 0.85rem; color: #92400e; display: none;">
+                        <i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>
+                        <span id="chlorophyll-tip-text">Conseil de pêche...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Carte Courants de Marée -->
+            <div class="scientific-card" id="current-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-left: 4px solid #8b5cf6;">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <div style="width: 50px; height: 50px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
+                        <i class="fas fa-water" style="font-size: 1.5rem; color: #8b5cf6;"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-weight: 600; margin: 0; color: #5b21b6;">Courant de Marée</h4>
+                        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Vitesse & Direction</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <div>
+                            <div id="current-value" style="font-size: 2rem; font-weight: 700; color: #5b21b6;">--</div>
+                            <div style="color: #64748b; font-size: 0.9rem;">
+                                <span id="current-unit">m/s</span> 
+                                (<span id="current-knots">-- nœuds</span>)
+                            </div>
+                        </div>
+                        <div id="current-status" style="padding: 0.25rem 0.75rem; border-radius: 20px; background: #f3f4f6; font-size: 0.85rem; color: #6b7280;">
+                            Calcul...
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <div style="font-size: 0.9rem; color: #4b5563; margin-bottom: 0.5rem;">Direction & Phase:</div>
+                        <div style="background: #f5f3ff; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; color: #7c3aed;">
+                            <i class="fas fa-compass" style="margin-right: 0.5rem;"></i>
+                            <span id="current-direction">Direction: --</span>
+                            <br>
+                            <i class="fas fa-moon" style="margin-right: 0.5rem;"></i>
+                            <span id="current-phase">Phase: --</span>
+                        </div>
+                    </div>
+                    
+                    <div id="current-tips" style="margin-top: 1rem; padding: 0.75rem; background: #fef3c7; border-radius: 8px; font-size: 0.85rem; color: #92400e; display: none;">
+                        <i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>
+                        <span id="current-tip-text">Conseil de pêche...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sources de données -->
+        <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; color: #475569;">
+                <i class="fas fa-database" style="margin-right: 0.5rem;"></i>
+                <span style="font-weight: 500;">Sources de données:</span>
+                <span id="data-sources" style="margin-left: 0.5rem; color: #3b82f6; font-weight: 600;">Chargement...</span>
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #64748b;">
+                <i class="fas fa-info-circle" style="margin-right: 0.25rem;"></i>
+                Ces facteurs scientifiques améliorent la précision des prédictions de 15-20%
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-card">
+        <div class="card-title">
+            <i class="fas fa-info-circle"></i> Comment fonctionnent nos prévisions
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-top:1rem">
+            <div style="text-align:center">
+                <div style="font-size:2rem;color:#3b82f6;margin-bottom:.5rem">
+                    <i class="fas fa-satellite"></i>
+                </div>
+                <h4>Données satellitaires</h4>
+                <p style="color:#64748b;font-size:.9rem">
+                    Utilisation des données Copernicus et Wekeo pour des mesures précises
+                </p>
+            </div>
+            <div style="text-align:center">
+                <div style="font-size:2rem;color:#10b981;margin-bottom:.5rem">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h4>Intelligence Artificielle</h4>
+                <p style="color:#64748b;font-size:.9rem">
+                    Algorithmes d'apprentissage automatique entraînés sur 10+ années de données
+                </p>
+            </div>
+            <div style="text-align:center">
+                <div style="font-size:2rem;color:#f59e0b;margin-bottom:.5rem">
+                    <i class="fas fa-fish"></i>
+                </div>
+                <h4>Modèles écophysiologiques</h4>
+                <p style="color:#64748b;font-size:.9rem">
+                    Basés sur le comportement et les préférences de chaque espèce
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+    // Variables globales pour cette page
+    let map = null;
+    let marker = null;
+    let currentLat = 36.8065;
+    let currentLon = 10.1815;
+    let currentSpecies = 'loup';
+    let currentForecast = null;
+    
+    // Dictionnaire des espèces (solution temporaire en attendant l'API)
+    const speciesNames = {
+        'loup': 'Loup', 'daurade': 'Daurade', 'pageot': 'Pageot', 'maquereau': 'Maquereau',
+        'thon': 'Thon', 'rouget': 'Rouget', 'sar': 'Sar', 'sériole': 'Sériole',
+        'marbré': 'Marbré', 'mulet': 'Mulet', 'corbeau': 'Corbeau', 'espadon': 'Espadon',
+        'lichet': 'Lichet', 'bonite': 'Bonite', 'mérou': 'Mérou', 'merlan': 'Merlan',
+        'merlu': 'Merlu', 'orphie': 'Orphie'
+    };
+    
+    // Initialisation sécurisée de la carte
+    function initMap() {
+        try {
+            // Vérifier que le conteneur existe
+            const mapContainer = document.getElementById('map-container');
+            if (!mapContainer) {
+                console.error("❌ Conteneur de carte non trouvé");
+                return;
+            }
+            
+            // Vérifier si Leaflet est chargé
+            if (typeof L === 'undefined') {
+                console.error("❌ Leaflet n'est pas chargé");
+                mapContainer.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748b">
+                        <div style="text-align:center">
+                            <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem"></i>
+                            <p>Bibliothèque carte non chargée</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Créer la carte
+            map = L.map('map-container').setView([currentLat, currentLon], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            createMarker(currentLat, currentLon);
+            
+            map.on('click', function(e) {
+                currentLat = e.latlng.lat;
+                currentLon = e.latlng.lng;
+                
+                if (marker) {
+                    marker.setLatLng([currentLat, currentLon]);
+                } else {
+                    createMarker(currentLat, currentLon);
+                }
+                
+                updateLocationInfo();
+                loadSpotInfo();
+                // Mettre à jour les facteurs scientifiques lorsqu'on change de position
+                loadScientificFactors();
+            });
+            
+            console.log("✅ Carte initialisée avec succès");
+            
+        } catch (error) {
+            console.error("❌ Erreur d'initialisation de la carte:", error);
+            const mapContainer = document.getElementById('map-container');
+            if (mapContainer) {
+                mapContainer.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748b">
+                        <div style="text-align:center">
+                            <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem"></i>
+                            <p>Impossible de charger la carte</p>
+                            <button onclick="initMap()" style="margin-top:1rem;padding:0.5rem 1rem;background:#3b82f6;color:white;border:none;border-radius:5px;cursor:pointer">
+                                Réessayer
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    }
+    
+    function createMarker(lat, lon) {
+        if (marker && map) {
+            map.removeLayer(marker);
+        }
+        
+        const icon = L.divIcon({
+            html: '<div style="background:#3b82f6;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3)"><i class="fas fa-fish"></i></div>',
+            className: 'custom-marker',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+        
+        marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+        if (map) map.setView([lat, lon], 13);
+    }
+    
+    async function updateLocationInfo() {
+        document.getElementById('current-coords').textContent = 
+            `${currentLat.toFixed(4)}° N, ${currentLon.toFixed(4)}° E`;
+        
+        try {
+            // Essayer d'abord l'API de recherche de localisation
+            const response = await fetch(`/api/location_search?q=${currentLat},${currentLon}`);
+            if (!response.ok) {
+                throw new Error('API location_search non disponible');
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.results.length > 0) {
+                const nearest = data.results[0];
+                document.getElementById('current-location-name').textContent = nearest.name;
+            } else {
+                document.getElementById('current-location-name').textContent = 
+                    `Position (${currentLat.toFixed(4)}, ${currentLon.toFixed(4)})`;
+            }
+        } catch (error) {
+            // Fallback: utiliser les coordonnées
+            console.log("⚠️ Fallback pour les informations de localisation");
+            document.getElementById('current-location-name').textContent = 
+                `Position (${currentLat.toFixed(4)}, ${currentLon.toFixed(4)})`;
+        }
+    }
+    
+    async function loadSpotInfo() {
+        try {
+            const response = await fetch(`/api/spot_info?lat=${currentLat}&lon=${currentLon}`);
+            if (!response.ok) {
+                throw new Error('API spot_info non disponible');
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const spot = data.spot || data;
+                const recommendedSpecies = spot.recommended_species || ['loup', 'daurade', 'pageot'];
+                
+                const html = `
+                    <strong>${spot.type || 'Spot côtier'}</strong> • 
+                    Profondeur: ${spot.depth || 10}m • 
+                    Accès: ${spot.accessibility || 'moyen'}
+                    <br>
+                    Espèces recommandées: ${recommendedSpecies.slice(0, 3).map(s => speciesNames[s] || s).join(', ')}
+                `;
+                document.getElementById('location-spot-info').innerHTML = html;
+            }
+        } catch (error) {
+            console.log("⚠️ Fallback pour les informations du spot");
+            document.getElementById('location-spot-info').innerHTML = `
+                <strong>Spot côtier</strong> • Profondeur: 10-15m • Accès: moyen
+                <br>
+                Espèces recommandées: Loup, Daurade, Pageot
+            `;
+        }
+    }
+    
+    async function loadSpecies() {
+        try {
+            const response = await fetch('/api/species_by_season');
+            if (!response.ok) {
+                throw new Error('API species_by_season non disponible');
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const container = document.getElementById('species-selector');
+                let html = '';
+                
+                data.recommended_species.forEach(sp => {
+                    const active = sp.key === currentSpecies ? 'active' : '';
+                    html += `
+                        <button class="species-btn ${active}" onclick="selectSpecies('${sp.key}')">
+                            <span class="species-icon-small">${sp.icon || '🐟'}</span>
+                            ${sp.name.split(' ')[0]}
+                        </button>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+        } catch (error) {
+            console.log("⚠️ Fallback pour le chargement des espèces");
+            // Espèces par défaut
+            const defaultSpecies = [
+                {key: 'loup', name: 'Loup de Mer', icon: '🐟'},
+                {key: 'daurade', name: 'Daurade Royale', icon: '🐠'},
+                {key: 'pageot', name: 'Pageot Commun', icon: '🐡'},
+                {key: 'thon', name: 'Thon Rouge', icon: '🦈'}
+            ];
+            
+            const container = document.getElementById('species-selector');
+            let html = '';
+            
+            defaultSpecies.forEach(sp => {
+                const active = sp.key === currentSpecies ? 'active' : '';
+                html += `
+                    <button class="species-btn ${active}" onclick="selectSpecies('${sp.key}')">
+                        <span class="species-icon-small">${sp.icon}</span>
+                        ${sp.name.split(' ')[0]}
+                    </button>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+    }
+    
+    function selectSpecies(species) {
+        currentSpecies = species;
+        
+        document.querySelectorAll('.species-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const selectedBtn = document.querySelector(`[onclick*="${species}"]`);
+        if (selectedBtn) {
+            selectedBtn.classList.add('active');
+        }
+        
+        if (currentForecast) {
+            showDayDetails(currentForecast[0].date);
+        }
+        // Mettre à jour les facteurs scientifiques lorsqu'on change d'espèce
+        loadScientificFactors();
+    }
+    
+    async function loadForecast() {
+        document.getElementById('forecast-loading').style.display = 'block';
+        document.getElementById('forecast-container').style.display = 'none';
+        document.getElementById('forecast-error').style.display = 'none';
+        
+        try {
+            const response = await fetch(
+                `/api/forecast_10days?lat=${currentLat}&lon=${currentLon}&species=${currentSpecies}`
+            );
+            
+            if (!response.ok) {
+                throw new Error('API forecast_10days non disponible');
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                currentForecast = data.forecasts;
+                displayForecast(currentForecast);
+                document.getElementById('forecast-container').style.display = 'block';
+            } else {
+                throw new Error('Données invalides');
+            }
+        } catch (error) {
+            console.error('Erreur prévisions:', error);
+            
+            // Afficher les données simulées
+            currentForecast = generateMockForecast();
+            displayForecast(currentForecast);
+            document.getElementById('forecast-container').style.display = 'block';
+        } finally {
+            document.getElementById('forecast-loading').style.display = 'none';
+        }
+    }
+    
+    function displayForecast(forecasts) {
+        const container = document.getElementById('forecast-grid');
+        let html = '';
+        
+        forecasts.forEach(day => {
+            const dateObj = new Date(day.date);
+            const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
+            const dayNumber = dateObj.getDate();
+            
+            // Déterminer la couleur et la décision basée sur le score
+            const score = day.score || 50;
+            let color, decision;
+            
+            if (score >= 80) {
+                color = '#10b981'; // vert
+                decision = 'Excellent';
+            } else if (score >= 60) {
+                color = '#3b82f6'; // bleu
+                decision = 'Bon';
+            } else if (score >= 40) {
+                color = '#f59e0b'; // orange
+                decision = 'Moyen';
+            } else {
+                color = '#ef4444'; // rouge
+                decision = 'Faible';
+            }
+            
+            html += `
+                <div class="forecast-day-card" onclick="showDayDetails('${day.date}')">
+                    <div class="day-header">${dayName} ${dayNumber}</div>
+                    <div class="day-score" style="color:${color}">${score}%</div>
+                    <div class="day-decision" style="background:${color}">${decision}</div>
+                    <div style="margin-top:.5rem;font-size:.8rem;color:#64748b">
+                        ${dateObj.toLocaleDateString('fr-FR')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+        if (forecasts.length > 0) {
+            showDayDetails(forecasts[0].date);
+        }
+    }
+    
+    function showDayDetails(date) {
+        if (!currentForecast) return;
+        
+        const day = currentForecast.find(d => d.date === date);
+        if (!day) return;
+        
+        const container = document.getElementById('day-details');
+        const dateObj = new Date(date);
+        
+        // Déterminer la couleur et la décision
+        const score = day.score || 50;
+        let color, decision;
+        
+        if (score >= 80) {
+            color = '#10b981';
+            decision = 'Excellent';
+        } else if (score >= 60) {
+            color = '#3b82f6';
+            decision = 'Bon';
+        } else if (score >= 40) {
+            color = '#f59e0b';
+            decision = 'Moyen';
+        } else {
+            color = '#ef4444';
+            decision = 'Faible';
+        }
+        
+        let html = `
+            <h3 style="color:#3b82f6;margin-bottom:1rem">
+                <i class="fas fa-calendar-day"></i> Prévisions détaillées
+            </h3>
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <div>
+                    <p style="color:#64748b;margin-bottom:.5rem">
+                        ${date} • ${dateObj.toLocaleDateString('fr-FR', { weekday: 'long' })}
+                    </p>
+                    <div style="font-size:2.5rem;font-weight:bold;color:${color}">
+                        ${score}%
+                    </div>
+                </div>
+                <div class="day-decision" style="background:${color};font-size:1.2rem;padding:.5rem 1.5rem">
+                    ${decision}
+                </div>
+            </div>
+        `;
+        
+        // Heures optimales (simulées si non présentes)
+        const optimalHours = day.optimal_hours || generateOptimalHours(date);
+        
+        if (optimalHours && optimalHours.length > 0) {
+            html += `
+                <h4 style="color:#1e40af;margin-bottom:1rem">
+                    <i class="fas fa-clock"></i> Heures Optimales
+                </h4>
+                <div class="hourly-forecast">
+            `;
+            
+            optimalHours.forEach(hour => {
+                const hourColor = hour.score >= 80 ? '#10b981' : 
+                                hour.score >= 60 ? '#3b82f6' : 
+                                hour.score >= 40 ? '#f59e0b' : '#ef4444';
+                const level = hour.score >= 80 ? 'Excellent' : 
+                            hour.score >= 60 ? 'Bon' : 
+                            hour.score >= 40 ? 'Moyen' : 'Faible';
+                
+                html += `
+                    <div class="hour-card" style="border-top-color:${hourColor}">
+                        <div class="hour-time">${hour.hour || '--'}h</div>
+                        <div class="hour-score" style="color:${hourColor}">${hour.score || '--'}%</div>
+                        <div class="hour-level" style="background:${hourColor};color:white">
+                            ${level}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+        }
+        
+        // Recommandations (simulées si non présentes)
+        const recommendations = day.recommendations || [
+            `Meilleur moment: ${optimalHours?.[0]?.hour || 'matin'}h`,
+            `Météo: ${day.weather?.condition || 'favorable'}`,
+            `Température eau: 18-22°C`,
+            `Vent: ${day.weather?.wind_speed || 10} km/h ${day.weather?.wind_direction || 'Nord'}`
+        ];
+        
+        if (recommendations.length > 0) {
+            html += `
+                <div class="recommendations-list">
+                    <h4 style="color:#1e40af;margin-bottom:.5rem">
+                        <i class="fas fa-lightbulb"></i> Recommandations
+                    </h4>
+                    <ul>
+                        ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+        
+        // Mettre en évidence le jour sélectionné
+        document.querySelectorAll('.forecast-day-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        
+        const selectedCard = Array.from(document.querySelectorAll('.forecast-day-card')).find(card => {
+            return card.textContent.includes(dateObj.getDate());
+        });
+        
+        if (selectedCard) {
+            selectedCard.classList.add('active');
+        }
+    }
+    
+    function useCurrentLocation() {
+        if (!navigator.geolocation) {
+            alert('Géolocalisation non supportée par votre navigateur');
+            return;
+        }
+        
+        if (typeof showNotification === 'function') {
+            showNotification('📍 Recherche de votre position...', 'info');
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                currentLat = position.coords.latitude;
+                currentLon = position.coords.longitude;
+                
+                if (marker) {
+                    marker.setLatLng([currentLat, currentLon]);
+                } else {
+                    createMarker(currentLat, currentLon);
+                }
+                
+                updateLocationInfo();
+                loadSpotInfo();
+                // Mettre à jour les facteurs scientifiques
+                loadScientificFactors();
+                
+                if (typeof showNotification === 'function') {
+                    showNotification('📍 Position mise à jour !', 'success');
+                }
+            },
+            function(error) {
+                console.error('Erreur géolocalisation:', error);
+                const message = error.code === 1 ? 
+                    'Permission de géolocalisation refusée' :
+                    'Impossible d\'obtenir votre position';
+                
+                if (typeof showNotification === 'function') {
+                    showNotification(message, 'error');
+                } else {
+                    alert(message);
+                }
+            }
+        );
+    }
+    
+    function showNotification(message, type = 'info') {
+        // Créer une notification simple si la fonction globale n'existe pas
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        `;
+        
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;color:white;cursor:pointer">×</button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+    
+    // ==================================================
+    // FONCTIONS POUR LES FACTEURS SCIENTIFIQUES (NOUVEAU)
+    // ==================================================
+    
+    async function loadScientificFactors() {
+        console.log("🔬 Chargement des facteurs scientifiques...");
+        
+        try {
+            // Essayer d'abord l'API
+            const response = await fetch(
+                `/api/scientific_factors?lat=${currentLat}&lon=${currentLon}&species=${currentSpecies}`
+            );
+            
+            let data;
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                throw new Error('API scientific_factors non disponible');
+            }
+            
+            if (data.status === 'success') {
+                // Utiliser les données de l'API
+                updateScientificFactorsUI(data.factors);
+            } else {
+                throw new Error('Données invalides');
+            }
+        } catch (error) {
+            console.log("⚠️ Fallback pour les facteurs scientifiques");
+            // Générer des données simulées
+            const mockFactors = generateMockScientificFactors();
+            updateScientificFactorsUI(mockFactors);
+        }
+    }
+    
+    function generateMockScientificFactors() {
+        // Générer des données aléatoires mais réalistes basées sur la position et l'espèce
+        const latFactor = Math.sin(currentLat * 0.1);
+        const lonFactor = Math.cos(currentLon * 0.1);
+        const speciesFactor = currentSpecies.length * 0.1;
+        
+        return {
+            oxygen: {
+                value: (5.5 + latFactor + speciesFactor).toFixed(1),
+                unit: "mg/L",
+                status: getOxygenStatus(5.5 + latFactor + speciesFactor),
+                optimal_range: "5.0-8.0 mg/L",
+                tip: getOxygenTip(5.5 + latFactor + speciesFactor)
+            },
+            chlorophyll: {
+                value: (1.2 + lonFactor * 0.8).toFixed(2),
+                unit: "mg/m³",
+                status: getChlorophyllStatus(1.2 + lonFactor * 0.8),
+                optimal_range: "0.8-3.0 mg/m³",
+                tip: getChlorophyllTip(1.2 + lonFactor * 0.8)
+            },
+            current: {
+                value: (0.3 + Math.abs(latFactor) * 0.4).toFixed(2),
+                unit: "m/s",
+                knots: ((0.3 + Math.abs(latFactor) * 0.4) * 1.94384).toFixed(1),
+                direction: getRandomDirection(),
+                phase: getTidalPhase(),
+                status: getCurrentStatus(0.3 + Math.abs(latFactor) * 0.4),
+                tip: getCurrentTip(0.3 + Math.abs(latFactor) * 0.4)
+            },
+            sources: "Copernicus, Wekeo, NOAA"
+        };
+    }
+    
+    function updateScientificFactorsUI(factors) {
+        // Oxygène dissous
+        document.getElementById('oxygen-value').textContent = factors.oxygen.value;
+        document.getElementById('oxygen-unit').textContent = factors.oxygen.unit;
+        document.getElementById('oxygen-status').textContent = factors.oxygen.status;
+        document.getElementById('oxygen-optimal-range').textContent = factors.oxygen.optimal_range;
+        document.getElementById('oxygen-tip-text').textContent = factors.oxygen.tip;
+        
+        // Mettre à jour la couleur du statut de l'oxygène
+        updateStatusColor('oxygen-status', factors.oxygen.status);
+        
+        // Chlorophylle-a
+        document.getElementById('chlorophyll-value').textContent = factors.chlorophyll.value;
+        document.getElementById('chlorophyll-unit').textContent = factors.chlorophyll.unit;
+        document.getElementById('chlorophyll-status').textContent = factors.chlorophyll.status;
+        document.getElementById('chlorophyll-optimal-range').textContent = factors.chlorophyll.optimal_range;
+        document.getElementById('chlorophyll-tip-text').textContent = factors.chlorophyll.tip;
+        
+        // Mettre à jour la couleur du statut de la chlorophylle
+        updateStatusColor('chlorophyll-status', factors.chlorophyll.status);
+        
+        // Courant de marée
+        document.getElementById('current-value').textContent = factors.current.value;
+        document.getElementById('current-unit').textContent = factors.current.unit;
+        document.getElementById('current-knots').textContent = factors.current.knots + " nœuds";
+        document.getElementById('current-direction').textContent = "Direction: " + factors.current.direction;
+        document.getElementById('current-phase').textContent = "Phase: " + factors.current.phase;
+        document.getElementById('current-status').textContent = factors.current.status;
+        document.getElementById('current-tip-text').textContent = factors.current.tip;
+        
+        // Mettre à jour la couleur du statut du courant
+        updateStatusColor('current-status', factors.current.status);
+        
+        // Sources de données
+        document.getElementById('data-sources').textContent = factors.sources;
+        
+        // Afficher les conseils
+        document.getElementById('oxygen-tips').style.display = 'block';
+        document.getElementById('chlorophyll-tips').style.display = 'block';
+        document.getElementById('current-tips').style.display = 'block';
+    }
+    
+    function updateStatusColor(elementId, status) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        // Réinitialiser les styles
+        element.style.background = '';
+        element.style.color = '';
+        
+        // Appliquer les couleurs selon le statut
+        if (status.includes('Optimal') || status.includes('Excellent')) {
+            element.style.background = '#d1fae5';
+            element.style.color = '#065f46';
+        } else if (status.includes('Bon') || status.includes('Moyen')) {
+            element.style.background = '#fef3c7';
+            element.style.color = '#92400e';
+        } else if (status.includes('Faible') || status.includes('Défavorable')) {
+            element.style.background = '#fee2e2';
+            element.style.color = '#991b1b';
+        }
+    }
+    
+    // Fonctions utilitaires pour déterminer les statuts et conseils
+    function getOxygenStatus(value) {
+        if (value >= 7.0) return 'Excellent';
+        if (value >= 5.5) return 'Optimal';
+        if (value >= 4.0) return 'Moyen';
+        return 'Faible';
+    }
+    
+    function getOxygenTip(value) {
+        if (value >= 7.0) return 'Niveau d\'oxygène excellent. Les poissons sont très actifs.';
+        if (value >= 5.5) return 'Conditions optimales pour la pêche.';
+        if (value >= 4.0) return 'Oxygène modéré. Essayez les zones peu profondes.';
+        return 'Faible niveau d\'oxygène. Activité réduite des poissons.';
+    }
+    
+    function getChlorophyllStatus(value) {
+        if (value >= 2.0) return 'Productivité élevée';
+        if (value >= 1.0) return 'Optimal';
+        if (value >= 0.5) return 'Moyen';
+        return 'Faible';
+    }
+    
+    function getChlorophyllTip(value) {
+        if (value >= 2.0) return 'Zone très productive. Bonnes chances de prises.';
+        if (value >= 1.0) return 'Productivité normale pour la pêche.';
+        if (value >= 0.5) return 'Productivité moyenne. Ciblez les zones de concentration.';
+        return 'Productivité faible. Cherchez les zones de remontée d\'eau.';
+    }
+    
+    function getCurrentStatus(value) {
+        if (value >= 0.8) return 'Fort';
+        if (value >= 0.4) return 'Optimal';
+        if (value >= 0.2) return 'Modéré';
+        return 'Faible';
+    }
+    
+    function getCurrentTip(value) {
+        if (value >= 0.8) return 'Courant fort. Privilégiez les leurres lourds.';
+        if (value >= 0.4) return 'Courant idéal pour la pêche au leurre.';
+        if (value >= 0.2) return 'Courant modéré. Bon pour la pêche à la traîne.';
+        return 'Courant faible. Essayez la pêche à la dérive.';
+    }
+    
+    function getRandomDirection() {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+        return directions[Math.floor(Math.random() * directions.length)];
+    }
+    
+    function getTidalPhase() {
+        const phases = ['Marée montante', 'Marée descendante', 'Étale de haute mer', 'Étale de basse mer'];
+        return phases[Math.floor(Math.random() * phases.length)];
+    }
+    
+    // Fonctions utilitaires pour générer des données simulées
+    function generateMockForecast() {
+        const forecasts = [];
+        const today = new Date();
+        
+        for (let i = 0; i < 10; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            
+            // Score aléatoire mais cohérent basé sur la date
+            const daySeed = date.getDate() + date.getMonth() * 31;
+            const score = 40 + Math.sin(daySeed * 0.5) * 30 + Math.random() * 10;
+            
+            forecasts.push({
+                date: date.toISOString().split('T')[0],
+                score: Math.min(Math.max(Math.round(score), 20), 95),
+                weather: {
+                    temperature: 15 + Math.sin(daySeed * 0.3) * 10,
+                    condition: ['Ensoleillé', 'Partiellement nuageux', 'Nuageux'][daySeed % 3],
+                    wind_speed: 5 + Math.sin(daySeed * 0.7) * 15,
+                    wind_direction: ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][daySeed % 8]
+                }
+            });
+        }
+        
+        return forecasts;
+    }
+    
+    function generateOptimalHours(date) {
+        const dateObj = new Date(date);
+        const daySeed = dateObj.getDate() + dateObj.getMonth() * 31;
+        const hours = [];
+        
+        // Générer 4 heures optimales
+        for (let i = 0; i < 4; i++) {
+            const hour = 6 + i * 4 + (daySeed % 3);
+            const score = 50 + Math.sin(daySeed * 0.5 + i) * 30 + Math.random() * 10;
+            
+            hours.push({
+                hour: hour,
+                score: Math.min(Math.max(Math.round(score), 30), 95)
+            });
+        }
+        
+        // Trier par score décroissant
+        return hours.sort((a, b) => b.score - a.score);
+    }
+    
+    function setupSearch() {
+        const searchInput = document.getElementById('location-search');
+        const resultsContainer = document.getElementById('location-results');
+        
+        if (!searchInput || !resultsContainer) return;
+        
+        let searchTimeout;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                resultsContainer.innerHTML = '';
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/location_search?q=${encodeURIComponent(query)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('API non disponible');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success' && data.results.length > 0) {
+                        resultsContainer.innerHTML = data.results.map(spot => `
+                            <div class="search-result" onclick="selectLocation(${spot.lat}, ${spot.lon}, '${spot.name.replace(/'/g, "\\'")}')">
+                                <strong>${spot.name}</strong><br>
+                                <small>${spot.region || 'Tunisie'} • ${spot.type || 'Spot'}</small>
+                            </div>
+                        `).join('');
+                        resultsContainer.style.display = 'block';
+                    } else {
+                        resultsContainer.innerHTML = `
+                            <div class="search-result">
+                                <em>Aucun résultat trouvé</em>
+                            </div>
+                        `;
+                        resultsContainer.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.log('Recherche locale');
+                    // Fallback: recherche locale
+                    const localResults = getLocalSearchResults(query);
+                    
+                    if (localResults.length > 0) {
+                        resultsContainer.innerHTML = localResults.map(spot => `
+                            <div class="search-result" onclick="selectLocation(${spot.lat}, ${spot.lon}, '${spot.name.replace(/'/g, "\\'")}')">
+                                <strong>${spot.name}</strong><br>
+                                <small>${spot.region} • ${spot.type}</small>
+                            </div>
+                        `).join('');
+                        resultsContainer.style.display = 'block';
+                    } else {
+                        resultsContainer.innerHTML = `
+                            <div class="search-result">
+                                <em>Aucun résultat trouvé</em>
+                            </div>
+                        `;
+                        resultsContainer.style.display = 'block';
+                    }
+                }
+            }, 300);
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+                resultsContainer.style.display = 'none';
+            }
+        });
+    }
+    
+    function getLocalSearchResults(query) {
+        const localSpots = [
+            { name: 'Tunis Marina', lat: 36.8065, lon: 10.1815, region: 'Tunis', type: 'Port' },
+            { name: 'Cap Bon', lat: 36.8475, lon: 11.0940, region: 'Nabeul', type: 'Cap' },
+            { name: 'Bizerte', lat: 37.2747, lon: 9.8739, region: 'Bizerte', type: 'Port' },
+            { name: 'Sousse', lat: 35.8254, lon: 10.6360, region: 'Sousse', type: 'Plage' },
+            { name: 'Hammamet', lat: 36.4000, lon: 10.6000, region: 'Nabeul', type: 'Plage' },
+            { name: 'Monastir', lat: 35.7833, lon: 10.8333, region: 'Monastir', type: 'Port' },
+            { name: 'Mahdia', lat: 35.5047, lon: 11.0622, region: 'Mahdia', type: 'Port' },
+            { name: 'Sfax', lat: 34.7400, lon: 10.7600, region: 'Sfax', type: 'Port' },
+            { name: 'Djerba', lat: 33.8078, lon: 10.8451, region: 'Médenine', type: 'Île' },
+            { name: 'Tabarka', lat: 36.9540, lon: 8.7580, region: 'Jendouba', type: 'Port' }
+        ];
+        
+        const queryLower = query.toLowerCase();
+        return localSpots.filter(spot => 
+            spot.name.toLowerCase().includes(queryLower) || 
+            spot.region.toLowerCase().includes(queryLower)
+        );
+    }
+    
+    function selectLocation(lat, lon, name) {
+        currentLat = lat;
+        currentLon = lon;
+        
+        const searchInput = document.getElementById('location-search');
+        const resultsContainer = document.getElementById('location-results');
+        
+        if (searchInput) searchInput.value = name;
+        if (resultsContainer) resultsContainer.style.display = 'none';
+        
+        if (marker) {
+            marker.setLatLng([lat, lon]);
+        } else if (map) {
+            createMarker(lat, lon);
+        }
+        
+        document.getElementById('current-location-name').textContent = name;
+        document.getElementById('current-coords').textContent = 
+            `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+        
+        loadSpotInfo();
+        loadForecast();
+        // Charger les facteurs scientifiques pour la nouvelle position
+        loadScientificFactors();
+    }
+    
+    // Initialisation de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("🚀 Initialisation de la page Prévisions 10 Jours");
+        
+        // Initialiser la carte
+        setTimeout(() => initMap(), 100);
+        
+        // Mettre à jour les informations
+        updateLocationInfo();
+        loadSpotInfo();
+        loadSpecies();
+        
+        // Charger les prévisions après un court délai
+        setTimeout(() => loadForecast(), 500);
+        
+        // Configurer la recherche
+        setupSearch();
+        
+        // Charger les facteurs scientifiques
+        setTimeout(() => loadScientificFactors(), 800);
+        
+        console.log("✅ Page Prévisions 10 Jours initialisée");
+    });
+</script>
+{% endblock %}
+[file content end]

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{% block title %}Fishing Predictor Pro - Prédictions Scientifiques{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+<nav class="main-nav">
+<div class="nav-container">
+<div class="nav-brand">
+<div class="logo-icon"><i class="fas fa-fish"></i></div>
+<div><h1>Fishing Predictor <span class="pro-badge">PRO</span></h1><p style="font-size:0.9rem;opacity:0.9">Prédictions scientifiques pour pêcheurs tunisiens</p></div>
+</div>
+<div class="nav-links">
+<a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" aria-label="Carte Interactive"><i class="fas fa-map-marked-alt"></i><span>Carte</span></a>
+<a href="{{ url_for('species_selector') }}" class="nav-link {% if request.endpoint == 'species_selector' %}active{% endif %}" aria-label="Sélecteur d'espèces"><i class="fas fa-fish"></i><span>Espèces</span></a>
+<a href="{{ url_for('predictions') }}" class="nav-link {% if request.endpoint == 'predictions' %}active{% endif %}" aria-label="Prévisions 10 Jours"><i class="fas fa-calendar-alt"></i><span>Prévisions</span></a>
+<a href="{{ url_for('favorites') }}" class="nav-link {% if request.endpoint == 'favorites' %}active{% endif %}" aria-label="Favoris"><i class="fas fa-star"></i><span>Favoris</span></a>
+<a href="{{ url_for('science') }}" class="nav-link {% if request.endpoint == 'science' %}active{% endif %}" aria-label="Science Halieutique"><i class="fas fa-microscope"></i><span>Science</span></a>
+<a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint == 'alerts' %}active{% endif %}" aria-label="Alertes Intelligentes"><i class="fas fa-bell"></i><span>Alertes</span></a>
+</div>
+<button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="Menu mobile"><i class="fas fa-bars"></i></button>
+</div>
+</nav>
+<main>{% block content %}{% endblock %}</main>
+<footer class="main-footer">
+<div class="footer-container">
+<div class="container">
+<div class="footer-section">
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem"><div class="logo-icon" style="background:white;color:#3b82f6"><i class="fas fa-fish"></i></div><div><h3>Fishing Predictor Pro</h3><p>Prédictions halieutiques scientifiques pour la Tunisie</p></div></div>
+<p><i class="fas fa-shield-alt"></i> Fiabilité 95% validée scientifiquement</p>
+</div>
+<div class="footer-section">
+<h4>Navigation</h4>
+<ul class="footer-links">
+<li><a href="{{ url_for('index') }}">Carte Interactive</a></li>
+<li><a href="{{ url_for('species_selector') }}">Guide des Espèces</a></li>
+<li><a href="{{ url_for('predictions') }}">Prévisions 10 Jours</a></li>
+<li><a href="{{ url_for('favorites') }}">Mes Favoris</a></li>
+<li><a href="{{ url_for('science') }}">Science Halieutique</a></li>
+<li><a href="{{ url_for('alerts') }}">Alertes Intelligentes</a></li>
+</ul>
+</div>
+<div class="footer-section">
+<h4>Contact & Support</h4>
+<p><i class="fas fa-envelope"></i> contactfishingpredictor@gmail.com</p>
+<p><i class="fas fa-phone"></i> +216 xx xxx xxx</p>
+<p><i class="fas fa-map-marker-alt"></i> Tunis, Tunisie</p>
+<p style="margin-top:1rem"><i class="fas fa-clock"></i> Support 7j/7</p>
+</div>
+</div>
+<div class="footer-bottom">
+<p>&copy; 2024 Fishing Predictor Pro. Tous droits réservés. | Précision scientifique validée</p>
+<p style="margin-top:0.5rem;font-size:0.9rem">Utilise les données Copernicus et Wekeo pour des prédictions fiables</p>
+</div>
+</div>
+</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/favorites.js') }}"></script>
+<script>function toggleMenu(){document.querySelector('.nav-links').classList.toggle('active')}document.addEventListener('DOMContentLoaded',function(){console.log('Base template chargé avec Leaflet');if(typeof L=='undefined'){const e=document.createElement('script');e.src="{{ url_for('static', filename='js/leaflet.js') }}",document.head.appendChild(e)}});</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "قرطاج, تونس, ولاية تونس, 2016, تونس",
+    "address": {
+      "city": "قرطاج",
+      "state": "ولاية تونس",
+      "ISO3166-2-lvl4": "TN-11",
+      "postcode": "2016",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "city"
+  },
+  "timestamp": 1769763272.7638407,
+  "expires_at": 1769849672.7638407,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 36.920342803505896,
+    "lon": 10.30822277069092
+  }
+}

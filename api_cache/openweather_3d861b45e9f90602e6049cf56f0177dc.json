@@ -1,0 +1,35 @@
+{
+  "data": {
+    "temperature": 16.21,
+    "feels_like": 15.84,
+    "pressure": 1006,
+    "humidity": 75,
+    "wind_speed": 42.552,
+    "wind_direction": 288,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02d",
+    "clouds": 21,
+    "visibility": 10.0,
+    "sunrise": "2026-01-30T07:23:05",
+    "sunset": "2026-01-30T17:40:15",
+    "location": "Rhar el Melah",
+    "country": "TN",
+    "timestamp": "2026-01-30T12:44:01.531243",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1769773441.5312436,
+  "expires_at": 1769816641.5312436,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.145375908111575,
+    "lon": 10.376586914062502
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "data": {
+    "temperature": 15.62,
+    "feels_like": 15.25,
+    "pressure": 1005,
+    "humidity": 77,
+    "wind_speed": 40.896,
+    "wind_direction": 286,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02d",
+    "clouds": 12,
+    "visibility": 10.0,
+    "sunrise": "2026-01-30T07:22:36",
+    "sunset": "2026-01-30T17:38:46",
+    "location": "Rafrāf",
+    "country": "TN",
+    "timestamp": "2026-01-30T12:44:06.802389",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1769773446.8023899,
+  "expires_at": 1769816646.8023899,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.39454590910921,
+    "lon": 10.623779296875002
+  }
+}

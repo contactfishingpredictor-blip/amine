@@ -1,0 +1,120 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "d80897e9c8b1",
+    "stable": true,
+    "valid_until": "2026-01-30T13:53:42.898338",
+    "scores": {
+      "final": 84,
+      "environmental": 60,
+      "behavioral": 72,
+      "bathymetry_factor": 100,
+      "weather_factor": 90,
+      "components": {
+        "scientific": 60,
+        "depth": 100,
+        "regional": 70,
+        "weather": 90
+      }
+    },
+    "weather": {
+      "temperature": 19.02,
+      "wind_speed": 33.336,
+      "wind_direction": 270,
+      "wind_direction_abbr": "O",
+      "wind_direction_name": "Ouest",
+      "wind_direction_icon": "⬅️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+      "wind_offshore": false,
+      "wind_onshore": true,
+      "pressure": 1006,
+      "humidity": 68,
+      "condition": "Clouds",
+      "condition_fr": "Nuageux",
+      "wave_height": 0.5,
+      "updated": "2026-01-30T12:53:42.898338",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.16,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 0.47,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "suboptimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.2,
+        "speed_knots": 0.38,
+        "direction": "SO-NE",
+        "tide_height": 0.14,
+        "tide_phase": "descendante",
+        "fishing_impact": "favorable"
+      }
+    },
+    "marine_data_sources": [
+      "Open-Météo"
+    ],
+    "recommendations": {
+      "tips": [
+        "Opportunité: TRÈS BONNE",
+        "Heures optimales: 19h, 6h, 7h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Nuageux, 19.0°C, Vent: 33.3 km/h (Ouest)"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "depth": 8.0,
+      "seabed_type": "mixed",
+      "seabed_description": "Fond mixte",
+      "slope": 0.5,
+      "accuracy": "moyenne",
+      "optimal_for_species": true,
+      "zone": "ولاية تونس",
+      "recommended_fishing": [
+        "Profondeur: 8.0m (optimale)",
+        "Type de fond: Fond mixte",
+        "Précision: moyenne"
+      ]
+    },
+    "location": {
+      "lat": 36.76218395842218,
+      "lon": 10.373840332031252,
+      "name": "قرطاج, تونس, ولاية تونس, 2016, تونس",
+      "type": "city",
+      "region": "ولاية تونس"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-01-30T12:53:42.898338",
+      "data_source": "modèle scientifique",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "13:53",
+      "api_usage_info": {
+        "openweather_calls_today": 1,
+        "using_cache": false
+      }
+    }
+  },
+  "timestamp": 1769774022.8983388,
+  "expires_at": 1769777622.8983388,
+  "api_name": "prediction",
+  "params": {
+    "lat": 36.76218395842218,
+    "lon": 10.373840332031252,
+    "species": "loup"
+  }
+}

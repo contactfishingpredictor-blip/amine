@@ -1,0 +1,35 @@
+{
+  "data": {
+    "temperature": 15.02,
+    "feels_like": 15.03,
+    "pressure": 1006,
+    "humidity": 94,
+    "wind_speed": 18.503999999999998,
+    "wind_direction": 260,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03d",
+    "clouds": 40,
+    "visibility": 8.0,
+    "sunrise": "2026-01-30T07:22:56",
+    "sunset": "2026-01-30T17:41:23",
+    "location": "El Aouina",
+    "country": "TN",
+    "timestamp": "2026-01-30T09:48:46.429839",
+    "score": 1.0
+  },
+  "timestamp": 1769762926.4298391,
+  "expires_at": 1769806126.4298391,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.82236424310866,
+    "lon": 10.254707336425783
+  }
+}

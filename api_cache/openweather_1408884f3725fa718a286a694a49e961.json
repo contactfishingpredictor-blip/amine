@@ -1,0 +1,35 @@
+{
+  "data": {
+    "temperature": 17.19,
+    "feels_like": 16.98,
+    "pressure": 1006,
+    "humidity": 77,
+    "wind_speed": 16.668,
+    "wind_direction": 0,
+    "wind_direction_abbr": "N",
+    "wind_direction_name": "Nord",
+    "wind_direction_icon": "⬆️",
+    "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02d",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-01-30T07:19:22",
+    "sunset": "2026-01-30T17:37:16",
+    "location": "Kelibia",
+    "country": "TN",
+    "timestamp": "2026-01-30T12:43:47.799102",
+    "score": 1.0
+  },
+  "timestamp": 1769773427.7991023,
+  "expires_at": 1769816627.7991023,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.957765795012904,
+    "lon": 11.214294433593752
+  }
+}

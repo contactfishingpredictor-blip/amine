@@ -1,0 +1,35 @@
+{
+  "data": {
+    "temperature": 15.7,
+    "feels_like": 15.34,
+    "pressure": 1006,
+    "humidity": 77,
+    "wind_speed": 41.472,
+    "wind_direction": 289,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03d",
+    "clouds": 31,
+    "visibility": 10.0,
+    "sunrise": "2026-01-30T07:21:57",
+    "sunset": "2026-01-30T17:39:09",
+    "location": "El Haouaria",
+    "country": "TN",
+    "timestamp": "2026-01-30T12:44:05.031432",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1769773445.0314322,
+  "expires_at": 1769816645.0314322,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.136618133489755,
+    "lon": 10.656738281250002
+  }
+}

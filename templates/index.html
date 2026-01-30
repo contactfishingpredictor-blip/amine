@@ -1,0 +1,1301 @@
+{% extends "base.html" %}
+{% block title %}Fishing Predictor Pro - Carte Interactive{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+    .hero-section{background:linear-gradient(135deg,#3b82f6 0%,#1e40af 100%);color:white;padding:3rem 0;text-align:center;margin-bottom:2rem;}
+    .main-container{max-width:1400px;margin:0 auto;padding:0 1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+    @media(max-width:1024px){.main-container{grid-template-columns:1fr;}}
+    .map-card{background:white;border-radius:15px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.1);height:500px;position:relative;}
+    #map{width:100%;height:100%;}
+    .info-card{background:white;border-radius:15px;padding:1.5rem;box-shadow:0 10px 30px rgba(0,0,0,.1);margin-bottom:1.5rem;}
+    .prediction-display{text-align:center;padding:2rem;background:linear-gradient(135deg,#f8fafc 0%,#e2e8f0 100%);border-radius:15px;margin-bottom:1.5rem;border:2px solid #93c5fd;}
+    .prediction-score{font-size:3.5rem;font-weight:700;background:linear-gradient(135deg,#3b82f6 0%,#0ea5e9 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem;}
+    .map-controls{position:absolute;top:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:5px;}
+    .map-btn{background:white;border:none;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2);}
+    .bathymetry-display{background:#f0f9ff;padding:1rem;border-radius:10px;margin-top:1rem;border-left:4px solid #0ea5e9;}
+    .depth-badge{display:inline-block;padding:0.3rem 0.8rem;border-radius:20px;font-weight:600;font-size:0.9rem;margin-left:0.5rem;}
+    .depth-shallow{background:#d1fae5;color:#065f46;}
+    .depth-medium{background:#fef3c7;color:#92400e;}
+    .depth-deep{background:#fee2e2;color:#991b1b;}
+    .seabed-badge{display:inline-block;padding:0.3rem 0.8rem;border-radius:20px;font-weight:600;font-size:0.9rem;margin-left:0.5rem;background:#e0f2fe;color:#0369a1;}
+    .spot-characteristics{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:1rem 0;}
+    .characteristic-card{background:white;padding:1rem;border-radius:10px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.1);border:1px solid #e2e8f0;}
+    .char-value{font-size:1.8rem;font-weight:700;margin:0.5rem 0;}
+    .char-label{font-size:0.9rem;color:#64748b;}
+    .optimized-badge{display:inline-flex;align-items:center;gap:0.3rem;padding:0.3rem 0.8rem;border-radius:20px;font-size:0.8rem;font-weight:600;margin-top:0.5rem;}
+    .optimized-yes{background:#d1fae5;color:#065f46;}
+    .optimized-no{background:#fee2e2;color:#991b1b;}
+    
+    /* Nouvelles classes pour la météo */
+    .weather-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1rem;}
+    @media(max-width:768px){.weather-grid{grid-template-columns:repeat(2,1fr);}}
+    .weather-card{background:#f0f9ff;padding:1rem;border-radius:10px;text-align:center;transition:transform .3s;}
+    .weather-card:hover{transform:translateY(-3px);}
+    .weather-icon{font-size:2rem;margin-bottom:0.5rem;}
+    .weather-value{font-size:1.5rem;font-weight:700;margin:0.5rem 0;}
+    .weather-label{font-size:0.8rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;}
+    .weather-update{display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:1rem;border-top:1px solid #e2e8f0;}
+    .weather-description{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;}
+    .weather-loading{text-align:center;padding:2rem;color:#64748b;}
+    .weather-alert{background:#fee2e2;color:#991b1b;padding:0.5rem;border-radius:8px;margin-top:0.5rem;font-size:0.9rem;display:flex;align-items:center;gap:0.5rem;}
+    
+    /* Animations */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3b82f6;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    
+    /* Notifications */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 9999;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease;
+    }
+    
+    .notification.info { background: #3b82f6; }
+    .notification.success { background: #10b981; }
+    .notification.warning { background: #f59e0b; }
+    .notification.error { background: #ef4444; }
+    
+    .notification .close-notification {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Section Nouveautés Scientifiques */
+    .feature-highlight {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+        padding: 2rem; 
+        border-radius: 15px; 
+        margin: 2rem auto;
+        max-width: 1400px;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="hero-section">
+    <div style="max-width:1200px;margin:0 auto;padding:0 1.5rem">
+        <h1 style="font-size:2.5rem;margin-bottom:1rem">
+            <i class="fas fa-fish"></i> Fishing Predictor Pro
+        </h1>
+        <p style="font-size:1.2rem;opacity:.9">
+            Carte interactive avec prédictions scientifiques pour la pêche en Tunisie
+        </p>
+    </div>
+</div>
+
+<div class="main-container">
+    <div>
+        <div class="map-card">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-btn" onclick="addToFavorites()" title="Ajouter aux favoris">
+                    <i class="fas fa-star"></i>
+                </button>
+                <button class="map-btn" onclick="getCurrentLocation()" title="Ma position">
+                    <i class="fas fa-location-dot"></i>
+                </button>
+                <button class="map-btn" onclick="refreshWeather()" title="Actualiser météo">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- SECTION MÉTÉO CORRIGÉE -->
+        <div class="info-card">
+            <h2 style="color:#1e40af;margin-bottom:1rem">
+                <i class="fas fa-wind"></i> Conditions Météo & Vent
+            </h2>
+            
+            <div id="weather-loading" class="weather-loading">
+                <div class="loading-spinner"></div>
+                <p>Chargement des conditions météo...</p>
+            </div>
+            
+            <div id="weather-container" style="display:none;">
+                <div class="weather-description">
+                    <div id="weather-main-icon" style="font-size:2rem;">🌤️</div>
+                    <div>
+                        <div style="font-weight:600;font-size:1.1rem;" id="weather-condition">--</div>
+                        <div style="font-size:0.9rem;color:#64748b;" id="weather-location-name">Chargement...</div>
+                    </div>
+                </div>
+                
+                <!-- ALERTE VENT OFFSHORE (DANGEREUX) -->
+                <div id="wind-offshore-alert" class="weather-alert" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>⚠️ ALERTE SÉCURITÉ : Vent de terre (offshore)</strong>
+                        <div style="font-size:0.9rem;margin-top:0.3rem;">
+                            Dangereux pour la pêche côtière - Risque d'être emporté au large
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ALERTE VENT FORT -->
+                <div id="wind-strong-alert" class="weather-alert" style="display:none;background:#fef3c7;color:#92400e;border-left:4px solid #f59e0b;">
+                    <i class="fas fa-wind"></i>
+                    <div>
+                        <strong>💨 Vent fort détecté</strong>
+                        <div style="font-size:0.9rem;margin-top:0.3rem;">
+                            Conditions difficiles pour la pêche
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="weather-grid">
+                    <div class="weather-card">
+                        <div class="weather-icon" style="color:#ef4444;">
+                            <i class="fas fa-temperature-high"></i>
+                        </div>
+                        <div class="weather-value" id="temperature">--°C</div>
+                        <div class="weather-label">Température</div>
+                    </div>
+                    
+                    <div class="weather-card">
+                        <div class="weather-icon" style="color:#3b82f6;">
+                            <i class="fas fa-wind"></i>
+                        </div>
+                        <div class="weather-value" id="wind-speed">-- km/h</div>
+                        <div class="weather-label">Vitesse vent</div>
+                    </div>
+                    
+                    <div class="weather-card">
+                        <div class="weather-icon" id="weather-icon" style="font-size:1.8rem;">
+                            ⬆️
+                        </div>
+                        <div class="weather-value" id="wind-direction">--</div>
+                        <div class="weather-label">Direction vent</div>
+                    </div>
+                    
+                    <div class="weather-card">
+                        <div class="weather-icon" style="color:#1e40af;">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="weather-value" id="weather-pressure">-- hPa</div>
+                        <div class="weather-label">Pression</div>
+                    </div>
+                </div>
+                
+                <div id="wind-impact" style="margin-top:0.5rem;font-size:0.8rem;color:#64748b;text-align:center;">
+                    Analyse en cours...
+                </div>
+                
+                <!-- INDICATEUR VENT POUR PÊCHE -->
+                <div style="margin-top:1rem;padding:1rem;background:#f0f9ff;border-radius:10px;border-left:4px solid #3b82f6;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                        <div style="font-weight:600;color:#1e40af;">
+                            <i class="fas fa-fish"></i> Impact sur la pêche
+                        </div>
+                        <div id="wind-safety-badge" style="padding:0.3rem 0.8rem;border-radius:15px;font-size:0.8rem;font-weight:600;background:#d1fae5;color:#065f46;">
+                            Analyse...
+                        </div>
+                    </div>
+                    <div id="wind-fishing-tips" style="font-size:0.9rem;color:#64748b;">
+                        Chargement des conseils...
+                    </div>
+                </div>
+                
+                <div class="weather-update">
+                    <div style="font-size:0.8rem;color:#64748b;">
+                        <i class="fas fa-clock"></i> Mis à jour: <span id="weather-updated">--:--</span>
+                    </div>
+                    <div style="font-size:0.8rem;color:#64748b;">
+                        <i class="fas fa-map-marker-alt"></i> Source: OpenWeatherMap
+                    </div>
+                </div>
+            </div>
+            
+            <div id="weather-error" style="display:none;text-align:center;padding:1rem;color:#ef4444;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Impossible de charger les données météo</p>
+                <button class="btn btn-outline" onclick="loadWeatherData()" style="margin-top:0.5rem;">
+                    <i class="fas fa-redo"></i> Réessayer
+                </button>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h2 style="color:#1e40af;margin-bottom:1rem">
+                <i class="fas fa-info-circle"></i> Comment utiliser la carte
+            </h2>
+            <ul style="color:#64748b;padding-left:1.2rem">
+                <li>Cliquez sur la carte pour sélectionner un spot</li>
+                <li>Utilisez l'étoile <i class="fas fa-star"></i> pour ajouter aux favoris</li>
+                <li>Cliquez sur la cible <i class="fas fa-location-dot"></i> pour votre position</li>
+                <li>Les marqueurs bleus sont des spots recommandés</li>
+                <li>Vérifiez les conditions météo avant de partir</li>
+                <li><strong>⚠️ Attention au vent de terre (offshore) - DANGEREUX</strong></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div>
+        <div class="info-card">
+            <h2 style="color:#1e40af;margin-bottom:1rem">
+                <i class="fas fa-chart-line"></i> Prédiction Actuelle
+            </h2>
+            <p style="color:#64748b;margin-bottom:1rem">
+                Sélectionnez un spot sur la carte pour voir les prédictions
+            </p>
+            
+            <div id="location-info" style="background:#f0f9ff;padding:1rem;border-radius:10px;margin-bottom:1rem">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div>
+                        <strong>Position:</strong> <span id="location-coords">36.8065° N, 10.1815° E</span><br>
+                        <small class="location-name">Tunis Marina - Chargement...</small>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:0.9rem;color:#64748b">Espèce</div>
+                        <div style="font-weight:600" id="current-species">Loup de Mer</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="spot-characteristics">
+                <div class="characteristic-card">
+                    <div class="char-label">Profondeur</div>
+                    <div class="char-value" id="depth-value" style="color:#0ea5e9">8.0m</div>
+                    <div id="depth-status" class="optimized-badge optimized-yes">
+                        <i class="fas fa-check-circle"></i> Optimale
+                    </div>
+                </div>
+                <div class="characteristic-card">
+                    <div class="char-label">Type de fond</div>
+                    <div class="char-value" id="seabed-value" style="color:#1e40af">Mixte</div>
+                    <div id="seabed-status" class="seabed-badge">
+                        <i class="fas fa-water"></i> Fond marin
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="prediction-display">
+            <div class="prediction-score" id="prediction-score">75%</div>
+            <div style="font-size:1rem;color:#64748b;margin-bottom:1rem">
+                SCORE DE PÊCHE
+            </div>
+            <div style="display:inline-block;padding:.5rem 1.5rem;border-radius:25px;font-weight:600;background:#3b82f6;color:white" id="prediction-badge">
+                BONNE
+            </div>
+            <div style="margin-top:1.5rem;font-size:0.9rem;color:#64748b">
+                <div>Dernière mise à jour: <span id="last-update">maintenant</span></div>
+                <div>Source: <span id="data-source">modèle scientifique</span></div>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h2 style="color:#1e40af;margin-bottom:1rem">
+                <i class="fas fa-lightbulb"></i> Recommandations
+            </h2>
+            <div id="recommendations" style="color:#64748b">
+                <p>• Conditions en cours d'analyse...</p>
+                <p>• Cliquez sur la carte pour obtenir des prédictions</p>
+            </div>
+            
+            <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #e2e8f0">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div><strong>Composition du score:</strong></div>
+                    <button class="btn btn-outline" onclick="showScoreDetails()" style="font-size:0.9rem">
+                        <i class="fas fa-chart-pie"></i> Détails
+                    </button>
+                </div>
+                <div style="margin-top:0.5rem;font-size:0.9rem;color:#64748b">
+                    <div style="display:flex;justify-content:space-between">
+                        <span>Prédiction scientifique:</span>
+                        <span id="score-scientific">--%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span>Adaptation bathymétrique:</span>
+                        <span id="score-bathymetry">--%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span>Facteur régional:</span>
+                        <span id="score-regional">--%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h2 style="color:#1e40af;margin-bottom:1rem">
+                <i class="fas fa-water"></i> Données Bathymétriques
+            </h2>
+            <div class="bathymetry-display">
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:1rem">
+                    <div>
+                        <div style="font-size:.9rem;color:#64748b">Zone</div>
+                        <div style="font-weight:600" id="bathymetry-zone">Golfe de Tunis</div>
+                    </div>
+                    <div>
+                        <div style="font-size:.9rem;color:#64748b">Précision</div>
+                        <div style="font-weight:600" id="bathymetry-accuracy">Haute</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top:1rem">
+                    <div style="font-size:.9rem;color:#64748b">Recommandations spécifiques</div>
+                    <ul id="bathymetry-recommendations" style="margin-top:.5rem;padding-left:1.2rem">
+                        <li>Analyse en cours...</li>
+                    </ul>
+                </div>
+                
+                <button class="btn btn-outline" onclick="loadDetailedBathymetry()" style="margin-top:1rem;width:100%">
+                    <i class="fas fa-chart-area"></i> Voir le profil détaillé
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Nouveautés Scientifiques -->
+<div class="feature-highlight" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 2rem; border-radius: 15px; margin: 2rem auto; max-width: 1400px;">
+    <div style="display: flex; align-items: center; margin-bottom: 1.5rem;">
+        <div style="width: 60px; height: 60px; background: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
+            <i class="fas fa-flask" style="font-size: 1.8rem; color: white;"></i>
+        </div>
+        <div>
+            <h3 style="font-size: 1.5rem; font-weight: 600; margin: 0; color: #1e40af;">Nouveautés Scientifiques</h3>
+            <p style="margin: 0.25rem 0 0 0; color: #64748b;">3 facteurs avancés pour une précision inégalée</p>                                                                                                                                                  
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div style="text-align: center; padding: 1rem;">
+            <div style="width: 50px; height: 50px; background: #dbeafe; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
+                <i class="fas fa-wind" style="font-size: 1.5rem; color: #3b82f6;"></i>
+            </div>
+            <h4 style="font-weight: 600; margin: 0 0 0.5rem; color: #1e40af;">Oxygène Dissous</h4>
+            <p style="margin: 0; color: #4b5563; font-size: 0.9rem;">Calculé scientifiquement pour chaque espèce</p>
+        </div>
+        
+        <div style="text-align: center; padding: 1rem;">
+            <div style="width: 50px; height: 50px; background: #d1fae5; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
+                <i class="fas fa-seedling" style="font-size: 1.5rem; color: #10b981;"></i>
+            </div>
+            <h4 style="font-weight: 600; margin: 0 0 0.5rem; color: #065f46;">Chlorophylle-a</h4>
+            <p style="margin: 0; color: #4b5563; font-size: 0.9rem;">Productivité primaire estimée saisonnièrement</p>
+        </div>
+        
+        <div style="text-align: center; padding: 1rem;">
+            <div style="width: 50px; height: 50px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
+                <i class="fas fa-water" style="font-size: 1.5rem; color: #8b5cf6;"></i>
+            </div>
+            <h4 style="font-weight: 600; margin: 0 0 0.5rem; color: #5b21b6;">Courants de Marée</h4>
+            <p style="margin: 0; color: #4b5563; font-size: 0.9rem;">Calculés selon phase lunaire et géographie</p>
+        </div>
+    </div>
+    
+    <div style="margin-top: 1.5rem; text-align: center;">
+        <a href="/predictions" style="display: inline-block; background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: background 0.3s;">
+            <i class="fas fa-chart-line" style="margin-right: 0.5rem;"></i>
+            Voir les prédictions scientifiques
+        </a>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="bathymetry-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:15px;padding:2rem;max-width:800px;width:90%;max-height:80vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+            <h3 style="color:#1e40af">
+                <i class="fas fa-water"></i> Profil Bathymétrique Détaillé
+            </h3>
+            <button onclick="closeBathymetryModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#64748b">×</button>
+        </div>
+        <div id="detailed-bathymetry-content"></div>
+    </div>
+</div>
+
+<div id="score-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:15px;padding:2rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+            <h3 style="color:#1e40af">
+                <i class="fas fa-chart-pie"></i> Composition du Score
+            </h3>
+            <button onclick="closeScoreModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#64748b">×</button>
+        </div>
+        <div id="score-details-content"></div>
+    </div>
+</div>
+
+<div id="weather-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:15px;padding:2rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+            <h3 style="color:#1e40af">
+                <i class="fas fa-cloud-sun"></i> Détails Météo
+            </h3>
+            <button onclick="closeWeatherModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#64748b">×</button>
+        </div>
+        <div id="weather-details-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/favorites.js') }}"></script>
+<script>
+// ===== GLOBAL VARIABLES =====
+let map = null, marker = null, currentLat = 36.8065, currentLon = 10.1815;
+let currentSpecies = 'loup', currentDepth = 8.0, currentSeabed = 'mixed';
+let weatherDataCache = null;
+
+// ===== INITIALISATION =====
+function initMap() {
+    console.log("🎣 Initialisation de Fishing Predictor Pro...");
+    console.log("🔍 Vérification module favoris:", typeof window.saveToFavorites);
+    
+    try {
+        map = L.map('map').setView([currentLat, currentLon], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        marker = L.marker([currentLat, currentLon], { draggable: true })
+            .addTo(map)
+            .bindPopup('Tunis Marina<br>Profondeur: 8.0m<br>Score: 75%')
+            .openPopup();
+        
+        // Ajouter des spots recommandés
+        const spots = [
+            { name: 'Cap Bon', lat: 36.8475, lon: 11.0940, depth: 25.4, type: 'rock' },
+            { name: 'Bizerte', lat: 37.2747, lon: 9.8739, depth: 15.6, type: 'mud' },
+            { name: 'Sousse', lat: 35.8254, lon: 10.6360, depth: 7.3, type: 'sand' },
+            { name: 'Djerba', lat: 33.8078, lon: 10.8451, depth: 3.2, type: 'sand' },
+            { name: 'Hammamet', lat: 36.4000, lon: 10.6000, depth: 6.8, type: 'sand' },
+            { name: 'Tabarka', lat: 36.9540, lon: 8.7580, depth: 28.5, type: 'rock' },
+            { name: 'Monastir', lat: 35.7833, lon: 10.8333, depth: 5.2, type: 'sand' }
+        ];
+        
+        spots.forEach(spot => {
+            const iconColor = spot.depth < 10 ? '#10b981' : spot.depth < 20 ? '#f59e0b' : '#ef4444';
+            const icon = L.divIcon({
+                html: `<div style="background:${iconColor};color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3)"><i class="fas fa-fish"></i></div>`,
+                className: 'spot-marker',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            
+            L.marker([spot.lat, spot.lon], { icon: icon }).addTo(map).bindPopup(`
+                <div style="text-align:center;min-width:150px">
+                    <strong>${spot.name}</strong><br>
+                    <small>Profondeur: ${spot.depth}m</small><br>
+                    <small>Type: ${spot.type}</small><br>
+                    <button onclick="goToSpot(${spot.lat},${spot.lon})" 
+                            style="margin-top:5px;padding:5px 10px;background:#3b82f6;color:white;border:none;border-radius:5px;cursor:pointer">
+                        Voir prédictions
+                    </button>
+                </div>
+            `);
+        });
+        
+        // Événements de la carte
+        map.on('click', function(e) {
+            currentLat = e.latlng.lat;
+            currentLon = e.latlng.lng;
+            if (marker) marker.setLatLng([currentLat, currentLon]);
+            updateLocationInfo();
+            updatePrediction();
+            loadWeatherData();
+            showNotification('Spot sélectionné', 'info');
+        });
+        
+        marker.on('dragend', function(e) {
+            currentLat = e.target.getLatLng().lat;
+            currentLon = e.target.getLatLng().lon;
+            updateLocationInfo();
+            updatePrediction();
+            loadWeatherData();
+            showNotification('Position mise à jour', 'info');
+        });
+        
+        console.log("✅ Carte initialisée avec succès");
+        
+        // Charger les données initiales
+        updatePrediction();
+        setTimeout(() => {
+            loadWeatherData();
+        }, 1000);
+        
+    } catch (error) {
+        console.error("❌ Erreur d'initialisation de la carte:", error);
+        document.getElementById('map').innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748b">
+                <div style="text-align:center">
+                    <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem"></i>
+                    <p>Impossible de charger la carte</p>
+                    <p style="font-size:0.9rem">Vérifiez votre connexion internet</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ===== FONCTIONS MÉTÉO =====
+async function loadWeatherData(forceRefresh = false) {
+    try {
+        console.log("🌤️ Chargement des données météo...");
+        
+        // URL de l'API
+        let apiUrl = `/api/current_weather?lat=${currentLat}&lon=${currentLon}`;
+        if (forceRefresh) {
+            apiUrl += '&refresh=true';
+            console.log("🔄 Mode forcé - Ignorant le cache");
+        }
+        
+        // Afficher le chargement
+        const loadingEl = document.getElementById('weather-loading');
+        const containerEl = document.getElementById('weather-container');
+        const errorEl = document.getElementById('weather-error');
+        
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (containerEl) containerEl.style.display = 'none';
+        if (errorEl) errorEl.style.display = 'none';
+        
+        // Appel API
+        const response = await fetch(apiUrl);
+        console.log(`📡 Réponse API: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            console.log("✅ Données météo reçues:", data.weather);
+            weatherDataCache = data.weather;
+            updateWeatherDisplay(data.weather);
+            
+            // Masquer le chargement, afficher le conteneur
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (containerEl) containerEl.style.display = 'block';
+            
+        } else {
+            throw new Error('Données météo non disponibles');
+        }
+        
+    } catch (error) {
+        console.error("❌ Erreur chargement météo:", error);
+        showFallbackWeather();
+    }
+}
+
+function updateWeatherDisplay(weather) {
+    console.log("🔄 Mise à jour de l'affichage météo...");
+    
+    // Fonctions utilitaires
+    const update = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    
+    const updateHTML = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
+    
+    const show = (id, visible) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = visible ? 'block' : 'none';
+    };
+    
+    // Mettre à jour les données
+    update('temperature', `${weather.temperature?.toFixed(1) || '--'}°C`);
+    update('weather-condition', weather.condition_fr || weather.condition || '--');
+    update('weather-location-name', weather.location || `(${weather.lat || '--'}, ${weather.lon || '--'})`);
+    update('wind-speed', `${weather.wind_speed?.toFixed(1) || '--'} km/h`);
+    update('wind-direction', weather.wind_direction_name || '--');
+    update('weather-pressure', `${weather.pressure || '--'} hPa`);
+    update('wind-impact', weather.wind_fishing_impact || '--');
+    update('wind-fishing-tips', weather.wind_fishing_impact || '--');
+    update('weather-updated', new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}));
+    
+    // Icônes
+    const weatherIcon = getWeatherIcon(weather.condition, weather.icon);
+    updateHTML('weather-main-icon', weatherIcon);
+    updateHTML('weather-icon', weather.wind_direction_icon || '⬆️');
+    
+    // Alertes
+    show('wind-offshore-alert', weather.wind_offshore);
+    show('wind-strong-alert', weather.wind_speed > 25);
+    
+    // Badge sécurité
+    const badge = document.getElementById('wind-safety-badge');
+    if (badge) {
+        if (weather.wind_offshore) {
+            badge.textContent = 'Dangereux';
+            badge.style.background = '#fee2e2';
+            badge.style.color = '#991b1b';
+        } else if (weather.wind_onshore) {
+            badge.textContent = 'Sécuritaire';
+            badge.style.background = '#d1fae5';
+            badge.style.color = '#065f46';
+        } else {
+            badge.textContent = 'Modéré';
+            badge.style.background = '#fef3c7';
+            badge.style.color = '#92400e';
+        }
+    }
+    
+    console.log("✅ Affichage météo mis à jour");
+}
+
+function getWeatherIcon(condition) {
+    if (!condition) return '🌤️';
+    
+    const icons = {
+        'Clear': '☀️', 'Sunny': '☀️',
+        'Clouds': '☁️', 'Cloudy': '☁️',
+        'Partly Cloudy': '⛅',
+        'Rain': '🌧️', 'Drizzle': '🌦️',
+        'Thunderstorm': '⛈️',
+        'Snow': '❄️',
+        'Mist': '🌫️', 'Fog': '🌫️'
+    };
+    
+    // Vérifier par mots-clés
+    const conditionLower = condition.toLowerCase();
+    if (conditionLower.includes('clear') || conditionLower.includes('sunny')) return '☀️';
+    if (conditionLower.includes('cloud')) return '⛅';
+    if (conditionLower.includes('rain')) return '🌧️';
+    if (conditionLower.includes('drizzle')) return '🌦️';
+    if (conditionLower.includes('thunder') || conditionLower.includes('storm')) return '⛈️';
+    if (conditionLower.includes('snow')) return '❄️';
+    if (conditionLower.includes('fog') || conditionLower.includes('mist')) return '🌫️';
+    
+    return icons[condition] || '🌤️';
+}
+
+function showFallbackWeather() {
+    console.log("🔄 Affichage des données de secours");
+    
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Données simulées
+    let temp, condition, wind;
+    if (hour < 12) { 
+        temp = 18.5; 
+        condition = 'Ensoleillé'; 
+        wind = 12.3; 
+    } else if (hour < 18) { 
+        temp = 22.8; 
+        condition = 'Nuageux'; 
+        wind = 15.7; 
+    } else { 
+        temp = 19.2; 
+        condition = 'Ciel dégagé'; 
+        wind = 8.4; 
+    }
+    
+    // Mettre à jour
+    update = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    
+    update('temperature', `${temp.toFixed(1)}°C`);
+    update('weather-condition', condition);
+    update('wind-speed', `${wind.toFixed(1)} km/h`);
+    update('wind-fishing-tips', 'Données de secours - Vérifiez votre connexion');
+    
+    // Afficher
+    const show = (id, visible) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = visible ? 'block' : 'none';
+    };
+    
+    show('weather-loading', false);
+    show('weather-container', true);
+    show('weather-error', true);
+}
+
+function refreshWeather() {
+    loadWeatherData(true);
+    showNotification('Météo actualisée', 'info');
+}
+
+// ===== FONCTIONS PRÉDICTION =====
+async function updatePrediction() {
+    try {
+        console.log(`🔄 Mise à jour prédiction pour: ${currentLat}, ${currentLon}`);
+        const response = await fetch(`/api/tunisian_prediction?lat=${currentLat}&lon=${currentLon}&species=${currentSpecies}`);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            console.log("📊 Données reçues:", data);
+            const score = data.scores.final || 75;
+            document.getElementById('prediction-score').textContent = score + '%';
+            updatePredictionBadge(score);
+            
+            const depth = data.bathymetry?.depth || 5;
+            const seabed = data.bathymetry?.seabed_description || 'Inconnu';
+            const optimal = data.bathymetry?.optimal_for_species || false;
+            const seabedType = data.bathymetry?.seabed_type || 'mixed';
+            
+            currentDepth = depth;
+            currentSeabed = seabedType;
+            
+            updateDepthDisplay(depth, optimal);
+            updateSeabedDisplay(seabed, seabedType);
+            updateLocationDisplay(data.location);
+            updateRecommendations(data);
+            updateBathymetryDisplay(data.bathymetry);
+            updateScoreDetails(data.scores);
+            updateMetadata(data.metadata);
+            
+            if (marker) {
+                marker.setPopupContent(`
+                    <div style="text-align:center;min-width:180px">
+                        <strong>${data.location?.name || 'Spot sélectionné'}</strong><br>
+                        <small>Profondeur: ${depth}m</small><br>
+                        <small>Score: ${score}%</small><br>
+                        <small>Vent: ${data.weather?.wind_direction_name || '--'} ${data.weather?.wind_speed?.toFixed(1) || '--'} km/h</small>
+                    </div>
+                `);
+            }
+            
+            console.log("✅ Prédiction mise à jour avec succès");
+        } else {
+            throw new Error('Données invalides');
+        }
+    } catch (error) {
+        console.error('❌ Erreur prédiction:', error);
+        showFallbackData();
+    }
+}
+
+function updatePredictionBadge(score) {
+    let badge = document.getElementById('prediction-badge');
+    let color, text;
+    if (score >= 85) { text = 'EXCELLENT'; color = '#10b981'; }
+    else if (score >= 70) { text = 'BONNE'; color = '#3b82f6'; }
+    else if (score >= 50) { text = 'MOYENNE'; color = '#f59e0b'; }
+    else { text = 'FAIBLE'; color = '#ef4444'; }
+    badge.textContent = text;
+    badge.style.background = color;
+}
+
+// ===== FONCTIONS UTILITAIRES =====
+function updateLocationInfo() {
+    document.getElementById('location-coords').textContent = `${currentLat.toFixed(4)}° N, ${currentLon.toFixed(4)}° E`;
+}
+
+function updateDepthDisplay(depth, optimal) {
+    const depthElement = document.getElementById('depth-value');
+    const depthStatus = document.getElementById('depth-status');
+    
+    if (depthElement) {
+        depthElement.textContent = `${depth}m`;
+        if (depth < 5) {
+            depthElement.style.color = '#10b981';
+        } else if (depth < 15) {
+            depthElement.style.color = '#f59e0b';
+        } else {
+            depthElement.style.color = '#ef4444';
+        }
+    }
+    
+    if (depthStatus) {
+        if (optimal) {
+            depthStatus.innerHTML = '<i class="fas fa-check-circle"></i> Optimale';
+            depthStatus.className = 'optimized-badge optimized-yes';
+        } else {
+            depthStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Non optimale';
+            depthStatus.className = 'optimized-badge optimized-no';
+        }
+    }
+}
+
+function updateSeabedDisplay(seabed, seabedType) {
+    const seabedElement = document.getElementById('seabed-value');
+    const seabedStatus = document.getElementById('seabed-status');
+    
+    if (seabedElement) {
+        seabedElement.textContent = seabed;
+        const colors = {
+            'sand': '#f59e0b',
+            'rock': '#64748b',
+            'grass': '#10b981',
+            'mud': '#92400e',
+            'mixed': '#3b82f6'
+        };
+        seabedElement.style.color = colors[seabedType] || '#1e40af';
+    }
+    
+    if (seabedStatus) {
+        const icons = {
+            'sand': 'fas fa-umbrella-beach',
+            'rock': 'fas fa-mountain',
+            'grass': 'fas fa-seedling',
+            'mud': 'fas fa-water',
+            'mixed': 'fas fa-layer-group'
+        };
+        seabedStatus.innerHTML = `<i class="${icons[seabedType] || 'fas fa-water'}"></i> ${seabed}`;
+    }
+}
+
+function updateLocationDisplay(location) {
+    if (location && location.name) {
+        const locationName = decodeUnicode(location.name);
+        // Mettre à jour le nom du spot dans la section prédiction
+        const locationNameElements = document.querySelectorAll('.location-name');
+        locationNameElements.forEach(el => {
+            el.textContent = locationName;
+        });
+        
+        const zoneElement = document.getElementById('bathymetry-zone');
+        if (zoneElement && location.region) {
+            zoneElement.textContent = location.region;
+        }
+    }
+}
+
+function updateRecommendations(data) {
+    let recommendationsHtml = '';
+    if (data.recommendations && data.recommendations.tips) {
+        data.recommendations.tips.forEach(tip => {
+            recommendationsHtml += `<p>• ${tip}</p>`;
+        });
+    } else {
+        recommendationsHtml += `<p>• Conditions favorables détectées</p>`;
+    }
+    
+    // Ajouter des conseils basés sur la météo
+    if (weatherDataCache) {
+        if (weatherDataCache.wind_speed > 20) {
+            recommendationsHtml += `<p>• Vent fort - privilégiez la pêche au surfcasting</p>`;
+        }
+        if (weatherDataCache.temperature > 25) {
+            recommendationsHtml += `<p>• Température élevée - pêchez tôt le matin ou en soirée</p>`;
+        }
+        if (weatherDataCache.wind_offshore) {
+            recommendationsHtml += `<p>• ⚠️ VENT DE TERRE - ÉVITEZ LA PÊCHE CÔTIÈRE</p>`;
+        }
+    }
+    
+    if (data.recommendations && data.recommendations.techniques) {
+        recommendationsHtml += `<p>• Techniques recommandées: ${data.recommendations.techniques.join(', ')}</p>`;
+    }
+    
+    document.getElementById('recommendations').innerHTML = recommendationsHtml;
+}
+
+function updateBathymetryDisplay(bathymetry) {
+    if (!bathymetry) return;
+    
+    const zoneElement = document.getElementById('bathymetry-zone');
+    if (zoneElement && bathymetry.zone) {
+        zoneElement.textContent = bathymetry.zone;
+    }
+    
+    const accuracyElement = document.getElementById('bathymetry-accuracy');
+    if (accuracyElement && bathymetry.accuracy) {
+        accuracyElement.textContent = bathymetry.accuracy;
+        accuracyElement.style.color = bathymetry.accuracy === 'haute' ? '#10b981' : 
+                                    bathymetry.accuracy === 'moyenne' ? '#f59e0b' : '#ef4444';
+    }
+    
+    const sourceElement = document.getElementById('data-source');
+    if (sourceElement && bathymetry.source) {
+        sourceElement.textContent = bathymetry.source;
+    }
+    
+    const recList = document.getElementById('bathymetry-recommendations');
+    if (recList) {
+        if (bathymetry.recommended_fishing && bathymetry.recommended_fishing.length > 0) {
+            recList.innerHTML = bathymetry.recommended_fishing.map(rec => 
+                `<li style="margin-bottom:.3rem">${rec}</li>`
+            ).join('');
+        } else {
+            recList.innerHTML = `
+                <li>Analyse en cours...</li>
+                <li>Cliquez sur "Voir le profil détaillé" pour plus d'informations</li>
+            `;
+        }
+    }
+}
+
+function updateScoreDetails(scores) {
+    if (scores.components) {
+        document.getElementById('score-scientific').textContent = `${scores.components.scientific || '--'}%`;
+        document.getElementById('score-bathymetry').textContent = `${scores.components.depth || '--'}%`;
+        document.getElementById('score-regional').textContent = `${scores.components.regional || '--'}%`;
+    }
+    if (scores.factors) {
+        window.scoreFactors = scores.factors;
+    }
+}
+
+function updateMetadata(metadata) {
+    if (metadata) {
+        const updateElement = document.getElementById('last-update');
+        if (updateElement && metadata.timestamp) {
+            const date = new Date(metadata.timestamp);
+            updateElement.textContent = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        const sourceElement = document.getElementById('data-source');
+        if (sourceElement && metadata.data_source) {
+            sourceElement.textContent = metadata.data_source;
+        }
+    }
+}
+
+function showFallbackData() {
+    document.getElementById('prediction-score').textContent = '75%';
+    document.getElementById('prediction-badge').textContent = 'BONNE';
+    document.getElementById('prediction-badge').style.background = '#3b82f6';
+    
+    document.getElementById('recommendations').innerHTML = `
+        <p>• Erreur de connexion au serveur</p>
+        <p>• Utilisation des données par défaut</p>
+        <p>• Réessayez dans quelques instants</p>
+    `;
+}
+
+function decodeUnicode(str) {
+    try {
+        return decodeURIComponent(JSON.parse('"' + str.replace(/\"/g, '\\"') + '"'));
+    } catch (e) {
+        return str;
+    }
+}
+
+function goToSpot(lat, lon) {
+    currentLat = lat;
+    currentLon = lon;
+    if (marker) marker.setLatLng([lat, lon]);
+    map.setView([lat, lon], 13);
+    updateLocationInfo();
+    updatePrediction();
+    loadWeatherData();
+    showNotification(`Spot ${lat.toFixed(2)}, ${lon.toFixed(2)} chargé`, 'info');
+}
+
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                currentLat = position.coords.latitude;
+                currentLon = position.coords.longitude;
+                
+                if (marker) marker.setLatLng([currentLat, currentLon]);
+                map.setView([currentLat, currentLon], 13);
+                updateLocationInfo();
+                updatePrediction();
+                loadWeatherData();
+                showNotification('📍 Position actuelle chargée !', 'success');
+            },
+            function(error) {
+                const message = error.code === 1 ? 
+                    "Permission de géolocalisation refusée" : 
+                    "Impossible d'obtenir votre position";
+                showNotification(message, 'error');
+            }
+        );
+    } else {
+        showNotification("Géolocalisation non supportée", 'error');
+    }
+}
+
+// ===== FONCTION ADD TO FAVORITES CORRIGÉE =====
+function addToFavorites() {
+    console.log("⭐ Bouton favori cliqué !");
+    console.log("🔍 Vérification de window.saveToFavorites:", typeof window.saveToFavorites);
+    
+    // Utiliser l'élément correct pour le nom du spot (class au lieu d'ID)
+    const spotName = document.querySelector('#location-info .location-name')?.textContent || 
+                    document.querySelector('.location-name')?.textContent || 
+                    `Spot ${currentLat.toFixed(4)}, ${currentLon.toFixed(4)}`;
+    
+    // Récupérer le score correctement (enlever le %)
+    const scoreText = document.getElementById('prediction-score')?.textContent || '75%';
+    const score = parseInt(scoreText.replace('%', '')) || 75;
+    
+    console.log("📝 Données pour favori:", { 
+        spotName, 
+        score, 
+        currentLat, 
+        currentLon, 
+        currentSpecies 
+    });
+    
+    if (window.saveToFavorites) {
+        let notes = '';
+        if (weatherDataCache) {
+            notes = `Météo: ${weatherDataCache.condition_fr || weatherDataCache.condition || 'N/A'}, ` +
+                    `${weatherDataCache.temperature?.toFixed(1) || '--'}°C, ` +
+                    `Vent: ${weatherDataCache.wind_speed?.toFixed(1) || '--'} km/h ` +
+                    `(${weatherDataCache.wind_direction_name || '--'})`;
+        }
+        
+        window.saveToFavorites(spotName, currentLat, currentLon, currentSpecies, score, notes);
+    } else {
+        console.error("❌ window.saveToFavorites n'est pas défini");
+        showNotification('Fonction favoris non disponible', 'warning');
+    }
+}
+
+async function loadDetailedBathymetry() {
+    try {
+        showNotification('Chargement des données bathymétriques...', 'info');
+        const response = await fetch(`/api/real_bathymetry?lat=${currentLat}&lon=${currentLon}`);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showDetailedBathymetryModal(data.data);
+        } else {
+            throw new Error('Données non disponibles');
+        }
+    } catch (error) {
+        console.error('Erreur bathymétrie:', error);
+        showNotification('Impossible de charger les données détaillées', 'error');
+    }
+}
+
+function showDetailedBathymetryModal(bathymetryData) {
+    const modal = document.getElementById('bathymetry-modal');
+    const content = document.getElementById('detailed-bathymetry-content');
+    
+    let html = `
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2rem">
+            <div>
+                <h4 style="color:#3b82f6;margin-bottom:1rem">Caractéristiques</h4>
+                <div style="background:#f8fafc;padding:1rem;border-radius:10px">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                        <span>Profondeur:</span>
+                        <strong style="color:#1e40af">${bathymetryData.bathymetry.depth}m</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                        <span>Type de fond:</span>
+                        <strong>${bathymetryData.bathymetry.seabed_description}</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                        <span>Pente:</span>
+                        <strong>${bathymetryData.bathymetry.slope}°</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span>Précision:</span>
+                        <strong style="color:${bathymetryData.bathymetry.accuracy === 'haute' ? '#10b981' : '#f59e0b'}">
+                            ${bathymetryData.bathymetry.accuracy}
+                        </strong>
+                    </div>
+                </div>
+                
+                <h4 style="color:#3b82f6;margin-top:1.5rem;margin-bottom:1rem">Marées</h4>
+                <div style="background:#f8fafc;padding:1rem;border-radius:10px">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                        <span>Hauteur actuelle:</span>
+                        <strong>${bathymetryData.tides.current_height}m</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                        <span>Prochaine haute mer:</span>
+                        <strong>${bathymetryData.tides.next_high_tide.time} (${bathymetryData.tides.next_high_tide.height}m)</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span>Prochaine basse mer:</span>
+                        <strong>${bathymetryData.tides.next_low_tide.time} (${bathymetryData.tides.next_low_tide.height}m)</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h4 style="color:#3b82f6;margin-bottom:1rem">Localisation</h4>
+                <div style="background:#f8fafc;padding:1rem;border-radius:10px">
+                    <div style="margin-bottom:.5rem">
+                        <strong>Nom:</strong> ${decodeUnicode(bathymetryData.location.name)}
+                    </div>
+                    <div style="margin-bottom:.5rem">
+                        <strong>Coordonnées:</strong> ${bathymetryData.coordinates.lat.toFixed(4)}° N, ${bathymetryData.coordinates.lon.toFixed(4)}° E
+                    </div>
+                    <div><strong>Type:</strong> ${bathymetryData.location.type}</div>
+                </div>
+                
+                <h4 style="color:#3b82f6;margin-top:1.5rem;margin-bottom:1rem">Suitabilité à la pêche</h4>
+                <div style="background:#f8fafc;padding:1rem;border-radius:10px">
+                    <div style="margin-bottom:.5rem">
+                        <strong>Meilleure technique:</strong> ${bathymetryData.fishing_suitability.best_technique}
+                    </div>
+                    <div style="margin-bottom:.5rem">
+                        <strong>Niveau de risque:</strong> 
+                        <span style="color:${bathymetryData.fishing_suitability.risk_level === 'low' ? '#10b981' : '#f59e0b'}">
+                            ${bathymetryData.fishing_suitability.risk_level === 'low' ? 'Faible' : 'Moyen'}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Techniques adaptées:</strong>
+                        <ul style="margin-top:.5rem;padding-left:1.2rem">
+                            ${bathymetryData.fishing_suitability.surfcasting ? '<li>✓ Surfcasting</li>' : ''}
+                            ${bathymetryData.fishing_suitability.rock_fishing ? '<li>✓ Pêche depuis les rochers</li>' : ''}
+                            ${bathymetryData.fishing_suitability.boat_fishing ? '<li>✓ Pêche en bateau</li>' : ''}
+                            ${bathymetryData.fishing_suitability.spearfishing ? '<li>✓ Chasse sous-marine</li>' : ''}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top:2rem;padding:1rem;background:#f0f9ff;border-radius:10px;border-left:4px solid #3b82f6">
+            <h5 style="color:#1e40af;margin-bottom:.5rem">
+                <i class="fas fa-lightbulb"></i> Recommandations
+            </h5>
+            <p style="color:#64748b">
+                Cette zone présente des caractéristiques favorables pour la pêche. 
+                La profondeur de ${bathymetryData.bathymetry.depth}m est adaptée à la pêche côtière. 
+                Privilégiez la pêche à ${bathymetryData.fishing_suitability.best_technique} pour de meilleurs résultats.
+            </p>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function closeBathymetryModal() {
+    document.getElementById('bathymetry-modal').style.display = 'none';
+}
+
+function showScoreDetails() {
+    const modal = document.getElementById('score-modal');
+    const content = document.getElementById('score-details-content');
+    
+    let html = `
+        <div style="margin-bottom:1.5rem">
+            <h4 style="color:#3b82f6;margin-bottom:1rem">Explication du calcul</h4>
+            <p style="color:#64748b">Le score final est calculé à partir de plusieurs facteurs scientifiques :</p>
+        </div>
+        <div style="background:#f8fafc;padding:1.5rem;border-radius:10px">
+    `;
+    
+    if (window.scoreFactors) {
+        html += `
+            <div style="margin-bottom:1rem">
+                <strong>Prédiction scientifique (40%):</strong> 
+                <span style="float:right">${Math.round(window.scoreFactors.scientific_factor * 100)}%</span>
+                <div style="font-size:0.9rem;color:#64748b">Modèles écophysiologiques et comportementaux</div>
+            </div>
+            <div style="margin-bottom:1rem">
+                <strong>Adaptation bathymétrique (20%):</strong> 
+                <span style="float:right">${Math.round(window.scoreFactors.depth_factor * 100)}%</span>
+                <div style="font-size:0.9rem;color:#64748b">Profondeur et type de fond optimaux</div>
+            </div>
+            <div style="margin-bottom:1rem">
+                <strong>Facteur régional (15%):</strong> 
+                <span style="float:right">${Math.round(window.scoreFactors.regional_factor * 100)}%</span>
+                <div style="font-size:0.9rem;color:#64748b">Spécificités de la région tunisienne</div>
+            </div>
+            <div style="margin-bottom:1rem">
+                <strong>Facteur météorologique (15%):</strong> 
+                <span style="float:right">${weatherDataCache ? Math.round(15 * (weatherDataCache.score || 0.7)) : '--'}%</span>
+                <div style="font-size:0.9rem;color:#64748b">Conditions météo actuelles</div>
+            </div>
+            <div>
+                <strong>Facteur saisonnier (10%):</strong> 
+                <span style="float:right">${Math.round(window.scoreFactors.seasonal_factor * 100)}%</span>
+                <div style="font-size:0.9rem;color:#64748b">Adaptation à la saison actuelle</div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div style="text-align:center;padding:2rem;color:#64748b">
+                <i class="fas fa-chart-line" style="font-size:3rem;margin-bottom:1rem"></i>
+                <p>Les données détaillées seront disponibles après la première prédiction</p>
+                <p>Cliquez sur la carte pour obtenir une analyse complète</p>
+            </div>
+        `;
+    }
+    
+    html += `
+        </div>
+        <div style="margin-top:1.5rem;padding:1rem;background:#f0f9ff;border-radius:10px">
+            <h5 style="color:#1e40af;margin-bottom:.5rem">
+                <i class="fas fa-info-circle"></i> Note
+            </h5>
+            <p style="color:#64748b;font-size:0.9rem">
+                Ce système utilise des modèles scientifiques validés pour la Tunisie. 
+                Les scores sont indicatifs et peuvent varier selon les conditions réelles.
+            </p>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function closeScoreModal() {
+    document.getElementById('score-modal').style.display = 'none';
+}
+
+function closeWeatherModal() {
+    document.getElementById('weather-modal').style.display = 'none';
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+        <button class="close-notification" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Supprimer les notifications existantes
+    const existing = document.querySelector('.notification');
+    if (existing) existing.remove();
+    
+    document.body.appendChild(notification);
+    
+    // Supprimer après 5 secondes
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// ===== INITIALISATION FINALE =====
+document.addEventListener('DOMContentLoaded', initMap);
+
+// Exposer les fonctions globalement
+window.loadWeatherData = loadWeatherData;
+window.refreshWeather = refreshWeather;
+window.showNotification = showNotification;
+window.goToSpot = goToSpot;
+window.getCurrentLocation = getCurrentLocation;
+window.addToFavorites = addToFavorites;
+</script>
+{% endblock %}

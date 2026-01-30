@@ -1,0 +1,17 @@
+[
+  {
+    "email": "medaminecharmiti@gmail.com",
+    "preferences": {
+      "excellent_conditions": true,
+      "seasonal_reminders": true,
+      "weekly_tips": false,
+      "favorite_spots": true
+    },
+    "confirmed": true,
+    "confirmation_id": "9B48AD0ACF56",
+    "subscribed_at": "2026-01-29T00:46:26.922996",
+    "last_alert_sent": null,
+    "alert_count": 0,
+    "active": true
+  }
+]

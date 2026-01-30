@@ -1,0 +1,120 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "3a7459b538e0",
+    "stable": true,
+    "valid_until": "2026-01-30T13:16:15.716650",
+    "scores": {
+      "final": 89,
+      "environmental": 63,
+      "behavioral": 72,
+      "bathymetry_factor": 100,
+      "weather_factor": 100,
+      "components": {
+        "scientific": 63,
+        "depth": 100,
+        "regional": 70,
+        "weather": 100
+      }
+    },
+    "weather": {
+      "temperature": 19.03,
+      "wind_speed": 22.212,
+      "wind_direction": 270,
+      "wind_direction_abbr": "O",
+      "wind_direction_name": "Ouest",
+      "wind_direction_icon": "⬅️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+      "wind_offshore": false,
+      "wind_onshore": true,
+      "pressure": 1007,
+      "humidity": 68,
+      "condition": "Clouds",
+      "condition_fr": "Nuageux",
+      "wave_height": 0.5,
+      "updated": "2026-01-30T12:16:15.716650",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.17,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 0.47,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "suboptimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.2,
+        "speed_knots": 0.38,
+        "direction": "SO-NE",
+        "tide_height": 0.14,
+        "tide_phase": "descendante",
+        "fishing_impact": "favorable"
+      }
+    },
+    "marine_data_sources": [
+      "Open-Météo"
+    ],
+    "recommendations": {
+      "tips": [
+        "Opportunité: TRÈS BONNE",
+        "Heures optimales: 19h, 6h, 7h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Nuageux, 19.0°C, Vent: 22.2 km/h (Ouest)"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "depth": 8.0,
+      "seabed_type": "mixed",
+      "seabed_description": "Fond mixte",
+      "slope": 0.5,
+      "accuracy": "haute",
+      "optimal_for_species": true,
+      "zone": "ولاية بن عروس",
+      "recommended_fishing": [
+        "Profondeur: 8.0m (optimale)",
+        "Type de fond: Fond mixte",
+        "Précision: haute"
+      ]
+    },
+    "location": {
+      "lat": 36.807247157246245,
+      "lon": 10.258140563964846,
+      "name": "بن عروس, بن عروس الشرقية, معتمدية بن عروس, ولاية بن عروس, 2013, تونس",
+      "type": "city",
+      "region": "ولاية بن عروس"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-01-30T12:16:15.716650",
+      "data_source": "modèle scientifique",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "13:16",
+      "api_usage_info": {
+        "openweather_calls_today": 2,
+        "using_cache": false
+      }
+    }
+  },
+  "timestamp": 1769771775.7166505,
+  "expires_at": 1769775375.7166505,
+  "api_name": "prediction",
+  "params": {
+    "lat": 36.807247157246245,
+    "lon": 10.258140563964846,
+    "species": "loup"
+  }
+}
