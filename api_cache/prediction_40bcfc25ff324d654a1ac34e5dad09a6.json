@@ -1,9 +1,9 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "6fbc62cac7d1",
+    "prediction_id": "3c6f63fa20c4",
     "stable": true,
-    "valid_until": "2026-01-30T21:42:36.867301",
+    "valid_until": "2026-01-30T21:25:00.327522",
     "scores": {
       "final": 88,
       "environmental": 56,
@@ -18,7 +18,7 @@
       }
     },
     "weather": {
-      "temperature": 12.99,
+      "temperature": 13.02,
       "wind_speed": 7.416,
       "wind_direction": 220,
       "wind_direction_abbr": "SO",
@@ -32,12 +32,12 @@
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 0.5,
-      "updated": "2026-01-30T20:42:36.867301",
+      "updated": "2026-01-30T20:25:00.327522",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.26,
+        "value": 5.24,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -79,42 +79,42 @@
       "seabed_type": "mixed",
       "seabed_description": "Fond mixte",
       "slope": 0.5,
-      "accuracy": "moyenne",
+      "accuracy": "haute",
       "optimal_for_species": true,
       "zone": "ولاية تونس",
       "recommended_fishing": [
         "Profondeur: 8.0m (optimale)",
         "Type de fond: Fond mixte",
-        "Précision: moyenne"
+        "Précision: haute"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
+      "lat": 36.81219489439345,
+      "lon": 10.237197875976564,
       "name": "تونس, ولاية تونس, تونس",
       "type": "city",
       "region": "ولاية تونس"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-01-30T20:42:36.867301",
+      "timestamp": "2026-01-30T20:25:00.327522",
       "data_source": "modèle scientifique",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "21:42",
+      "next_update_recommended": "21:25",
       "api_usage_info": {
         "openweather_calls_today": 1,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1769802156.8673012,
-  "expires_at": 1769805756.8673012,
+  "timestamp": 1769801100.327522,
+  "expires_at": 1769804700.327522,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 36.81219489439345,
+    "lon": 10.237197875976564,
     "species": "loup"
   }
 }

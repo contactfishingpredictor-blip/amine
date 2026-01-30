@@ -1,0 +1,21 @@
+{
+  "data": {
+    "success": true,
+    "name": "تونس, ولاية تونس, تونس",
+    "address": {
+      "city": "تونس",
+      "state": "ولاية تونس",
+      "ISO3166-2-lvl4": "TN-11",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "city"
+  },
+  "timestamp": 1769801100.3111167,
+  "expires_at": 1769887500.3111167,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 36.81219489439345,
+    "lon": 10.237197875976564
+  }
+}
