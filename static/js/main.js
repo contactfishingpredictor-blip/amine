@@ -1,5 +1,5 @@
 // main.js - Version complètement corrigée avec météo fonctionnelle
-console.log("🎣 Fishing Predictor Pro - Module météo initialisé");
+console.log("🎣 Fishing Predictor Pro - Module principal initialisé");
 
 // Variables globales
 let currentWeatherData = null;
@@ -304,24 +304,9 @@ window.testWeatherAPI = async function() {
     }
 };
 
-// Menu mobile
-function toggleMenu() {
-    const navLinks = document.querySelector('.nav-links');
-    if (navLinks) {
-        navLinks.classList.toggle('active');
-        console.log("📱 Menu mobile " + (navLinks.classList.contains('active') ? 'ouvert' : 'fermé'));
-    }
-}
-
-// Initialisation au chargement du DOM
+// Back to top button
 document.addEventListener('DOMContentLoaded', function() {
     console.log("📄 DOM chargé - Initialisation de l'application");
-    
-    // Menu mobile
-    const mobileBtn = document.querySelector('.mobile-menu-btn');
-    if (mobileBtn) {
-        mobileBtn.addEventListener('click', toggleMenu);
-    }
     
     // Back to top button
     const backToTop = document.createElement('div');
@@ -354,6 +339,6 @@ window.loadWeatherData = loadWeatherData;
 window.updateWeatherDisplay = updateWeatherDisplay;
 window.initWeather = initWeather;
 window.showNotification = showNotification;
-window.toggleMenu = toggleMenu;
+window.testWeatherAPI = testWeatherAPI;
 
 console.log("✅ Module main.js chargé avec fonctions météo complètes");

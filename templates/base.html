@@ -50,12 +50,13 @@
             width: 80%;
             max-width: 300px;
             height: 100vh;
-            background: #1e40af;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
             flex-direction: column;
             padding: 80px 20px 20px;
             transition: right 0.3s ease;
             z-index: 1000;
             box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
         }
         
         .nav-links.active {
@@ -68,11 +69,19 @@
             margin: 5px 0;
             border-radius: 8px;
             text-align: left;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(5px);
         }
         
         .nav-link i {
             margin-right: 10px;
             width: 20px;
+            text-align: center;
         }
         
         /* Overlay pour fermer le menu */
@@ -85,6 +94,7 @@
             bottom: 0;
             background: rgba(0,0,0,0.5);
             z-index: 999;
+            cursor: pointer;
         }
         
         .menu-overlay.active {
@@ -95,11 +105,41 @@
         .nav-container {
             position: relative;
         }
+        
+        /* Bouton de fermeture du menu */
+        .close-menu-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
     }
     
     /* Pour empêcher le défilement quand le menu est ouvert */
     body.menu-open {
         overflow: hidden;
+    }
+    
+    /* Pour les tablettes */
+    @media (max-width: 1024px) and (min-width: 769px) {
+        .nav-links {
+            gap: 0.5rem;
+        }
+        
+        .nav-link {
+            padding: 0.5rem 0.8rem;
+            font-size: 0.9rem;
+        }
     }
 </style>
 
@@ -107,7 +147,7 @@
 </head>
 <body>
 <!-- Overlay pour fermer le menu -->
-<div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="menu-overlay" id="menuOverlay" onclick="closeMobileMenu()"></div>
 
 <nav class="main-nav">
 <div class="nav-container">
@@ -116,6 +156,9 @@
 <div><h1>Fishing Predictor <span class="pro-badge">PRO</span></h1><p style="font-size:0.9rem;opacity:0.9">Prédictions scientifiques pour pêcheurs tunisiens</p></div>
 </div>
 <div class="nav-links" id="navLinks">
+<button class="close-menu-btn" onclick="closeMobileMenu()" aria-label="Fermer le menu" style="display: none;">
+    <i class="fas fa-times"></i>
+</button>
 <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" aria-label="Carte Interactive"><i class="fas fa-map-marked-alt"></i><span>Carte</span></a>
 <a href="{{ url_for('species_selector') }}" class="nav-link {% if request.endpoint == 'species_selector' %}active{% endif %}" aria-label="Sélecteur d'espèces"><i class="fas fa-fish"></i><span>Espèces</span></a>
 <a href="{{ url_for('predictions') }}" class="nav-link {% if request.endpoint == 'predictions' %}active{% endif %}" aria-label="Prévisions 10 Jours"><i class="fas fa-calendar-alt"></i><span>Prévisions</span></a>
@@ -123,7 +166,7 @@
 <a href="{{ url_for('science') }}" class="nav-link {% if request.endpoint == 'science' %}active{% endif %}" aria-label="Science Halieutique"><i class="fas fa-microscope"></i><span>Science</span></a>
 <a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint == 'alerts' %}active{% endif %}" aria-label="Alertes Intelligentes"><i class="fas fa-bell"></i><span>Alertes</span></a>
 </div>
-<button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="Menu mobile" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+<button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu mobile" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
 </div>
 </nav>
 <main>{% block content %}{% endblock %}</main>
@@ -164,58 +207,77 @@
 <script src="{{ url_for('static', filename='js/favorites.js') }}"></script>
 
 <script>
-// Gestion du menu mobile améliorée
-let menuOpen = false;
-
-function toggleMenu() {
+// Gestion du menu mobile - Version corrigée et simplifiée
+function toggleMobileMenu() {
+    console.log("📱 Bouton menu mobile cliqué");
+    
     const navLinks = document.getElementById('navLinks');
     const overlay = document.getElementById('menuOverlay');
+    const closeBtn = document.querySelector('.close-menu-btn');
     const body = document.body;
     
-    menuOpen = !menuOpen;
-    
-    if (menuOpen) {
-        navLinks.classList.add('active');
-        overlay.classList.add('active');
-        body.classList.add('menu-open');
-    } else {
+    if (navLinks.classList.contains('active')) {
+        // Fermer le menu
         navLinks.classList.remove('active');
         overlay.classList.remove('active');
         body.classList.remove('menu-open');
+        if (closeBtn) closeBtn.style.display = 'none';
+        console.log("📱 Menu fermé");
+    } else {
+        // Ouvrir le menu
+        navLinks.classList.add('active');
+        overlay.classList.add('active');
+        body.classList.add('menu-open');
+        if (closeBtn) closeBtn.style.display = 'flex';
+        console.log("📱 Menu ouvert");
     }
 }
 
-function closeMenu() {
+function closeMobileMenu() {
+    console.log("📱 Fermeture du menu mobile");
+    
     const navLinks = document.getElementById('navLinks');
     const overlay = document.getElementById('menuOverlay');
+    const closeBtn = document.querySelector('.close-menu-btn');
     const body = document.body;
     
     navLinks.classList.remove('active');
     overlay.classList.remove('active');
     body.classList.remove('menu-open');
-    menuOpen = false;
+    if (closeBtn) closeBtn.style.display = 'none';
 }
 
-// Fermer le menu en cliquant sur un lien
+// Initialisation au chargement du DOM
 document.addEventListener('DOMContentLoaded', function() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', closeMenu);
+    console.log("📄 Base template chargé - Initialisation du menu mobile");
+    
+    // Vérifier si on est sur mobile
+    const isMobile = window.innerWidth <= 768;
+    console.log(`📱 Mode ${isMobile ? 'mobile' : 'desktop'} détecté (${window.innerWidth}px)`);
+    
+    // Fermer automatiquement le menu en cliquant sur un lien
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileMenu();
+            }
+        });
     });
     
-    // Fermer avec la touche Escape
+    // Fermer le menu avec la touche Échap
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && menuOpen) {
-            closeMenu();
+        if (e.key === 'Escape') {
+            closeMobileMenu();
         }
     });
     
-    console.log('Base template chargé avec menu mobile amélioré');
-    
-    // Vérifier si on est sur mobile
-    if (window.innerWidth <= 768) {
-        console.log('Mode mobile détecté');
-    }
+    // Redimensionnement de la fenêtre
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            // Fermer le menu sur desktop
+            closeMobileMenu();
+        }
+    });
 });
 
 // Redirection vers index si route non trouvée (fallback)
@@ -239,6 +301,10 @@ if (window.location.pathname !== '/' &&
             window.location.href = '/';
         });
 }
+
+// Exposer les fonctions globalement
+window.toggleMobileMenu = toggleMobileMenu;
+window.closeMobileMenu = closeMobileMenu;
 </script>
 
 {% block extra_js %}{% endblock %}
