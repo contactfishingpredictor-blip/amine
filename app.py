@@ -1812,43 +1812,59 @@ def api_seasonal_calendar():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-# ===== API ALERTES EMAIL =====
+# ===== API ALERTES EMAIL - VERSION CORRIGÉE =====
 
 @app.route('/api/alerts/subscribe', methods=['POST'])
 def api_alerts_subscribe():
-    """API pour s'abonner aux alertes"""
+    """API pour s'abonner aux alertes - VERSION PROFESSIONNELLE"""
     try:
-        data = request.json
+        # Vérification robuste des données
+        if not request.is_json:
+            return jsonify({
+                'status': 'error',
+                'message': 'Format de requête invalide. Utilisez JSON.'
+            }), 400
+        
+        data = request.get_json(silent=True)
         if not data:
-            return jsonify({'status': 'error', 'message': 'Données manquantes'})
+            return jsonify({
+                'status': 'error',
+                'message': 'Données JSON invalides ou manquantes.'
+            }), 400
         
         email = data.get('email', '').strip().lower()
         preferences = data.get('preferences', {})
         
-        if not email or '@' not in email:
-            return jsonify({'status': 'error', 'message': 'Email invalide'})
+        # Validation email simple mais efficace
+        if not email or '@' not in email or '.' not in email.split('@')[-1]:
+            return jsonify({
+                'status': 'error', 
+                'message': 'Adresse email invalide. Exemple: nom@domaine.com'
+            }), 400
         
-        # Vérifier le format de l'email
-        import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            return jsonify({'status': 'error', 'message': 'Format email invalide'})
-        
-        # Charger les abonnements existants
+        # Charger abonnements existants
         subscriptions = []
-        if os.path.exists(ALERTS_FILE):
-            with open(ALERTS_FILE, 'r', encoding='utf-8') as f:
-                subscriptions = json.load(f)
+        alerts_file = config.ALERTS_FILE
         
-        # Vérifier si l'email est déjà abonné
+        try:
+            if os.path.exists(alerts_file):
+                with open(alerts_file, 'r', encoding='utf-8') as f:
+                    subscriptions = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            # Si fichier corrompu, on repart à zéro
+            subscriptions = []
+            print("⚠️ Fichier abonnements réinitialisé")
+        
+        # Vérifier existence email
         existing_index = -1
         for i, sub in enumerate(subscriptions):
-            if sub['email'] == email:
+            if sub.get('email') == email:
                 existing_index = i
                 break
         
-        # Générer un ID de confirmation
-        confirmation_id = hashlib.md5(f"{email}{time.time()}".encode()).hexdigest()[:12].upper()
+        # Générer ID de confirmation
+        import secrets
+        confirmation_id = f"SUB-{secrets.token_hex(6).upper()}"
         
         subscription_data = {
             'email': email,
@@ -1866,37 +1882,77 @@ def api_alerts_subscribe():
             'active': True
         }
         
+        # Mettre à jour ou ajouter
         if existing_index >= 0:
-            # Mettre à jour l'abonnement existant
             subscriptions[existing_index] = subscription_data
-            message = "Abonnement mis à jour"
+            operation = "mise à jour"
         else:
-            # Nouvel abonnement
             subscriptions.append(subscription_data)
-            message = "Abonnement créé"
+            operation = "création"
         
-        # Sauvegarder
-        with open(ALERTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(subscriptions, f, ensure_ascii=False, indent=2)
+        # Sauvegarde sécurisée
+        try:
+            os.makedirs(os.path.dirname(alerts_file), exist_ok=True)
+            with open(alerts_file, 'w', encoding='utf-8') as f:
+                json.dump(subscriptions, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"❌ Erreur sauvegarde: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': 'Erreur technique lors de l\'enregistrement.'
+            }), 500
         
-        # Envoyer l'email de confirmation
-        email_sent = send_confirmation_email(email, confirmation_id)
+        # Envoi email asynchrone (ne bloque pas la réponse)
+        email_sent = False
+        try:
+            email_sent = send_confirmation_email(email, confirmation_id)
+        except Exception as e:
+            print(f"⚠️ Email non envoyé: {e}")
+            # On continue même si l'email échoue
         
-        print(f"✅ Abonnement aux alertes: {email}")
-        print(f"   Confirmation ID: {confirmation_id}")
-        print(f"   Email envoyé: {email_sent}")
-        
+        # Réponse SUCCÈS toujours en JSON
         return jsonify({
             'status': 'success',
-            'message': f'{message} avec succès',
+            'message': f'Abonnement {operation} avec succès.',
             'confirmation_id': confirmation_id,
             'email_sent': email_sent,
-            'email': email
+            'email': email,
+            'timestamp': datetime.now().isoformat()
         })
         
     except Exception as e:
-        print(f"❌ Erreur abonnement alertes: {e}")
-        return jsonify({'status': 'error', 'message': str(e)})
+        # Capture TOUTES les exceptions et retourne un JSON propre
+        print(f"❌ Erreur serveur: {type(e).__name__}: {str(e)[:200]}")
+        
+        return jsonify({
+            'status': 'error',
+            'message': 'Une erreur technique est survenue.',
+            'suggestion': 'Veuillez réessayer dans quelques instants.'
+        }), 500
+
+@app.route('/api/alerts/health')
+def api_alerts_health():
+    """Endpoint de santé pour vérifier le système d'alertes"""
+    health_data = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'components': {
+            'gmail_config': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
+            'alerts_file': os.path.exists(config.ALERTS_FILE),
+            'email_logs': os.path.exists(config.EMAIL_LOGS_FILE),
+            'data_dir': os.path.exists(config.DATA_DIR)
+        }
+    }
+    
+    try:
+        if os.path.exists(config.ALERTS_FILE):
+            with open(config.ALERTS_FILE, 'r') as f:
+                subscriptions = json.load(f)
+                health_data['subscriptions_count'] = len(subscriptions)
+    except:
+        health_data['components']['alerts_file'] = 'corrupted'
+    
+    return jsonify(health_data)
 
 @app.route('/api/alerts/unsubscribe', methods=['POST'])
 def api_alerts_unsubscribe():
@@ -2141,7 +2197,44 @@ def test_robots_access():
     </html>
     """
 
-# ===== AJOUT DES FONCTIONS DE TEST GMAIL =====
+if __name__=='__main__':
+    # Test de configuration avant démarrage
+    print("\n" + "="*60)
+    print("🎣 FISHING PREDICTOR PRO - DÉMARRAGE")
+    print("="*60)
+    
+    # Tester la configuration Gmail
+    gmail_ok = test_gmail_configuration()
+    
+    if not gmail_ok:
+        print("\n⚠️ ATTENTION: La configuration Gmail a échoué!")
+        print("   Les emails ne seront pas envoyés, mais l'application démarrera.")
+        print("   Pour résoudre:")
+        print("   1. Vérifiez votre .env sur Render")
+        print("   2. Regénérez un mot de passe d'application Gmail")
+        print("   3. Activez la vérification en 2 étapes sur Google")
+    
+    # Créer les répertoires nécessaires
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+    os.makedirs(config.STATIC_DIR + '/js', exist_ok=True)
+    os.makedirs(config.STATIC_DIR + '/css', exist_ok=True)
+    os.makedirs(config.TEMPLATES_DIR, exist_ok=True)
+    
+    # Initialiser les fichiers de données
+    for file_path in [config.ALERTS_FILE, config.FAVORITES_FILE, config.EMAIL_LOGS_FILE]:
+        if not os.path.exists(file_path):
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
+            print(f"✅ Fichier créé: {file_path}")
+    
+    # Valider la configuration
+    try:
+        config.validate_config()
+    except Exception as e:
+        print(f"⚠️ Validation config: {e}")
+    
+    print("\n🚀 DÉMARRAGE DU SERVEUR...")
+    app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
 
 def test_gmail_configuration():
     """Teste la configuration Gmail avant le démarrage"""
@@ -2186,42 +2279,3 @@ def test_gmail_configuration():
     except Exception as e:
         print(f"❌ Erreur de connexion: {type(e).__name__}: {str(e)[:100]}")
         return False
-
-if __name__=='__main__':
-    # Test de configuration avant démarrage
-    print("\n" + "="*60)
-    print("🎣 FISHING PREDICTOR PRO - DÉMARRAGE")
-    print("="*60)
-    
-    # Tester la configuration Gmail
-    gmail_ok = test_gmail_configuration()
-    
-    if not gmail_ok:
-        print("\n⚠️ ATTENTION: La configuration Gmail a échoué!")
-        print("   Les emails ne seront pas envoyés, mais l'application démarrera.")
-        print("   Pour résoudre:")
-        print("   1. Vérifiez votre .env sur Render")
-        print("   2. Regénérez un mot de passe d'application Gmail")
-        print("   3. Activez la vérification en 2 étapes sur Google")
-    
-    # Créer les répertoires nécessaires
-    os.makedirs(config.DATA_DIR, exist_ok=True)
-    os.makedirs(config.STATIC_DIR + '/js', exist_ok=True)
-    os.makedirs(config.STATIC_DIR + '/css', exist_ok=True)
-    os.makedirs(config.TEMPLATES_DIR, exist_ok=True)
-    
-    # Initialiser les fichiers de données
-    for file_path in [config.ALERTS_FILE, config.FAVORITES_FILE, config.EMAIL_LOGS_FILE]:
-        if not os.path.exists(file_path):
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump([], f, ensure_ascii=False, indent=2)
-            print(f"✅ Fichier créé: {file_path}")
-    
-    # Valider la configuration
-    try:
-        config.validate_config()
-    except Exception as e:
-        print(f"⚠️ Validation config: {e}")
-    
-    print("\n🚀 DÉMARRAGE DU SERVEUR...")
-    app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
