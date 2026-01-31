@@ -324,6 +324,50 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
     except Exception as e:
         print(f"⚠️ Erreur sauvegarde log email: {e}")
 
+def test_gmail_configuration():
+    """Teste la configuration Gmail avant le démarrage"""
+    print("\n" + "="*60)
+    print("🧪 TEST DE CONFIGURATION GMAIL")
+    print("="*60)
+    
+    if not GMAIL_USER:
+        print("❌ ERREUR CRITIQUE: GMAIL_USER est vide!")
+        print("   Vérifiez votre fichier .env sur Render")
+        return False
+    
+    if not GMAIL_PASSWORD:
+        print("❌ ERREUR CRITIQUE: GMAIL_APP_PASSWORD est vide!")
+        print("   Vérifiez votre fichier .env sur Render")
+        return False
+    
+    try:
+        print(f"🔗 Connexion à {EMAIL_CONFIG['smtp_server']}:{EMAIL_CONFIG['smtp_port']}...")
+        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'], timeout=10)
+        server.ehlo()
+        
+        if EMAIL_CONFIG.get('use_tls', True):
+            print("   Démarrage TLS...")
+            server.starttls()
+            server.ehlo()
+        
+        print(f"   Authentification avec: {GMAIL_USER}")
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        print("✅ Connexion Gmail SMTP réussie!")
+        
+        server.quit()
+        return True
+        
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ Erreur d'authentification: {e}")
+        print("   ⚠️ Vérifiez:")
+        print("   1. Le mot de passe d'application (16 caractères)")
+        print("   2. Que la vérification en 2 étapes est activée")
+        print("   3. Que vous avez créé un mot de passe d'application pour 'Mail'")
+        return False
+    except Exception as e:
+        print(f"❌ Erreur de connexion: {type(e).__name__}: {str(e)[:100]}")
+        return False
+
 # ===== FONCTIONS AVEC GESTION DE LIMITATION =====
 
 def get_openweather_data_with_limits(lat: float, lon: float):
@@ -1812,37 +1856,47 @@ def api_seasonal_calendar():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-# ===== API ALERTES EMAIL - VERSION CORRIGÉE =====
+# ===== API ALERTES EMAIL =====
 
 @app.route('/api/alerts/subscribe', methods=['POST'])
 def api_alerts_subscribe():
-    """API pour s'abonner aux alertes - VERSION PROFESSIONNELLE"""
+    """API pour s'abonner aux alertes - VERSION CORRIGÉE"""
     try:
-        # Vérification robuste des données
-        if not request.is_json:
+        # Vérifier si des données ont été envoyées
+        if not request.data:
             return jsonify({
-                'status': 'error',
-                'message': 'Format de requête invalide. Utilisez JSON.'
+                'status': 'error', 
+                'message': 'Aucune donnée reçue'
             }), 400
         
-        data = request.get_json(silent=True)
+        try:
+            data = request.get_json()
+        except Exception as json_error:
+            print(f"❌ Erreur parsing JSON: {json_error}")
+            return jsonify({
+                'status': 'error', 
+                'message': 'Format JSON invalide'
+            }), 400
+        
         if not data:
             return jsonify({
-                'status': 'error',
-                'message': 'Données JSON invalides ou manquantes.'
+                'status': 'error', 
+                'message': 'Données manquantes'
             }), 400
         
         email = data.get('email', '').strip().lower()
         preferences = data.get('preferences', {})
         
-        # Validation email simple mais efficace
+        print(f"📧 Abonnement en cours pour: {email}")
+        
+        # Validation d'email simplifiée
         if not email or '@' not in email or '.' not in email.split('@')[-1]:
             return jsonify({
                 'status': 'error', 
                 'message': 'Adresse email invalide. Exemple: nom@domaine.com'
             }), 400
         
-        # Charger abonnements existants
+        # Charger les abonnements existants
         subscriptions = []
         alerts_file = config.ALERTS_FILE
         
@@ -1929,30 +1983,6 @@ def api_alerts_subscribe():
             'message': 'Une erreur technique est survenue.',
             'suggestion': 'Veuillez réessayer dans quelques instants.'
         }), 500
-
-@app.route('/api/alerts/health')
-def api_alerts_health():
-    """Endpoint de santé pour vérifier le système d'alertes"""
-    health_data = {
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'components': {
-            'gmail_config': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
-            'alerts_file': os.path.exists(config.ALERTS_FILE),
-            'email_logs': os.path.exists(config.EMAIL_LOGS_FILE),
-            'data_dir': os.path.exists(config.DATA_DIR)
-        }
-    }
-    
-    try:
-        if os.path.exists(config.ALERTS_FILE):
-            with open(config.ALERTS_FILE, 'r') as f:
-                subscriptions = json.load(f)
-                health_data['subscriptions_count'] = len(subscriptions)
-    except:
-        health_data['components']['alerts_file'] = 'corrupted'
-    
-    return jsonify(health_data)
 
 @app.route('/api/alerts/unsubscribe', methods=['POST'])
 def api_alerts_unsubscribe():
@@ -2197,6 +2227,32 @@ def test_robots_access():
     </html>
     """
 
+@app.route('/api/alerts/health')
+def api_alerts_health():
+    """Endpoint de santé pour vérifier le système d'alertes"""
+    health_data = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'components': {
+            'gmail_config': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
+            'alerts_file': os.path.exists(config.ALERTS_FILE),
+            'email_logs': os.path.exists(config.EMAIL_LOGS_FILE),
+            'data_dir': os.path.exists(config.DATA_DIR)
+        }
+    }
+    
+    try:
+        if os.path.exists(config.ALERTS_FILE):
+            with open(config.ALERTS_FILE, 'r') as f:
+                subscriptions = json.load(f)
+                health_data['subscriptions_count'] = len(subscriptions)
+    except:
+        health_data['components']['alerts_file'] = 'corrupted'
+    
+    return jsonify(health_data)
+
+# ===== DÉMARRAGE DE L'APPLICATION =====
+
 if __name__=='__main__':
     # Test de configuration avant démarrage
     print("\n" + "="*60)
@@ -2235,47 +2291,3 @@ if __name__=='__main__':
     
     print("\n🚀 DÉMARRAGE DU SERVEUR...")
     app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
-
-def test_gmail_configuration():
-    """Teste la configuration Gmail avant le démarrage"""
-    print("\n" + "="*60)
-    print("🧪 TEST DE CONFIGURATION GMAIL")
-    print("="*60)
-    
-    if not GMAIL_USER:
-        print("❌ ERREUR CRITIQUE: GMAIL_USER est vide!")
-        print("   Vérifiez votre fichier .env sur Render")
-        return False
-    
-    if not GMAIL_PASSWORD:
-        print("❌ ERREUR CRITIQUE: GMAIL_APP_PASSWORD est vide!")
-        print("   Vérifiez votre fichier .env sur Render")
-        return False
-    
-    try:
-        print(f"🔗 Connexion à {EMAIL_CONFIG['smtp_server']}:{EMAIL_CONFIG['smtp_port']}...")
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'], timeout=10)
-        server.ehlo()
-        
-        if EMAIL_CONFIG.get('use_tls', True):
-            print("   Démarrage TLS...")
-            server.starttls()
-            server.ehlo()
-        
-        print(f"   Authentification avec: {GMAIL_USER}")
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        print("✅ Connexion Gmail SMTP réussie!")
-        
-        server.quit()
-        return True
-        
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"❌ Erreur d'authentification: {e}")
-        print("   ⚠️ Vérifiez:")
-        print("   1. Le mot de passe d'application (16 caractères)")
-        print("   2. Que la vérification en 2 étapes est activée")
-        print("   3. Que vous avez créé un mot de passe d'application pour 'Mail'")
-        return False
-    except Exception as e:
-        print(f"❌ Erreur de connexion: {type(e).__name__}: {str(e)[:100]}")
-        return False
