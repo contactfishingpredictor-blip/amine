@@ -4,4 +4,4 @@ Disallow: /admin/
 Disallow: /venv/
 Disallow: /api/test/
 
-Sitemap: https://votredomaine.com/sitemap.xml
+Sitemap: https://https://fishing-activity.onrender.com/sitemap.xml/sitemap.xml
