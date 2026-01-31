@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, redirect
 from datetime import datetime, timedelta
 import math, random, json, os, time, concurrent.futures, hashlib
 import requests
@@ -2054,24 +2054,92 @@ def test_meteo_simple():
 def test_mobile_simple():
     return render_template('test_mobile_simple.html')
 
-# ===== ROUTES SITEMAP ET ROBOTS =====
-
-@app.route('/sitemap.xml')
-def sitemap():
-    """Serve sitemap.xml file"""
-    try:
-        return send_from_directory('.', 'sitemap.xml', mimetype='application/xml')
-    except:
-        return "Sitemap not found", 404
+# ===== ROUTES SITEMAP ET ROBOTS (CORRIGÉES) =====
 
 @app.route('/robots.txt')
 def robots():
-    """Serve robots.txt file"""
+    """Fichier robots.txt CORRIGÉ - permet l'accès à Googlebot"""
     robots_content = """User-agent: *
+Disallow: /admin/
+Disallow: /private/
 Allow: /
 Sitemap: https://fishing-activity.onrender.com/sitemap.xml
 """
     return robots_content, 200, {'Content-Type': 'text/plain'}
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """Génère le sitemap dynamiquement avec date actuelle"""
+    base_url = 'https://fishing-activity.onrender.com'
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    pages = [
+        {'url': '/', 'priority': '1.0', 'changefreq': 'daily'},
+        {'url': '/predictions', 'priority': '0.9', 'changefreq': 'weekly'},
+        {'url': '/species_selector', 'priority': '0.8', 'changefreq': 'weekly'},
+        {'url': '/favorites', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'url': '/science', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'url': '/alerts', 'priority': '0.6', 'changefreq': 'monthly'},
+    ]
+    
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+'''
+    
+    for page in pages:
+        xml += f'''  <url>
+    <loc>{base_url}{page['url']}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>{page['changefreq']}</changefreq>
+    <priority>{page['priority']}</priority>
+  </url>
+'''
+    
+    xml += '</urlset>'
+    
+    response = make_response(xml)
+    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache 1 heure
+    return response
+
+@app.route('/google-verification')
+def google_verification():
+    """Page de vérification pour Google"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Google Verification Page</title>
+        <meta name="robots" content="index, follow">
+        <meta name="googlebot" content="index, follow">
+    </head>
+    <body>
+        <h1>✅ Googlebot Verification</h1>
+        <p>This page verifies that Googlebot can access the site.</p>
+        <p>Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><a href="/">Return to homepage</a></p>
+    </body>
+    </html>
+    """
+
+@app.route('/test-robots-access')
+def test_robots_access():
+    """Page pour tester l'accès robots.txt"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Robots.txt Access</title>
+    </head>
+    <body>
+        <h1>Test d'accès Robots.txt</h1>
+        <p><a href="/robots.txt" target="_blank">Voir robots.txt</a></p>
+        <p><a href="https://fishing-activity.onrender.com/robots.txt" target="_blank">Voir robots.txt (URL complète)</a></p>
+        <p><a href="https://search.google.com/test/robots-txt" target="_blank">Tester avec l'outil Google</a></p>
+        <p><a href="/">Retour à l'accueil</a></p>
+    </body>
+    </html>
+    """
 
 if __name__=='__main__':
     # Créer les répertoires nécessaires
