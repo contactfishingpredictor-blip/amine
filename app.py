@@ -10,10 +10,13 @@ from advanced_predictor import ScientificFishingPredictor
 # Import de la configuration centralisée
 from config import config
 
+# Import SendGrid handler
+from sendgrid_handler import sendgrid_handler
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 predictor = ScientificFishingPredictor()
 
-# ===== CONFIGURATION EMAIL GMAIL =====
+# ===== CONFIGURATION EMAIL =====
 GMAIL_USER = config.GMAIL_USER
 GMAIL_PASSWORD = config.GMAIL_APP_PASSWORD
 EMAIL_CONFIG = config.EMAIL_CONFIG  # Utilise la propriété dynamique
@@ -140,54 +143,40 @@ WEATHER_CONDITIONS_FR = {
     'Tornado': 'Tornade'
 }
 
-# ===== FONCTIONS EMAIL GMAIL =====
-
-def send_gmail(to_email: str, subject: str, html_content: str, text_content: str = None) -> bool:
-    """Envoie un email via Gmail SMTP"""
-    try:
-        if not EMAIL_CONFIG['enabled']:
-            print(f"⚠️ Envoi d'email désactivé, email non envoyé à: {to_email}")
-            return False
-        
-        # Créer le message
-        msg = MIMEMultipart('alternative')
-        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        
-        # Ajouter les versions texte et HTML
-        if text_content:
-            msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
-        
-        # Connexion au serveur SMTP
-        print(f"📧 Connexion à Gmail SMTP...")
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-        server.ehlo()
-        
-        if EMAIL_CONFIG.get('use_tls', True):
-            server.starttls()
-            server.ehlo()
-        
-        # Authentification
-        print(f"📧 Authentification avec: {GMAIL_USER}")
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        
-        # Envoi de l'email
-        print(f"📧 Envoi de l'email à: {to_email}")
-        server.send_message(msg)
-        server.quit()
-        
-        print(f"✅ Email envoyé avec succès à: {to_email}")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Erreur envoi email Gmail: {e}")
-        return False
+# ===== FONCTIONS EMAIL AVEC SENDGRID =====
 
 def send_confirmation_email(email: str, confirmation_id: str) -> bool:
-    """Envoie un email de confirmation d'abonnement via Gmail"""
+    """Envoie un email de confirmation d'abonnement via SendGrid ou Gmail"""
     try:
+        # Essayer SendGrid d'abord
+        if sendgrid_handler.is_configured():
+            print(f"📧 Envoi via SendGrid à: {email}")
+            result = sendgrid_handler.send_confirmation_email(email, confirmation_id)
+            
+            if result.get('success'):
+                return True
+            else:
+                print(f"⚠️ SendGrid échoué, tentative Gmail: {result.get('error', 'Unknown error')}")
+        
+        # Fallback sur Gmail si SendGrid échoue ou n'est pas configuré
+        return send_confirmation_email_gmail(email, confirmation_id)
+        
+    except Exception as e:
+        print(f"❌ Erreur envoi email: {e}")
+        # Essayer Gmail comme dernier recours
+        try:
+            return send_confirmation_email_gmail(email, confirmation_id)
+        except:
+            print(f"❌ Tous les services email ont échoué pour: {email}")
+            return False
+
+def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
+    """Envoie un email de confirmation d'abonnement via Gmail (fallback)"""
+    try:
+        if not EMAIL_CONFIG['enabled']:
+            print(f"⚠️ Envoi d'email désactivé, email non envoyé à: {email}")
+            return False
+        
         timestamp = datetime.now().strftime('%d/%m/%Y à %H:%M')
         
         # Contenu HTML de l'email
@@ -231,11 +220,11 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
                 </ul>
                 
                 <p style="text-align: center;">
-                    <a href="http://localhost:5000" class="button">Consulter les prédictions</a>
+                    <a href="https://fishing-activity.onrender.com" class="button">Consulter les prédictions</a>
                 </p>
                 
                 <p><strong>Pour gérer vos préférences ou vous désabonner :</strong><br>
-                Visitez la page <a href="http://localhost:5000/alerts">Alertes Intelligentes</a> ou cliquez sur le lien de désabonnement présent dans chaque email.</p>
+                Visitez la page <a href="https://fishing-activity.onrender.com/alerts">Alertes Intelligentes</a> ou cliquez sur le lien de désabonnement présent dans chaque email.</p>
                 
                 <p>Bonne pêche ! 🐟</p>
                 
@@ -266,7 +255,7 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
         Vous recevrez désormais des alertes par email lorsque les conditions de pêche seront excellentes.
         
         Pour gérer vos préférences ou vous désabonner :
-        Visitez http://localhost:5000/alerts ou cliquez sur le lien de désabonnement présent dans chaque email.
+        Visitez https://fishing-activity.onrender.com/alerts ou cliquez sur le lien de désabonnement présent dans chaque email.
         
         Bonne pêche !
         
@@ -274,24 +263,46 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
         
         ---
         Cet email a été envoyé à {email}
-        © 2026 Fishing Predictor Pro
+        © 2024 Fishing Predictor Pro
         """
         
-        # Envoyer l'email
-        email_sent = send_gmail(
-            to_email=email,
-            subject="🎣 Confirmation d'abonnement aux alertes - Fishing Predictor Pro",
-            html_content=html_content,
-            text_content=text_content
-        )
+        # Créer le message
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = email
+        msg['Subject'] = "🎣 Confirmation d'abonnement aux alertes - Fishing Predictor Pro"
+        
+        # Ajouter les versions texte et HTML
+        if text_content:
+            msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
+        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+        
+        # Connexion au serveur SMTP
+        print(f"📧 Connexion à Gmail SMTP...")
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        
+        # Authentification
+        print(f"📧 Authentification avec: {GMAIL_USER}")
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        
+        # Envoi de l'email
+        print(f"📧 Envoi de l'email à: {email}")
+        server.send_message(msg)
+        server.quit()
+        
+        print(f"✅ Email Gmail envoyé avec succès à: {email}")
         
         # Sauvegarder le log
-        save_email_log(email, 'confirmation', confirmation_id, email_sent)
+        save_email_log(email, 'confirmation', confirmation_id, True)
         
-        return email_sent
+        return True
         
     except Exception as e:
-        print(f"❌ Erreur préparation email: {e}")
+        print(f"❌ Erreur envoi email Gmail: {e}")
+        save_email_log(email, 'confirmation', confirmation_id, False)
         return False
 
 def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool):
@@ -311,7 +322,7 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
             'confirmation_id': confirmation_id,
             'sent': sent,
             'timestamp': datetime.now().isoformat(),
-            'server': 'Gmail SMTP'
+            'server': 'Gmail SMTP' if '@gmail.com' in str(EMAIL_CONFIG.get('sender_email', '')) else 'SendGrid'
         }
         
         logs.append(log_entry)
@@ -324,31 +335,36 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
     except Exception as e:
         print(f"⚠️ Erreur sauvegarde log email: {e}")
 
-def test_gmail_configuration():
-    """Teste la configuration Gmail avant le démarrage"""
+def test_email_configuration():
+    """Teste la configuration email avant le démarrage"""
     print("\n" + "="*60)
-    print("🧪 TEST DE CONFIGURATION GMAIL")
+    print("🧪 TEST DE CONFIGURATION EMAIL")
     print("="*60)
     
+    # Vérifier SendGrid
+    if sendgrid_handler.is_configured():
+        print("✅ SendGrid configuré avec succès!")
+        print(f"   Clé API: {sendgrid_handler.api_key[:15]}...")
+        print(f"   Email d'envoi: {sendgrid_handler.from_email}")
+        return True
+    
+    # Vérifier Gmail
     if not GMAIL_USER:
-        print("❌ ERREUR CRITIQUE: GMAIL_USER est vide!")
+        print("❌ GMAIL_USER est vide!")
         print("   Vérifiez votre fichier .env sur Render")
         return False
     
     if not GMAIL_PASSWORD:
-        print("❌ ERREUR CRITIQUE: GMAIL_APP_PASSWORD est vide!")
+        print("❌ GMAIL_APP_PASSWORD est vide!")
         print("   Vérifiez votre fichier .env sur Render")
         return False
     
     try:
-        print(f"🔗 Connexion à {EMAIL_CONFIG['smtp_server']}:{EMAIL_CONFIG['smtp_port']}...")
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'], timeout=10)
+        print(f"🔗 Connexion à smtp.gmail.com:587...")
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
         server.ehlo()
-        
-        if EMAIL_CONFIG.get('use_tls', True):
-            print("   Démarrage TLS...")
-            server.starttls()
-            server.ehlo()
+        server.starttls()
+        server.ehlo()
         
         print(f"   Authentification avec: {GMAIL_USER}")
         server.login(GMAIL_USER, GMAIL_PASSWORD)
@@ -358,14 +374,14 @@ def test_gmail_configuration():
         return True
         
     except smtplib.SMTPAuthenticationError as e:
-        print(f"❌ Erreur d'authentification: {e}")
+        print(f"❌ Erreur d'authentification Gmail: {e}")
         print("   ⚠️ Vérifiez:")
         print("   1. Le mot de passe d'application (16 caractères)")
         print("   2. Que la vérification en 2 étapes est activée")
         print("   3. Que vous avez créé un mot de passe d'application pour 'Mail'")
         return False
     except Exception as e:
-        print(f"❌ Erreur de connexion: {type(e).__name__}: {str(e)[:100]}")
+        print(f"❌ Erreur de connexion Gmail: {type(e).__name__}: {str(e)[:100]}")
         return False
 
 # ===== FONCTIONS AVEC GESTION DE LIMITATION =====
@@ -1860,7 +1876,7 @@ def api_seasonal_calendar():
 
 @app.route('/api/alerts/subscribe', methods=['POST'])
 def api_alerts_subscribe():
-    """API pour s'abonner aux alertes - VERSION CORRIGÉE"""
+    """API pour s'abonner aux alertes - VERSION AVEC SENDGRID"""
     try:
         # Vérifier si des données ont été envoyées
         if not request.data:
@@ -1956,7 +1972,7 @@ def api_alerts_subscribe():
                 'message': 'Erreur technique lors de l\'enregistrement.'
             }), 500
         
-        # Envoi email asynchrone (ne bloque pas la réponse)
+        # Envoi email
         email_sent = False
         try:
             email_sent = send_confirmation_email(email, confirmation_id)
@@ -2234,7 +2250,8 @@ def api_alerts_health():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'components': {
-            'gmail_config': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
+            'sendgrid_configured': sendgrid_handler.is_configured(),
+            'gmail_configured': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
             'alerts_file': os.path.exists(config.ALERTS_FILE),
             'email_logs': os.path.exists(config.EMAIL_LOGS_FILE),
             'data_dir': os.path.exists(config.DATA_DIR)
@@ -2251,6 +2268,82 @@ def api_alerts_health():
     
     return jsonify(health_data)
 
+# ===== ROUTES ADMIN POUR TEST SENDGRID =====
+
+@app.route('/admin/sendgrid_test')
+def admin_sendgrid_test():
+    """Page pour tester SendGrid"""
+    api_key = config.SENDGRID_API_KEY
+    has_key = bool(api_key and api_key.startswith('SG.'))
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test SendGrid</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .success {{ color: green; }}
+            .error {{ color: red; }}
+            .test-form {{ margin-top: 20px; }}
+        </style>
+    </head>
+    <body>
+        <h1>🔧 Test Configuration SendGrid</h1>
+        <p>Clé API définie: <strong class="{'success' if has_key else 'error'}">{'✅ OUI' if has_key else '❌ NON'}</strong></p>
+        <p>Clé: {api_key[:20]}...{api_key[-20:] if api_key and len(api_key) > 40 else ''}</p>
+        <p>Fournisseur: {config.EMAIL_CONFIG['provider'].upper()}</p>
+        
+        <div class="test-form">
+            <h2>Test d'envoi</h2>
+            <form action="/admin/send_test_email" method="POST">
+                <input type="email" name="email" placeholder="Votre email" required style="padding: 8px; width: 300px;">
+                <button type="submit" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px;">Envoyer un test</button>
+            </form>
+        </div>
+        
+        <h2>Logs</h2>
+        <a href="/admin/email_logs" target="_blank">Voir les logs d'emails</a>
+        <br><br>
+        <a href="/alerts">← Retour aux alertes</a>
+    </body>
+    </html>
+    """
+
+@app.route('/admin/send_test_email', methods=['POST'])
+def admin_send_test_email():
+    """Envoie un email de test"""
+    try:
+        email = request.form.get('email')
+        if not email:
+            return "❌ Email manquant"
+        
+        import secrets
+        import time
+        confirmation_id = f"TEST-{int(time.time())}-{secrets.token_hex(4).upper()}"
+        
+        print(f"🧪 Envoi email de test à: {email}")
+        
+        # Utiliser la fonction principale
+        result = send_confirmation_email(email, confirmation_id)
+        
+        if result:
+            return f"""
+            <h1>✅ Email de test envoyé !</h1>
+            <p>Email: {email}</p>
+            <p>ID: {confirmation_id}</p>
+            <p><a href="/admin/sendgrid_test">← Retour au test</a></p>
+            """
+        else:
+            return f"""
+            <h1>❌ Échec de l'envoi</h1>
+            <p>Impossible d'envoyer l'email à {email}</p>
+            <p><a href="/admin/sendgrid_test">← Retour au test</a></p>
+            """
+            
+    except Exception as e:
+        return f"❌ Erreur: {str(e)}"
+
 # ===== DÉMARRAGE DE L'APPLICATION =====
 
 if __name__=='__main__':
@@ -2259,16 +2352,17 @@ if __name__=='__main__':
     print("🎣 FISHING PREDICTOR PRO - DÉMARRAGE")
     print("="*60)
     
-    # Tester la configuration Gmail
-    gmail_ok = test_gmail_configuration()
+    # Tester la configuration email
+    email_ok = test_email_configuration()
     
-    if not gmail_ok:
-        print("\n⚠️ ATTENTION: La configuration Gmail a échoué!")
-        print("   Les emails ne seront pas envoyés, mais l'application démarrera.")
+    if not email_ok:
+        print("\n⚠️ ATTENTION: La configuration email a échoué!")
+        print("   Les emails NE seront PAS envoyés, mais l'application démarrera.")
         print("   Pour résoudre:")
         print("   1. Vérifiez votre .env sur Render")
-        print("   2. Regénérez un mot de passe d'application Gmail")
-        print("   3. Activez la vérification en 2 étapes sur Google")
+        print("   2. Ajoutez SENDGRID_API_KEY ou configurez Gmail")
+    else:
+        print("\n✅ Configuration email validée!")
     
     # Créer les répertoires nécessaires
     os.makedirs(config.DATA_DIR, exist_ok=True)
