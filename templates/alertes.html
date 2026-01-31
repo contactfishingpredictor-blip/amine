@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Fishing Predictor Pro - Alertes Intelligentes{% endblock %}
 {% block extra_css %}
-<style>.alerts-hero{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;padding:3rem 0;text-align:center;border-radius:0 0 20px 20px;margin-bottom:2rem}.alerts-container{max-width:800px;margin:0 auto;padding:0 1.5rem}.alert-card{background:#fff;border-radius:15px;padding:2rem;box-shadow:0 10px 30px rgba(0,0,0,.1);margin-bottom:2rem;border-left:4px solid #f59e0b}.alert-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin:2rem 0}.feature-item{text-align:center;padding:1.5rem;background:#f0f9ff;border-radius:12px}.feature-icon{font-size:2.5rem;color:#3b82f6;margin-bottom:1rem}.toggle-switch{position:relative;display:inline-block;width:60px;height:30px}.toggle-switch input{opacity:0;width:0;height:0}.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.4s;border-radius:34px}.toggle-slider:before{position:absolute;content:"";height:22px;width:22px;left:4px;bottom:4px;background:#fff;transition:.4s;border-radius:50%}input:checked+.toggle-slider{background:#10b981}input:checked+.toggle-slider:before{transform:translateX(30px)}.email-success{background:#d1fae5;color:#065f46;padding:1rem;border-radius:10px;border-left:4px solid #10b981;margin-top:1rem}.email-error{background:#fee2e2;color:#991b1b;padding:1rem;border-radius:10px;border-left:4px solid #ef4444;margin-top:1rem}.email-info{background:#e0f2fe;color:#0369a1;padding:1rem;border-radius:10px;border-left:4px solid #0ea5e9;margin-top:1rem}</style>
+<style>.alerts-hero{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;padding:3rem 0;text-align:center;border-radius:0 0 20px 20px;margin-bottom:2rem}.alerts-container{max-width:800px;margin:0 auto;padding:0 1.5rem}.alert-card{background:#fff;border-radius:15px;padding:2rem;box-shadow:0 10px 30px rgba(0,0,0,.1);margin-bottom:2rem;border-left:4px solid #f59e0b}.alert-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin:2rem 0}.feature-item{text-align:center;padding:1.5rem;background:#f0f9ff;border-radius:12px}.feature-icon{font-size:2.5rem;color:#3b82f6;margin-bottom:1rem}.toggle-switch{position:relative;display:inline-block;width:60px;height:30px}.toggle-switch input{opacity:0;width:0;height:0}.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.4s;border-radius:34px}.toggle-slider:before{position:absolute;content:"";height:22px;width:22px;left:4px;bottom:4px;background:#fff;transition:.4s;border-radius:50%}input:checked+.toggle-slider{background:#10b981}input:checked+.toggle-slider:before{transform:translateX(30px)}.email-success{background:#d1fae5;color:#065f46;padding:1rem;border-radius:10px;border-left:4px solid #10b981;margin-top:1rem}.email-error{background:#fee2e2;color:#991b1b;padding:1rem;border-radius:10px;border-left:4px solid #ef4444;margin-top:1rem}.email-info{background:#e0f2fe;color:#0369a1;padding:1rem;border-radius:10px;border-left:4px solid #0ea5e9;margin-top:1rem}.small-text{font-size:0.9rem;margin-top:0.5rem}</style>
 {% endblock %}
 {% block content %}
 <div class="alerts-hero"><div class="alerts-container"><h1 style="font-size:2.5rem;margin-bottom:1rem"><i class="fas fa-bell"></i> Alertes Intelligentes</h1><p style="font-size:1.2rem;opacity:.9">Recevez un email quand les conditions de pêche sont excellentes !</p></div></div>
@@ -44,19 +44,21 @@ async function subscribeToAlerts() {
     const messageDiv = document.getElementById("subscription-message");
     const subscribeBtn = document.getElementById("subscribe-btn");
     
-    if (!email || !email.includes("@")) {
-        messageDiv.innerHTML = '<div class="email-error"><i class="fas fa-exclamation-circle"></i> Veuillez entrer une adresse email valide</div>';
+    // Validation
+    if (!email || !email.includes("@") || email.split("@")[1].indexOf('.') === -1) {
+        showMessage('error', 'Veuillez entrer une adresse email valide (ex: nom@domaine.com)');
         return;
     }
     
     if (!acceptTerms) {
-        messageDiv.innerHTML = '<div class="email-error"><i class="fas fa-exclamation-circle"></i> Vous devez accepter de recevoir des alertes</div>';
+        showMessage('error', 'Vous devez accepter de recevoir des alertes par email');
         return;
     }
     
-    const originalBtnText = subscribeBtn.innerHTML;
+    // Désactiver bouton pendant traitement
     subscribeBtn.disabled = true;
-    subscribeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement en cours...';
+    const originalText = subscribeBtn.innerHTML;
+    subscribeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
     
     try {
         const preferences = {
@@ -68,52 +70,83 @@ async function subscribeToAlerts() {
         
         const response = await fetch("/api/alerts/subscribe", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({email: email, preferences: preferences})
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                email: email,
+                preferences: preferences
+            })
         });
+        
+        // Traiter la réponse
+        if (!response.ok) {
+            throw new Error(`Erreur serveur (${response.status})`);
+        }
         
         const result = await response.json();
         
         if (result.status === "success") {
+            // SUCCÈS
             messageDiv.innerHTML = `
                 <div class="email-success">
-                    <i class="fas fa-check-circle"></i> <strong>Abonnement réussi !</strong>
-                    <p>Un email de confirmation a été envoyé à ${email}.</p>
-                    <p style="font-size:0.9rem;margin-top:0.5rem;">ID de confirmation: ${result.confirmation_id}</p>
-                    <p style="font-size:0.9rem;">${result.email_sent ? "✅ Email envoyé avec succès" : "⚠️ Email en attente"}</p>
+                    <i class="fas fa-check-circle"></i> 
+                    <strong>Abonnement confirmé !</strong>
+                    <p>Un email de confirmation a été envoyé à <strong>${email}</strong>.</p>
+                    <p class="small-text">
+                        ${result.email_sent ? '✅ Email envoyé' : '📧 Envoi en cours...'}
+                    </p>
                 </div>
             `;
             
-            // Sauvegarder localement
-            const subscriptionData = {
+            // Sauvegarde locale
+            localStorage.setItem("alert_subscription", JSON.stringify({
                 email: email,
                 subscribed: true,
-                confirmed: true,
-                confirmation_id: result.confirmation_id,
                 date: new Date().toISOString(),
-                preferences: preferences
-            };
-            localStorage.setItem("alert_subscription", JSON.stringify(subscriptionData));
+                confirmation_id: result.confirmation_id
+            }));
             
-            // Notification
-            setTimeout(() => {
-                alert(`🎉 Félicitations ${email} !\n\nVotre abonnement a été confirmé.\n\n📧 Un email de confirmation vous a été envoyé.\n\nID: ${result.confirmation_id}\n\nVérifiez votre boîte mail (et les spams).`);
-            }, 500);
         } else {
-            throw new Error(result.message || "Erreur inconnue");
+            // ÉCHEC (avec message serveur)
+            throw new Error(result.message || 'Erreur lors de l\'abonnement');
         }
+        
     } catch (error) {
+        // ERREUR
         console.error("Erreur abonnement:", error);
-        messageDiv.innerHTML = `
-            <div class="email-error">
-                <i class="fas fa-exclamation-circle"></i> Erreur d'abonnement
-                <p style="margin-top:0.5rem;">${error.message}</p>
-            </div>
-        `;
+        
+        let userMessage = "Impossible de finaliser l'abonnement. ";
+        
+        if (error.message.includes('JSON') || error.message.includes('vide')) {
+            userMessage += "Erreur de communication avec le serveur.";
+        } else if (error.message.includes('serveur')) {
+            userMessage += "Le serveur ne répond pas correctement.";
+        } else {
+            userMessage += error.message;
+        }
+        
+        showMessage('error', userMessage);
+        
     } finally {
+        // Réactiver bouton
         subscribeBtn.disabled = false;
-        subscribeBtn.innerHTML = originalBtnText;
+        subscribeBtn.innerHTML = originalText;
     }
+}
+
+// Fonction utilitaire pour afficher les messages
+function showMessage(type, text) {
+    const messageDiv = document.getElementById("subscription-message");
+    const icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+    const cssClass = type === 'error' ? 'email-error' : 'email-success';
+    
+    messageDiv.innerHTML = `
+        <div class="${cssClass}">
+            <i class="fas ${icon}"></i> ${text}
+        </div>
+    `;
 }
 
 async function checkSubscriptionStatus() {
@@ -122,48 +155,56 @@ async function checkSubscriptionStatus() {
     const messageDiv = document.getElementById("status-message");
     
     if (!email || !email.includes("@")) {
-        messageDiv.innerHTML = '<div class="email-error"><i class="fas fa-exclamation-circle"></i> Veuillez entrer une adresse email valide</div>';
+        showStatusMessage('error', 'Veuillez entrer une adresse email valide');
         return;
     }
     
     try {
         const response = await fetch(`/api/alerts/status?email=${encodeURIComponent(email)}`);
+        
+        if (!response.ok) {
+            throw new Error('Service temporairement indisponible');
+        }
+        
         const result = await response.json();
         
-        if (result.status === "success") {
-            if (result.subscribed) {
-                const date = new Date(result.data.subscribed_at);
-                messageDiv.innerHTML = `
-                    <div class="email-success">
-                        <i class="fas fa-check-circle"></i> <strong>Abonné !</strong>
-                        <p>Email: ${email}</p>
-                        <p style="font-size:0.9rem;margin-top:0.5rem;">Abonné depuis: ${date.toLocaleDateString("fr-FR")}</p>
-                        <p style="font-size:0.9rem;">ID: ${result.data.confirmation_id}</p>
-                        <p style="font-size:0.9rem;">Alertes reçues: ${result.data.alert_count || 0}</p>
-                    </div>
-                `;
-                document.getElementById("alert-email").value = email;
-                document.getElementById("accept-terms").checked = true;
-            } else {
-                messageDiv.innerHTML = `
-                    <div class="email-info">
-                        <i class="fas fa-info-circle"></i> Non abonné
-                        <p>L'email ${email} n'est pas abonné aux alertes.</p>
-                    </div>
-                `;
-            }
+        if (result.status === "success" && result.subscribed) {
+            const date = new Date(result.data.subscribed_at);
+            messageDiv.innerHTML = `
+                <div class="email-success">
+                    <i class="fas fa-check-circle"></i> <strong>Abonné</strong>
+                    <p>Email: ${email}</p>
+                    <p class="small-text">Abonné depuis: ${date.toLocaleDateString("fr-FR")}</p>
+                    <p class="small-text">Alertes reçues: ${result.data.alert_count || 0}</p>
+                </div>
+            `;
+            
+            // Pré-remplir le formulaire
+            document.getElementById("alert-email").value = email;
+            document.getElementById("accept-terms").checked = true;
+            
         } else {
-            throw new Error(result.message || "Erreur de vérification");
+            showStatusMessage('info', `L'email ${email} n'est pas abonné aux alertes.`);
         }
+        
     } catch (error) {
         console.error("Erreur vérification:", error);
-        messageDiv.innerHTML = `
-            <div class="email-error">
-                <i class="fas fa-exclamation-circle"></i> Erreur de vérification
-                <p style="margin-top:0.5rem;">${error.message}</p>
-            </div>
-        `;
+        showStatusMessage('error', 'Impossible de vérifier le statut. Service momentanément indisponible.');
     }
+}
+
+function showStatusMessage(type, text) {
+    const messageDiv = document.getElementById("status-message");
+    const cssClass = type === 'error' ? 'email-error' : 
+                    type === 'info' ? 'email-info' : 'email-success';
+    const icon = type === 'error' ? 'fa-exclamation-circle' : 
+                type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
+    
+    messageDiv.innerHTML = `
+        <div class="${cssClass}">
+            <i class="fas ${icon}"></i> ${text}
+        </div>
+    `;
 }
 
 async function testEmail() {
