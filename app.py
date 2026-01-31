@@ -16,7 +16,7 @@ predictor = ScientificFishingPredictor()
 # ===== CONFIGURATION EMAIL GMAIL =====
 GMAIL_USER = config.GMAIL_USER
 GMAIL_PASSWORD = config.GMAIL_APP_PASSWORD
-EMAIL_CONFIG = config.EMAIL_CONFIG
+EMAIL_CONFIG = config.EMAIL_CONFIG  # Utilise la propriété dynamique
 
 OPENWEATHER_API_KEY = config.OPENWEATHER_API_KEY
 STORMGLASS_API_KEY = config.STORMGLASS_API_KEY
@@ -274,7 +274,7 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
         
         ---
         Cet email a été envoyé à {email}
-        © 2024 Fishing Predictor Pro
+        © 2026 Fishing Predictor Pro
         """
         
         # Envoyer l'email
@@ -2141,7 +2141,69 @@ def test_robots_access():
     </html>
     """
 
+# ===== AJOUT DES FONCTIONS DE TEST GMAIL =====
+
+def test_gmail_configuration():
+    """Teste la configuration Gmail avant le démarrage"""
+    print("\n" + "="*60)
+    print("🧪 TEST DE CONFIGURATION GMAIL")
+    print("="*60)
+    
+    if not GMAIL_USER:
+        print("❌ ERREUR CRITIQUE: GMAIL_USER est vide!")
+        print("   Vérifiez votre fichier .env sur Render")
+        return False
+    
+    if not GMAIL_PASSWORD:
+        print("❌ ERREUR CRITIQUE: GMAIL_APP_PASSWORD est vide!")
+        print("   Vérifiez votre fichier .env sur Render")
+        return False
+    
+    try:
+        print(f"🔗 Connexion à {EMAIL_CONFIG['smtp_server']}:{EMAIL_CONFIG['smtp_port']}...")
+        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'], timeout=10)
+        server.ehlo()
+        
+        if EMAIL_CONFIG.get('use_tls', True):
+            print("   Démarrage TLS...")
+            server.starttls()
+            server.ehlo()
+        
+        print(f"   Authentification avec: {GMAIL_USER}")
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        print("✅ Connexion Gmail SMTP réussie!")
+        
+        server.quit()
+        return True
+        
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ Erreur d'authentification: {e}")
+        print("   ⚠️ Vérifiez:")
+        print("   1. Le mot de passe d'application (16 caractères)")
+        print("   2. Que la vérification en 2 étapes est activée")
+        print("   3. Que vous avez créé un mot de passe d'application pour 'Mail'")
+        return False
+    except Exception as e:
+        print(f"❌ Erreur de connexion: {type(e).__name__}: {str(e)[:100]}")
+        return False
+
 if __name__=='__main__':
+    # Test de configuration avant démarrage
+    print("\n" + "="*60)
+    print("🎣 FISHING PREDICTOR PRO - DÉMARRAGE")
+    print("="*60)
+    
+    # Tester la configuration Gmail
+    gmail_ok = test_gmail_configuration()
+    
+    if not gmail_ok:
+        print("\n⚠️ ATTENTION: La configuration Gmail a échoué!")
+        print("   Les emails ne seront pas envoyés, mais l'application démarrera.")
+        print("   Pour résoudre:")
+        print("   1. Vérifiez votre .env sur Render")
+        print("   2. Regénérez un mot de passe d'application Gmail")
+        print("   3. Activez la vérification en 2 étapes sur Google")
+    
     # Créer les répertoires nécessaires
     os.makedirs(config.DATA_DIR, exist_ok=True)
     os.makedirs(config.STATIC_DIR + '/js', exist_ok=True)
@@ -2149,108 +2211,17 @@ if __name__=='__main__':
     os.makedirs(config.TEMPLATES_DIR, exist_ok=True)
     
     # Initialiser les fichiers de données
-    if not os.path.exists(ALERTS_FILE):
-        with open(ALERTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    
-    if not os.path.exists(FAVORITES_FILE):
-        with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    
-    # Créer le template pour les logs d'emails
-    email_logs_template = '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Logs d'Emails - Fishing Predictor Pro</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-            .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
-            h1 { color: #333; }
-            .log-item { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
-            .log-item.success { border-left: 5px solid #10b981; }
-            .log-item.error { border-left: 5px solid #ef4444; }
-            .log-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-            .log-email { font-weight: bold; color: #3b82f6; }
-            .log-time { color: #64748b; font-size: 0.9em; }
-            .log-content { background: #f8fafc; padding: 10px; border-radius: 5px; font-family: monospace; }
-            .status-success { color: #10b981; font-weight: bold; }
-            .status-error { color: #ef4444; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>📧 Logs d'Emails</h1>
-            <p>Total: {{ count }} emails envoyés via Gmail</p>
-            <div id="logs">
-                {% for log in logs %}
-                <div class="log-item {% if log.sent %}success{% else %}error{% endif %}">
-                    <div class="log-header">
-                        <span class="log-email">{{ log.to }}</span>
-                        <span class="log-time">{{ log.timestamp }}</span>
-                    </div>
-                    <div class="log-content">
-                        Type: {{ log.type }}<br>
-                        Confirmation ID: {{ log.confirmation_id }}<br>
-                        Statut: <span class="{% if log.sent %}status-success{% else %}status-error{% endif %}">
-                            {% if log.sent %}✅ ENVOYÉ{% else %}❌ ÉCHEC{% endif %}
-                        </span><br>
-                        Serveur: {{ log.server }}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <div style="margin-top: 20px;">
-                <a href="/alerts" style="color: #3b82f6;">← Retour aux alertes</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    '''
-    
-    # Sauvegarder le template
-    with open('templates/email_logs.html', 'w', encoding='utf-8') as f:
-        f.write(email_logs_template)
-    
-    cleanup_old_cache()
+    for file_path in [config.ALERTS_FILE, config.FAVORITES_FILE, config.EMAIL_LOGS_FILE]:
+        if not os.path.exists(file_path):
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
+            print(f"✅ Fichier créé: {file_path}")
     
     # Valider la configuration
     try:
         config.validate_config()
-        print("✅ Configuration validée avec succès")
-    except ValueError as e:
-        print(f"⚠️ Attention: {e}")
-        print("   L'application va démarrer avec les valeurs par défaut")
-    
-    print("="*60)
-    print("🎣 FISHING PREDICTOR PRO - VERSION AVEC EMAILS GMAIL")
-    print("="*60)
-    print(f"✅ Configuration Gmail: {GMAIL_USER}")
-    print(f"✅ SMTP: {EMAIL_CONFIG['smtp_server']}:{EMAIL_CONFIG['smtp_port']}")
-    print("✅ Système d'emails activé")
-    print("="*60)
-    print("🌐 Accès:")
-    print("   http://127.0.0.1:5000")
-    print("   http://localhost:5000")
-    print("   Logs emails: http://localhost:5000/admin/email_logs")
-    print("="*60)
-    
-    print("\n🧪 Test de connexion Gmail...")
-    try:
-        # Test rapide de connexion SMTP
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        server.quit()
-        print("✅ Connexion Gmail SMTP réussie !")
     except Exception as e:
-        print(f"⚠️ Erreur connexion Gmail: {e}")
-        print("   Vérifiez:")
-        print("   1. Que le mot de passe d'application est correct")
-        print("   2. Que les applications moins sécurisées sont activées")
-        print("   3. Que l'accès SMTP est autorisé sur le compte Gmail")
+        print(f"⚠️ Validation config: {e}")
     
-    print("\n🚀 Démarrage du serveur...")
+    print("\n🚀 DÉMARRAGE DU SERVEUR...")
     app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
