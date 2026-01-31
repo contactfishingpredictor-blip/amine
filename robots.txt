@@ -1,4 +1,6 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /private/
 
 Sitemap: https://fishing-activity.onrender.com/sitemap.xml
