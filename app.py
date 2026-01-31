@@ -2054,6 +2054,25 @@ def test_meteo_simple():
 def test_mobile_simple():
     return render_template('test_mobile_simple.html')
 
+# ===== ROUTES SITEMAP ET ROBOTS =====
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """Serve sitemap.xml file"""
+    try:
+        return send_from_directory('.', 'sitemap.xml', mimetype='application/xml')
+    except:
+        return "Sitemap not found", 404
+
+@app.route('/robots.txt')
+def robots():
+    """Serve robots.txt file"""
+    robots_content = """User-agent: *
+Allow: /
+Sitemap: https://fishing-activity.onrender.com/sitemap.xml
+"""
+    return robots_content, 200, {'Content-Type': 'text/plain'}
+
 if __name__=='__main__':
     # Créer les répertoires nécessaires
     os.makedirs(config.DATA_DIR, exist_ok=True)
