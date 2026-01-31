@@ -18,6 +18,9 @@ class Config:
     # ===== CONFIGURATION EMAIL (CRITIQUE) =====
     GMAIL_USER = os.getenv('GMAIL_USER')  # contactfishingpredictor@gmail.com
     GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')  # opyr jyhe vjsr rftu
+    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+    EMAIL_FROM = os.getenv('EMAIL_FROM', 'alerts@fishingpredictor.pro')
+    EMAIL_FROM_NAME = os.getenv('EMAIL_FROM_NAME', 'Fishing Predictor Pro')
     
     # ===== API KEYS =====
     OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
@@ -71,27 +74,28 @@ class Config:
     @property
     def EMAIL_CONFIG(self):
         """Configuration email dynamique"""
-        sender_email = self.GMAIL_USER if self.GMAIL_USER else 'contactfishingpredictor@gmail.com'
+        sender_email = self.EMAIL_FROM if self.EMAIL_FROM else 'alerts@fishingpredictor.pro'
         return {
             'enabled': True,
             'smtp_server': 'smtp.gmail.com',
             'smtp_port': 587,
             'sender_email': sender_email,
-            'sender_name': 'Fishing Predictor Pro',
+            'sender_name': self.EMAIL_FROM_NAME,
             'use_tls': True
         }
     
     def check_email_config(self):
         """Vérifie la configuration email de manière silencieuse"""
         try:
+            has_sendgrid = bool(self.SENDGRID_API_KEY and self.SENDGRID_API_KEY.startswith('SG.'))
             has_gmail_user = bool(self.GMAIL_USER and '@' in self.GMAIL_USER)
             has_gmail_pass = bool(self.GMAIL_APP_PASSWORD and len(self.GMAIL_APP_PASSWORD) >= 8)
             
             return {
-                'email_system_ready': has_gmail_user and has_gmail_pass,
-                'gmail_user_configured': has_gmail_user,
-                'gmail_password_configured': has_gmail_pass,
-                'sender_email': self.GMAIL_USER if has_gmail_user else None
+                'email_system_ready': has_sendgrid or (has_gmail_user and has_gmail_pass),
+                'sendgrid_configured': has_sendgrid,
+                'gmail_configured': has_gmail_user and has_gmail_pass,
+                'sender_email': self.EMAIL_FROM
             }
         except:
             return {'email_system_ready': False}
@@ -106,18 +110,22 @@ class Config:
         # Vérification critique des emails
         print(f"📧 GMAIL_USER: {'✅ ' + cls.GMAIL_USER if cls.GMAIL_USER else '❌ MANQUANT'}")
         print(f"🔑 GMAIL_APP_PASSWORD: {'✅ ' + ('*' * 8) if cls.GMAIL_APP_PASSWORD else '❌ MANQUANT'}")
+        print(f"📧 SENDGRID_API_KEY: {'✅ Configurée' if cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.') else '❌ MANQUANTE'}")
+        print(f"📧 EMAIL_FROM: {'✅ ' + cls.EMAIL_FROM if cls.EMAIL_FROM else '❌ MANQUANT'}")
         
-        required_vars = ['GMAIL_USER', 'GMAIL_APP_PASSWORD', 'SECRET_KEY']
-        missing = [var for var in required_vars if not getattr(cls, var)]
+        # Vérifier au moins une méthode email
+        has_sendgrid = cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.')
+        has_gmail = cls.GMAIL_USER and cls.GMAIL_APP_PASSWORD
         
-        if missing:
-            print(f"\n🚨 Variables manquantes: {', '.join(missing)}")
-            print("   ⚠️ Les emails NE fonctionneront PAS sans ces variables")
+        if not has_sendgrid and not has_gmail:
+            print(f"\n🚨 ATTENTION: Aucun fournisseur email configuré!")
+            print("   ⚠️ Les emails NE fonctionneront PAS sans SendGrid ou Gmail")
             return False
         
         # Vérifier les APIs
         print("\n📡 APIs DISPONIBLES:")
         apis = [
+            ('SendGrid', cls.SENDGRID_API_KEY),
             ('OpenWeather', cls.OPENWEATHER_API_KEY),
             ('StormGlass', cls.STORMGLASS_API_KEY),
             ('WorldTides', cls.WORLDTIDES_API_KEY),
@@ -125,7 +133,10 @@ class Config:
         ]
         
         for name, key in apis:
-            print(f"   {name}: {'✅' if key else '❌'}")
+            if name == 'SendGrid':
+                print(f"   {name}: {'✅' if key and key.startswith('SG.') else '❌'}")
+            else:
+                print(f"   {name}: {'✅' if key else '❌'}")
         
         print("="*50 + "\n")
         return True
