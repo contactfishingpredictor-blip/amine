@@ -1,5 +1,5 @@
 """
-Handler pour l'envoi d'emails via SendGrid
+Handler pour l'envoi d'emails via SendGrid - VERSION CORRIGÉE
 """
 import os
 import json
@@ -11,38 +11,50 @@ from typing import Dict, Any, Optional
 from config import config
 
 class SendGridHandler:
-    """Gestionnaire SendGrid pour l'envoi d'emails"""
+    """Gestionnaire SendGrid pour l'envoi d'emails - VERSION FONCTIONNELLE"""
     
     def __init__(self):
         self.api_key = config.SENDGRID_API_KEY
-        self.from_email = config.EMAIL_FROM
-        self.from_name = config.EMAIL_FROM_NAME
         
+        # CRITIQUE : Toujours utiliser un expéditeur vérifié (votre Gmail)
+        # 'alerts@fishingpredictor.pro' n'est PAS vérifié dans SendGrid
+        self.from_email = 'contactfishingpredictor@gmail.com'  # FORCÉ À GMAIL
+        self.from_name = config.EMAIL_FROM_NAME or 'Fishing Predictor Pro'
+        
+        print(f"🔧 SendGrid configuré avec expéditeur: {self.from_email}")
+        
+        # Vérification de la clé
+        if not self.is_configured():
+            print("⚠️ ATTENTION: Clé SendGrid invalide ou manquante")
+    
     def is_configured(self) -> bool:
-        """Vérifie si SendGrid est configuré"""
+        """Vérifie si SendGrid est configuré avec une clé valide"""
         return bool(self.api_key and self.api_key.startswith('SG.'))
     
     def send_email(self, to_email: str, subject: str, html_content: str, 
                   text_content: str = None) -> Dict[str, Any]:
         """
-        Envoie un email via SendGrid API
+        Envoie un email via SendGrid API - VERSION SIMPLIFIÉE ET FONCTIONNELLE
         """
         try:
             if not self.is_configured():
+                print("❌ SendGrid non configuré")
                 return {
                     'success': False,
                     'error': 'SendGrid non configuré',
-                    'simulated': True
+                    'simulated': False
                 }
             
-            # Préparer la requête pour SendGrid
+            print(f"📧 Préparation email SendGrid pour: {to_email}")
+            
+            # URL SendGrid
             url = "https://api.sendgrid.com/v3/mail/send"
             headers = {
                 'Authorization': f'Bearer {self.api_key}',
                 'Content-Type': 'application/json'
             }
             
-            # Construire le payload SendGrid
+            # Construire le payload SIMPLIFIÉ
             payload = {
                 "personalizations": [{
                     "to": [{
@@ -51,49 +63,65 @@ class SendGridHandler:
                     }]
                 }],
                 "from": {
-                    "email": self.from_email,
+                    "email": self.from_email,  # TOUJOURS contactfishingpredictor@gmail.com
                     "name": self.from_name
                 },
                 "subject": subject,
-                "content": []
+                "content": [
+                    {
+                        "type": "text/html",
+                        "value": html_content
+                    }
+                ]
             }
             
-            # Ajouter le contenu texte
+            # Ajouter texte brut si fourni
             if text_content:
-                payload["content"].append({
+                payload["content"].insert(0, {
                     "type": "text/plain",
                     "value": text_content
                 })
             
-            # Ajouter le contenu HTML
-            payload["content"].append({
-                "type": "text/html",
-                "value": html_content
-            })
+            # Envoyer la requête avec timeout court
+            print(f"🚀 Envoi SendGrid à: {to_email}")
+            response = requests.post(url, headers=headers, json=payload, timeout=15)
             
-            # Envoyer la requête
-            print(f"📧 Envoi SendGrid à: {to_email}")
-            response = requests.post(url, headers=headers, json=payload, timeout=10)
-            
+            # Analyser la réponse
             if response.status_code in [200, 202]:
-                print(f"✅ Email SendGrid envoyé: {to_email}")
+                print(f"✅ SendGrid SUCCÈS: Email envoyé à {to_email}")
                 return {
                     'success': True,
                     'status_code': response.status_code,
-                    'message': 'Email envoyé avec succès'
+                    'message': 'Email envoyé avec succès',
+                    'provider': 'SendGrid'
                 }
             else:
-                error_msg = f"Erreur SendGrid ({response.status_code}): {response.text[:200]}"
+                # Erreur SendGrid
+                error_msg = f"Erreur SendGrid ({response.status_code})"
+                try:
+                    error_data = response.json()
+                    if 'errors' in error_data:
+                        error_msg += f": {error_data['errors'][0].get('message', 'Unknown')}"
+                except:
+                    error_msg += f": {response.text[:200]}"
+                
                 print(f"❌ {error_msg}")
                 return {
                     'success': False,
                     'error': error_msg,
                     'status_code': response.status_code,
-                    'simulated': False
+                    'provider': 'SendGrid'
                 }
                 
+        except requests.exceptions.Timeout:
+            print("❌ Timeout SendGrid")
+            return {
+                'success': False,
+                'error': 'Timeout - Serveur SendGrid non accessible',
+                'simulated': False
+            }
         except Exception as e:
-            print(f"❌ Exception SendGrid: {e}")
+            print(f"❌ Exception SendGrid: {type(e).__name__}: {str(e)[:100]}")
             return {
                 'success': False,
                 'error': str(e),
@@ -101,8 +129,10 @@ class SendGridHandler:
             }
     
     def send_confirmation_email(self, email: str, confirmation_id: str) -> Dict[str, Any]:
-        """Envoie un email de confirmation d'abonnement"""
+        """Envoie un email de confirmation d'abonnement - VERSION CORRIGÉE"""
         try:
+            print(f"🎣 Préparation confirmation pour: {email}")
+            
             timestamp = datetime.now().strftime('%d/%m/%Y à %H:%M')
             
             # Contenu HTML de l'email
@@ -111,24 +141,31 @@ class SendGridHandler:
             # Version texte simple
             text_content = self._generate_confirmation_text(email, confirmation_id, timestamp)
             
-            # Envoyer l'email
+            # Envoyer l'email via SendGrid
             result = self.send_email(
                 to_email=email,
-                subject="🎣 Confirmation d'abonnement aux alertes - Fishing Predictor Pro",
+                subject="🎣 Confirmation d'abonnement - Fishing Predictor Pro",
                 html_content=html_content,
                 text_content=text_content
             )
             
             # Sauvegarder le log
-            self._save_email_log(email, 'confirmation', confirmation_id, 
-                                result.get('success', False), 
-                                result.get('status_code', 0))
+            self._save_email_log(
+                email, 'confirmation', confirmation_id, 
+                result.get('success', False), 
+                result.get('status_code', 0),
+                result.get('error', '')
+            )
             
             return result
             
         except Exception as e:
             print(f"❌ Erreur préparation email: {e}")
-            return {'success': False, 'error': str(e)}
+            return {
+                'success': False, 
+                'error': str(e),
+                'simulated': False
+            }
     
     def _generate_confirmation_html(self, email: str, confirmation_id: str, 
                                    timestamp: str) -> str:
@@ -154,7 +191,7 @@ class SendGridHandler:
                 <h2>Confirmation d'abonnement</h2>
             </div>
             <div class="content">
-                <p>Bonjour,</p>
+                <p>Bonjour pêcheur,</p>
                 
                 <p>Merci de vous être abonné aux alertes de pêche de <strong>Fishing Predictor Pro</strong> !</p>
                 
@@ -185,7 +222,7 @@ class SendGridHandler:
             </div>
             <div class="footer">
                 <p>Cet email a été envoyé à {email}</p>
-                <p>© 2024 Fishing Predictor Pro - Tous droits réservés</p>
+                <p>© {datetime.now().year} Fishing Predictor Pro - Tous droits réservés</p>
                 <p><small>Vous recevez cet email car vous vous êtes abonné aux alertes sur notre site.</small></p>
             </div>
         </body>
@@ -218,11 +255,11 @@ class SendGridHandler:
         
         ---
         Cet email a été envoyé à {email}
-        © 2024 Fishing Predictor Pro
+        © {datetime.now().year} Fishing Predictor Pro
         """
     
     def _save_email_log(self, email: str, email_type: str, confirmation_id: str, 
-                       sent: bool, status_code: int = 0):
+                       sent: bool, status_code: int = 0, error: str = ''):
         """Sauvegarde les logs d'emails envoyés"""
         try:
             log_file = config.EMAIL_LOGS_FILE
@@ -230,8 +267,11 @@ class SendGridHandler:
             
             logs = []
             if os.path.exists(log_file):
-                with open(log_file, 'r', encoding='utf-8') as f:
-                    logs = json.load(f)
+                try:
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        logs = json.load(f)
+                except:
+                    logs = []
             
             log_entry = {
                 'to': email,
@@ -239,8 +279,10 @@ class SendGridHandler:
                 'confirmation_id': confirmation_id,
                 'sent': sent,
                 'status_code': status_code,
+                'error': error[:200] if error else '',
                 'timestamp': datetime.now().isoformat(),
-                'provider': 'SendGrid'
+                'provider': 'SendGrid',
+                'from_email': self.from_email
             }
             
             logs.append(log_entry)
@@ -248,10 +290,29 @@ class SendGridHandler:
             with open(log_file, 'w', encoding='utf-8') as f:
                 json.dump(logs, f, ensure_ascii=False, indent=2)
             
-            print(f"📋 Log email sauvegardé: {email} - {'✅ Envoyé' if sent else '❌ Échec'}")
+            status = '✅ Envoyé' if sent else f'❌ Échec ({status_code})'
+            print(f"📋 Log email sauvegardé: {email} - {status}")
             
         except Exception as e:
             print(f"⚠️ Erreur sauvegarde log email: {e}")
 
 # Instance globale
 sendgrid_handler = SendGridHandler()
+
+# Test rapide
+if __name__ == "__main__":
+    print("\n" + "="*60)
+    print("🧪 TEST SENDGRID HANDLER")
+    print("="*60)
+    
+    print(f"Clé API: {'✅' if sendgrid_handler.is_configured() else '❌'}")
+    print(f"Expéditeur: {sendgrid_handler.from_email}")
+    
+    if sendgrid_handler.is_configured():
+        print("\n🔍 Test de connexion SendGrid...")
+        test_result = sendgrid_handler.send_email(
+            to_email="test@example.com",
+            subject="Test SendGrid",
+            html_content="<h1>Test</h1><p>Ceci est un test.</p>"
+        )
+        print(f"Résultat: {test_result}")
