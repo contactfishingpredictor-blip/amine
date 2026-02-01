@@ -46,7 +46,7 @@ API_RATE_LIMITS = {
     'worldtides': {
         'max_per_day': 10,
         'cache_duration': 6 * 60 * 60,
-        'use_cache_only': True
+        'use_cache_only': True  # Force le mode cache seulement
     },
     'nominatim': {
         'max_per_hour': 1,
@@ -703,52 +703,131 @@ def get_emodnet_bathymetry_with_cache(lat: float, lon: float) -> float:
     return None
 
 def get_tide_data_with_cache(lat: float, lon: float) -> dict:
-    """Récupère les données de marée avec cache"""
+    """Récupère les données de marée - VERSION CORRIGÉE"""
     params = {'lat': lat, 'lon': lon}
     
-    cached_data = load_from_cache('worldtides', params, max_age_hours=12)
+    # Vérifier d'abord le cache (6 heures)
+    cached_data = load_from_cache('worldtides', params, max_age_hours=6)
     if cached_data:
+        print(f"📦 WorldTides: Données chargées depuis le cache")
         return cached_data
     
-    if API_RATE_LIMITS['worldtides'].get('use_cache_only', True):
-        return get_fallback_tide_data(lat, lon)
+    # Mode fallback seulement (crédits API épuisés ou erreur 400)
+    print(f"⚠️ WorldTides: Utilisation du modèle de fallback")
+    fallback_data = get_fallback_tide_data(lat, lon)
     
-    try:
-        url = "https://www.worldtides.info/api/v3"
-        params_api = {
-            'lat': lat,
-            'lon': lon,
-            'key': WORLDTIDES_API_KEY,
-            'date': 'today',
-            'days': 1,
-            'datum': 'CD',
-            'step': 3600
-        }
-        
-        response = requests.get(url, params=params_api, timeout=5)
-        
-        if response.status_code == 200:
-            data = response.json()
-            save_to_cache('worldtides', params, data, 12)
-            return data
+    # Sauvegarder dans le cache pour 6 heures
+    save_to_cache('worldtides', params, fallback_data, 6)
     
-    except Exception as e:
-        print(f"⚠️ Erreur WorldTides: {e}")
-    
-    return get_fallback_tide_data(lat, lon)
+    return fallback_data
 
 def get_fallback_tide_data(lat: float, lon: float) -> dict:
-    """Données de marée de secours"""
-    now = int(time.time())
-    tide_height = 0.5 + math.sin(now / 18000) * 0.3
+    """Données de marée de secours - AMÉLIORÉE"""
+    now = datetime.now()
+    today = now.date()
+    
+    # Heure de départ (minuit aujourd'hui)
+    start_time = datetime(today.year, today.month, today.day, 0, 0, 0)
+    start_timestamp = int(start_time.timestamp())
+    
+    # Paramètres basés sur la position
+    # En Méditerranée, les marées sont faibles (amplitude ~0.5m)
+    base_height = 0.5
+    amplitude = 0.3
+    
+    # Décalage basé sur la longitude pour simuler des heures de marée différentes
+    lon_offset = lon / 15.0  # 15 degrés par fuseau horaire
+    
+    heights = []
+    extremes = []
+    
+    # Générer des points toutes les 30 minutes pour 24 heures (48 points)
+    for i in range(48):
+        current_time = start_timestamp + i * 1800  # 30 minutes en secondes
+        hours_from_midnight = i * 0.5
+        
+        # Modèle de marée semi-diurne (2 marées hautes, 2 basses par jour)
+        # Formule simplifiée: hauteur = base + amplitude * sin(2π * (heures/12.4 + décalage))
+        # 12.4 heures = période de marée semi-diurne
+        tide_progress = (hours_from_midnight + lon_offset) / 12.4
+        height = base_height + amplitude * math.sin(2 * math.pi * tide_progress)
+        
+        heights.append({
+            'dt': current_time,
+            'date': datetime.fromtimestamp(current_time).isoformat() + '+01:00',
+            'height': round(height, 2)
+        })
+    
+    # Identifier les marées hautes et basses
+    # Pour chaque cycle de 6.2 heures (demi-période), trouver les extrêmes
+    for cycle in range(4):  # 4 demi-cycles sur 24 heures
+        cycle_start = cycle * 6.2  # heures depuis minuit
+        
+        # Chercher autour de ce point pour le maximum (marée haute)
+        max_height = -999
+        max_hour = cycle_start
+        
+        for offset in range(-5, 6):  # Chercher ±2.5 heures
+            check_hour = cycle_start + offset * 0.5
+            if 0 <= check_hour < 24:
+                idx = int(check_hour * 2)
+                if idx < len(heights) and heights[idx]['height'] > max_height:
+                    max_height = heights[idx]['height']
+                    max_hour = check_hour
+        
+        # Marée haute
+        high_tide_time = start_timestamp + int(max_hour * 3600)
+        extremes.append({
+            'dt': high_tide_time,
+            'date': datetime.fromtimestamp(high_tide_time).isoformat() + '+01:00',
+            'height': round(max_height, 2),
+            'type': 'High'
+        })
+        
+        # Marée basse (à mi-chemin entre deux hautes)
+        low_hour = cycle_start + 3.1  # 3.1 heures après la haute
+        
+        min_height = 999
+        min_hour = low_hour
+        
+        for offset in range(-5, 6):
+            check_hour = low_hour + offset * 0.5
+            if 0 <= check_hour < 24:
+                idx = int(check_hour * 2)
+                if idx < len(heights) and heights[idx]['height'] < min_height:
+                    min_height = heights[idx]['height']
+                    min_hour = check_hour
+        
+        low_tide_time = start_timestamp + int(min_hour * 3600)
+        extremes.append({
+            'dt': low_tide_time,
+            'date': datetime.fromtimestamp(low_tide_time).isoformat() + '+01:00',
+            'height': round(min_height, 2),
+            'type': 'Low'
+        })
+    
+    # Trier les extrêmes par heure
+    extremes.sort(key=lambda x: x['dt'])
+    
+    # Garder seulement les 4 premiers extrêmes (2 hautes, 2 basses)
+    if len(extremes) > 4:
+        extremes = extremes[:4]
     
     return {
         'status': 200,
-        'heights': [{'dt': now, 'height': tide_height}],
-        'extremes': [
-            {'dt': now + 18000, 'height': 0.8, 'type': 'High'},
-            {'dt': now + 28800, 'height': 0.2, 'type': 'Low'}
-        ]
+        'heights': heights,
+        'extremes': extremes,
+        'callCount': 0,
+        'copyright': 'Modèle de marée méditerranéenne - Fishing Predictor Pro',
+        'requestLat': lat,
+        'requestLon': lon,
+        'responseLat': lat,
+        'responseLon': lon,
+        'datum': 'CD',
+        'timezone': 'Africa/Tunis',
+        'model': 'semi-diurnal',
+        'amplitude': round(amplitude, 2),
+        'mean_height': round(base_height, 2)
     }
 
 def get_location_name_with_cache(lat: float, lon: float) -> dict:
@@ -1585,7 +1664,7 @@ def api_tide_chart():
             'chart_points': tide_points,
             'next_high_tide': get_next_high_tide(tide_data),
             'next_low_tide': get_next_low_tide(tide_data),
-            'current_height': tide_data.get('heights', [{}])[0].get('height', 0.5),
+            'current_height': tide_data.get('heights', [{}])[0].get('height', 0.5) if tide_data.get('heights') else 0.5,
             'recommendations': {
                 'best_fishing_tide': 'marée montante',
                 'worst_fishing_tide': 'marée basse fixe',
