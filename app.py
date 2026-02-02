@@ -13,6 +13,13 @@ from config import config
 # Import SendGrid handler
 from sendgrid_handler import sendgrid_handler
 
+# Import silencieux de WEkEO
+try:
+    from wekeo_handler import wekeo_enhancer
+    WEKEO_ENABLED = True
+except ImportError:
+    WEKEO_ENABLED = False
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 predictor = ScientificFishingPredictor()
 
@@ -113,11 +120,9 @@ def load_from_cache(api_name: str, params: dict, max_age_hours: int = 24):
         if cache_age > max_age_seconds:
             return None
         
-        print(f"📦 Données chargées depuis le cache: {api_name}")
         return cache_data['data']
     
     except Exception as e:
-        print(f"⚠️ Erreur chargement cache: {e}")
         return None
 
 # ===== CACHE MÉMOIRE POUR DONNÉES FRÉQUEMMENT UTILISÉES =====
@@ -150,7 +155,6 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
     try:
         # Essayer SendGrid d'abord
         if sendgrid_handler.is_configured():
-            print(f"📧 Envoi via SendGrid à: {email}")
             result = sendgrid_handler.send_confirmation_email(email, confirmation_id)
             
             if result.get('success'):
@@ -174,7 +178,6 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
     """Envoie un email de confirmation d'abonnement via Gmail (fallback)"""
     try:
         if not EMAIL_CONFIG['enabled']:
-            print(f"⚠️ Envoi d'email désactivé, email non envoyé à: {email}")
             return False
         
         timestamp = datetime.now().strftime('%d/%m/%Y à %H:%M')
@@ -278,22 +281,17 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
         msg.attach(MIMEText(html_content, 'html', 'utf-8'))
         
         # Connexion au serveur SMTP
-        print(f"📧 Connexion à Gmail SMTP...")
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.ehlo()
         server.starttls()
         server.ehlo()
         
         # Authentification
-        print(f"📧 Authentification avec: {GMAIL_USER}")
         server.login(GMAIL_USER, GMAIL_PASSWORD)
         
         # Envoi de l'email
-        print(f"📧 Envoi de l'email à: {email}")
         server.send_message(msg)
         server.quit()
-        
-        print(f"✅ Email Gmail envoyé avec succès à: {email}")
         
         # Sauvegarder le log
         save_email_log(email, 'confirmation', confirmation_id, True)
@@ -330,8 +328,6 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
         with open(log_file, 'w', encoding='utf-8') as f:
             json.dump(logs, f, ensure_ascii=False, indent=2)
         
-        print(f"📋 Log email sauvegardé: {email} - {'✅ Envoyé' if sent else '❌ Échec'}")
-        
     except Exception as e:
         print(f"⚠️ Erreur sauvegarde log email: {e}")
 
@@ -360,13 +356,11 @@ def test_email_configuration():
         return False
     
     try:
-        print(f"🔗 Connexion à smtp.gmail.com:587...")
         server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
         server.ehlo()
         server.starttls()
         server.ehlo()
         
-        print(f"   Authentification avec: {GMAIL_USER}")
         server.login(GMAIL_USER, GMAIL_PASSWORD)
         print("✅ Connexion Gmail SMTP réussie!")
         
@@ -375,10 +369,6 @@ def test_email_configuration():
         
     except smtplib.SMTPAuthenticationError as e:
         print(f"❌ Erreur d'authentification Gmail: {e}")
-        print("   ⚠️ Vérifiez:")
-        print("   1. Le mot de passe d'application (16 caractères)")
-        print("   2. Que la vérification en 2 étapes est activée")
-        print("   3. Que vous avez créé un mot de passe d'application pour 'Mail'")
         return False
     except Exception as e:
         print(f"❌ Erreur de connexion Gmail: {type(e).__name__}: {str(e)[:100]}")
@@ -397,15 +387,12 @@ def get_openweather_data_with_limits(lat: float, lon: float):
     limits = API_RATE_LIMITS['openweather']
     
     if limits.get('use_cache_only', False):
-        print("⚠️ OpenWeatherMap: Mode cache seulement activé")
         return get_fallback_weather_data(lat, lon)
     
     if limits['count_today'] >= limits['max_per_day']:
-        print(f"⚠️ Limite quotidienne OpenWeather atteinte: {limits['count_today']}/{limits['max_per_day']}")
         return get_fallback_weather_data(lat, lon)
     
     try:
-        print(f"🌤️ Appel OpenWeatherMap pour: {lat}, {lon}")
         url = "https://api.openweathermap.org/data/2.5/weather"
         params_api = {
             'lat': lat,
@@ -419,7 +406,6 @@ def get_openweather_data_with_limits(lat: float, lon: float):
         
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Données OpenWeatherMap reçues: {data['name']}")
             
             API_RATE_LIMITS['openweather']['count_today'] += 1
             
@@ -465,21 +451,17 @@ def get_openweather_data_with_limits(lat: float, lon: float):
             return {'success': True, 'weather': weather_info, 'source': 'api'}
         
         elif response.status_code == 429:
-            print("⚠️ OpenWeatherMap: Limite d'API atteinte (429)")
             API_RATE_LIMITS['openweather']['use_cache_only'] = True
             return get_fallback_weather_data(lat, lon)
         
         else:
-            print(f"⚠️ OpenWeatherMap erreur HTTP: {response.status_code}")
             return get_fallback_weather_data(lat, lon)
             
     except Exception as e:
-        print(f"⚠️ Exception OpenWeatherMap: {e}")
         return get_fallback_weather_data(lat, lon)
 
 def get_fallback_weather_data(lat: float, lon: float):
     """Données météo de secours (modèle cohérent)"""
-    print(f"🔄 Utilisation des données de secours pour {lat}, {lon}")
     return generate_consistent_weather(lat, lon)
 
 def get_wind_direction_name(degrees: float) -> dict:
@@ -574,7 +556,6 @@ def get_cached_weather(lat: float, lon: float, force_refresh: bool = False):
     if not force_refresh and cache_key in weather_cache:
         cached_data, timestamp = weather_cache[cache_key]
         if now - timestamp < WEATHER_CACHE_DURATION:
-            print(f"📦 Utilisation du cache météo mémoire pour {lat}, {lon}")
             return cached_data
     
     weather_result = get_openweather_data_with_limits(lat, lon)
@@ -709,11 +690,9 @@ def get_tide_data_with_cache(lat: float, lon: float) -> dict:
     # Vérifier d'abord le cache (6 heures)
     cached_data = load_from_cache('worldtides', params, max_age_hours=6)
     if cached_data:
-        print(f"📦 WorldTides: Données chargées depuis le cache")
         return cached_data
     
     # Mode fallback seulement (crédits API épuisés ou erreur 400)
-    print(f"⚠️ WorldTides: Utilisation du modèle de fallback")
     fallback_data = get_fallback_tide_data(lat, lon)
     
     # Sauvegarder dans le cache pour 6 heures
@@ -731,24 +710,20 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
     start_timestamp = int(start_time.timestamp())
     
     # Paramètres basés sur la position
-    # En Méditerranée, les marées sont faibles (amplitude ~0.5m)
     base_height = 0.5
     amplitude = 0.3
     
     # Décalage basé sur la longitude pour simuler des heures de marée différentes
-    lon_offset = lon / 15.0  # 15 degrés par fuseau horaire
+    lon_offset = lon / 15.0
     
     heights = []
     extremes = []
     
     # Générer des points toutes les 30 minutes pour 24 heures (48 points)
     for i in range(48):
-        current_time = start_timestamp + i * 1800  # 30 minutes en secondes
+        current_time = start_timestamp + i * 1800
         hours_from_midnight = i * 0.5
         
-        # Modèle de marée semi-diurne (2 marées hautes, 2 basses par jour)
-        # Formule simplifiée: hauteur = base + amplitude * sin(2π * (heures/12.4 + décalage))
-        # 12.4 heures = période de marée semi-diurne
         tide_progress = (hours_from_midnight + lon_offset) / 12.4
         height = base_height + amplitude * math.sin(2 * math.pi * tide_progress)
         
@@ -759,15 +734,13 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
         })
     
     # Identifier les marées hautes et basses
-    # Pour chaque cycle de 6.2 heures (demi-période), trouver les extrêmes
-    for cycle in range(4):  # 4 demi-cycles sur 24 heures
-        cycle_start = cycle * 6.2  # heures depuis minuit
+    for cycle in range(4):
+        cycle_start = cycle * 6.2
         
-        # Chercher autour de ce point pour le maximum (marée haute)
         max_height = -999
         max_hour = cycle_start
         
-        for offset in range(-5, 6):  # Chercher ±2.5 heures
+        for offset in range(-5, 6):
             check_hour = cycle_start + offset * 0.5
             if 0 <= check_hour < 24:
                 idx = int(check_hour * 2)
@@ -775,7 +748,6 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
                     max_height = heights[idx]['height']
                     max_hour = check_hour
         
-        # Marée haute
         high_tide_time = start_timestamp + int(max_hour * 3600)
         extremes.append({
             'dt': high_tide_time,
@@ -784,8 +756,7 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
             'type': 'High'
         })
         
-        # Marée basse (à mi-chemin entre deux hautes)
-        low_hour = cycle_start + 3.1  # 3.1 heures après la haute
+        low_hour = cycle_start + 3.1
         
         min_height = 999
         min_hour = low_hour
@@ -978,15 +949,13 @@ def assess_fishing_suitability(bathymetry) -> dict:
     return {**suitability,'best_technique':best_technique,'risk_level':'low' if depth>3 else 'medium'}
 
 def get_real_bathymetry(lat:float,lon:float)->dict:
-    print(f"🔍 Recherche bathymétrie réelle pour: {lat}, {lon}")
     try:
-        print("🌊 Tentative EMODnet avec cache...")
         depth = get_emodnet_bathymetry_with_cache(lat,lon)
         if depth and depth>0:
             seabed_type = determine_seabed_type_emodnet(lat,lon,depth)
             return {'success':True,'depth':round(depth,1),'seabed_type':seabed_type,'source':'EMODnet (cache)','accuracy':'haute','confidence':0.8}
-    except Exception as e: print(f"⚠️ EMODnet échoué: {e}")
-    print("🔧 Utilisation du modèle scientifique...")
+    except Exception as e:
+        pass
     return predictor.get_bathymetry_data(lat,lon)
 
 def determine_seabed_type_emodnet(lat:float,lon:float,depth:float)->str:
@@ -1028,71 +997,61 @@ def get_stormglass_marine_data(lat:float,lon:float)->dict:
     save_to_cache('stormglass', params, simulated_data, 24)
     return simulated_data
 
-# ===== NOUVELLES FONCTIONS POUR LES 3 FACTEURS SCIENTIFIQUES =====
+# ===== NOUVELLES FONCTIONS POUR LES DONNÉES MARINES =====
 
 def get_marine_data_multi_source(lat: float, lon: float) -> dict:
-    """Combine Stormglass, Open-Météo et estimations pour données marines"""
+    """Version améliorée et silencieuse avec WEkEO"""
     marine_data = {
         'water_temperature': None,
         'chlorophyll': None,
         'current_speed': None,
         'salinity': config.SALINITY_MEDITERRANEAN,
-        'sources': []
+        'wind_speed_kmh': None,
+        'wind_direction_deg': None,
+        'data_quality': 'standard'
     }
     
-    # 1. Essayer Stormglass (si clé disponible)
+    # 1. Température eau - StormGlass (silencieux)
     if config.STORMGLASS_API_KEY:
         try:
             url = f"{config.STORMGLASS_URL}/weather/point"
-            params = {
-                'lat': lat,
-                'lng': lon,
-                'params': 'waterTemperature,chlorophyll'
-            }
+            params = {'lat': lat, 'lng': lon, 'params': 'waterTemperature,chlorophyll'}
             headers = {'Authorization': config.STORMGLASS_API_KEY}
             
-            response = requests.get(url, params=params, headers=headers, timeout=5)
+            response = requests.get(url, params=params, headers=headers, timeout=3)
             if response.status_code == 200:
                 data = response.json()
                 if 'hours' in data and len(data['hours']) > 0:
                     marine_data['water_temperature'] = data['hours'][0].get('waterTemperature', {}).get('sg')
                     marine_data['chlorophyll'] = data['hours'][0].get('chlorophyll', {}).get('sg')
-                    marine_data['sources'].append('Stormglass')
-                    print(f"✅ Données Stormglass reçues")
-        except Exception as e:
-            print(f"⚠️ Erreur Stormglass: {e}")
+        except:
+            pass
     
-    # 2. Essayer Open-Météo (gratuit, pas de clé)
-    if not marine_data['water_temperature']:
+    # 2. Vent - WEkEO en arrière-plan (silencieux)
+    if WEKEO_ENABLED:
+        wekeo_wind = wekeo_enhancer.enhance_wind_data(lat, lon)
+        if wekeo_wind and wekeo_wind.get('wind_speed_kmh'):
+            marine_data['wind_speed_kmh'] = wekeo_wind['wind_speed_kmh']
+            marine_data['wind_direction_deg'] = wekeo_wind['wind_direction_deg']
+            marine_data['data_quality'] = 'enhanced'
+    
+    # 3. Fallback OpenWeather (si WEkEO échoue)
+    if marine_data['wind_speed_kmh'] is None:
         try:
-            url = config.OPEN_METEO_URL
-            params = {
-                'latitude': lat,
-                'longitude': lon,
-                'current': 'temperature_2m',
-                'hourly': 'temperature_2m',
-                'timezone': 'auto'
-            }
-            
-            response = requests.get(url, params=params, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                air_temp = data['current']['temperature_2m']
-                # Estimer température eau depuis température air
-                marine_data['water_temperature'] = estimate_water_from_air(air_temp)
-                marine_data['sources'].append('Open-Météo')
-                print(f"✅ Données Open-Météo reçues")
-        except Exception as e:
-            print(f"⚠️ Erreur Open-Météo: {e}")
+            weather_result = get_cached_weather(lat, lon)
+            if weather_result.get('success'):
+                marine_data['wind_speed_kmh'] = weather_result['weather'].get('wind_speed')
+                marine_data['wind_direction_deg'] = weather_result['weather'].get('wind_direction')
+        except:
+            pass
     
-    # 3. Estimation si pas de données
-    if not marine_data['water_temperature']:
-        marine_data['water_temperature'] = estimate_water_from_position(lat, lon)
+    # 4. Estimation scientifique pour les données manquantes
+    if marine_data['water_temperature'] is None:
+        marine_data['water_temperature'] = predictor.estimate_water_from_position(lat, lon)
+    
+    if marine_data['chlorophyll'] is None:
         marine_data['chlorophyll'] = predictor.estimate_chlorophyll(datetime.now().month, lat, lon)
-        marine_data['sources'].append('Modèle scientifique')
-        print(f"🔬 Utilisation du modèle scientifique")
     
-    # 4. Estimation du courant
     current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
     marine_data['current_speed'] = current_data['speed_mps']
     
@@ -1101,26 +1060,23 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
 def estimate_water_from_air(air_temp: float) -> float:
     """Estime température eau depuis température air pour la Tunisie"""
     month = datetime.now().month
-    # Modèle spécifique à la Tunisie
-    if 6 <= month <= 9:  # Été
-        return max(air_temp - 4.0, 22.0)  # Min 22°C en été
-    elif 12 <= month or month <= 2:  # Hiver
-        return min(air_temp + 2.0, 16.0)  # Max 16°C en hiver
-    else:  # Printemps/Automne
+    if 6 <= month <= 9:
+        return max(air_temp - 4.0, 22.0)
+    elif 12 <= month or month <= 2:
+        return min(air_temp + 2.0, 16.0)
+    else:
         return air_temp - 2.0
 
 def estimate_water_from_position(lat: float, lon: float) -> float:
     """Estime température eau basée sur position et saison"""
     month = datetime.now().month
-    # Températures moyennes pour la Tunisie par région
-    if lat > 37.0:  # Nord
+    if lat > 37.0:
         base_temp = {1:14,2:14,3:15,4:17,5:20,6:23,7:26,8:27,9:25,10:22,11:19,12:16}.get(month, 20)
-    elif lat > 36.0:  # Centre (Tunis, Sousse)
+    elif lat > 36.0:
         base_temp = {1:15,2:15,3:16,4:18,5:21,6:24,7:27,8:28,9:26,10:23,11:20,12:17}.get(month, 20)
-    else:  # Sud (Sfax, Djerba)
+    else:
         base_temp = {1:16,2:16,3:17,4:19,5:22,6:25,7:28,8:29,9:27,10:24,11:21,12:18}.get(month, 20)
     
-    # Variation journalière
     hour = datetime.now().hour
     hour_variation = math.sin(hour * math.pi / 12) * 1.5
     
@@ -1153,8 +1109,6 @@ def api_current_weather():
         lon = float(request.args.get('lon', 10.1815))
         refresh = request.args.get('refresh', 'false').lower() == 'true'
         
-        print(f"🌤️ API Météo pour: {lat}, {lon}, refresh: {refresh}")
-        
         weather_result = get_cached_weather(lat, lon, force_refresh=refresh)
         
         return jsonify({
@@ -1184,16 +1138,10 @@ def api_tunisian_prediction():
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
         
-        print(f"🎣 Prédiction améliorée pour: {lat}, {lon}, {species}")
-        
-        # ✅ AJOUTER : Récupérer données marines
-        marine_data = get_marine_data_multi_source(lat, lon)
-        
         cache_key = f"prediction_{lat:.4f}_{lon:.4f}_{species}"
         cached_prediction = load_from_cache('prediction', {'lat': lat, 'lon': lon, 'species': species}, max_age_hours=1)
         
         if cached_prediction:
-            print(f"📦 Prédiction chargée depuis le cache")
             return jsonify(cached_prediction)
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -1205,19 +1153,20 @@ def api_tunisian_prediction():
             bathymetry = future_bathymetry.result()
             weather_result = future_weather.result()
         
+        marine_data = get_marine_data_multi_source(lat, lon)
+        
         if weather_result['success']:
             real_weather = weather_result['weather']
             
             predictor_weather = {
                 'temperature': real_weather['temperature'],
-                'wind_speed': real_weather['wind_speed'],
+                'wind_speed': marine_data.get('wind_speed_kmh', real_weather['wind_speed']) / 3.6,
+                'wind_direction': marine_data.get('wind_direction_deg', real_weather['wind_direction']),
                 'pressure': real_weather['pressure'],
                 'wave_height': real_weather.get('wave_height', 0.5),
                 'turbidity': real_weather.get('turbidity', 1.0),
                 'humidity': real_weather['humidity'],
                 'condition': real_weather['condition'],
-                'wind_direction': real_weather['wind_direction'],
-                # ✅ AJOUTER LES NOUVEAUX FACTEURS
                 'water_temperature': marine_data['water_temperature'],
                 'salinity': marine_data['salinity'],
                 'current_speed': marine_data['current_speed']
@@ -1229,14 +1178,13 @@ def api_tunisian_prediction():
             
             predictor_weather = {
                 'temperature': fallback_weather['temperature'],
-                'wind_speed': fallback_weather['wind_speed'],
+                'wind_speed': marine_data.get('wind_speed_kmh', fallback_weather['wind_speed']) / 3.6,
+                'wind_direction': marine_data.get('wind_direction_deg', fallback_weather['wind_direction']),
                 'pressure': fallback_weather['pressure'],
                 'wave_height': fallback_weather['wave_height'],
                 'turbidity': fallback_weather['turbidity'],
                 'humidity': fallback_weather['humidity'],
                 'condition': fallback_weather['condition'],
-                'wind_direction': fallback_weather['wind_direction'],
-                # ✅ AJOUTER LES NOUVEAUX FACTEURS (estimés)
                 'water_temperature': marine_data['water_temperature'],
                 'salinity': marine_data['salinity'],
                 'current_speed': marine_data['current_speed']
@@ -1244,7 +1192,6 @@ def api_tunisian_prediction():
             
             weather_source = 'modèle cohérent'
         
-        # ✅ AJOUTER : Calculer l'oxygène et chlorophylle
         oxygen_level = predictor.calculate_dissolved_oxygen(
             marine_data['water_temperature'],
             marine_data['salinity'],
@@ -1256,13 +1203,11 @@ def api_tunisian_prediction():
         
         current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
         
-        # Ajouter à predictor_weather
         predictor_weather.update({
             'oxygen': oxygen_level,
             'chlorophyll': chlorophyll_level
         })
         
-        # Appeler le prédicteur amélioré
         prediction = predictor.predict_daily_activity(
             lat, lon, datetime.now(), species, predictor_weather
         )
@@ -1301,7 +1246,7 @@ def api_tunisian_prediction():
             },
             'weather': {
                 'temperature': predictor_weather['temperature'],
-                'wind_speed': predictor_weather['wind_speed'],
+                'wind_speed': marine_data.get('wind_speed_kmh', 0),
                 'wind_direction': predictor_weather.get('wind_direction', 0),
                 'wind_direction_abbr': real_weather.get('wind_direction_abbr', 'N'),
                 'wind_direction_name': real_weather.get('wind_direction_name', 'Nord'),
@@ -1317,13 +1262,11 @@ def api_tunisian_prediction():
                 'updated': datetime.now().isoformat(),
                 'source': weather_source
             },
-            # ✅ AJOUTER DANS RESPONSE_DATA :
             'scientific_factors': prediction.get('scientific_factors', {
                 'dissolved_oxygen': {'value': oxygen_level, 'unit': 'mg/L'},
                 'chlorophyll_a': {'value': chlorophyll_level, 'unit': 'mg/m³'},
                 'tidal_current': current_data
             }),
-            'marine_data_sources': marine_data['sources'],
             'recommendations': {
                 'tips': [
                     f"Opportunité: {prediction['fishing_opportunity']}",
@@ -1332,7 +1275,7 @@ def api_tunisian_prediction():
                     f"Type de fond recommandé: {get_optimal_seabed(species)}",
                     f"Météo: {weather_result['weather'].get('condition_fr', predictor_weather['condition'])}, "
                     f"{predictor_weather['temperature']:.1f}°C, "
-                    f"Vent: {predictor_weather['wind_speed']:.1f} km/h ({real_weather.get('wind_direction_name', 'N')})"
+                    f"Vent: {marine_data.get('wind_speed_kmh', 0):.1f} km/h"
                 ],
                 'techniques': prediction.get('recommended_techniques', ['surfcasting', 'pêche à soutenir'])
             },
@@ -1797,7 +1740,6 @@ def api_favorites_post():
         with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
             json.dump(favorites, f, ensure_ascii=False, indent=2)
         
-        print(f"✅ Favori ajouté: {favorite_id} - {data.get('name')}")
         return jsonify({'status': 'success', 'id': favorite_id})
         
     except Exception as e:
@@ -1808,40 +1750,27 @@ def api_favorites_post():
 def api_favorites_delete():
     """Supprimer un favori"""
     try:
-        # Essayer de récupérer l'ID depuis les paramètres d'abord
         favorite_id = request.args.get('id')
         
-        # Si non trouvé dans les paramètres, essayer dans le corps JSON
         if not favorite_id and request.json:
             favorite_id = request.json.get('id')
         
         if not favorite_id:
-            print("❌ ID manquant pour suppression de favori")
             return jsonify({'status': 'error', 'message': 'ID manquant'})
-        
-        print(f"🔍 Tentative de suppression du favori ID: {favorite_id}")
         
         if os.path.exists(FAVORITES_FILE):
             with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
                 favorites = json.load(f)
             
-            print(f"📋 Nombre de favoris avant suppression: {len(favorites)}")
-            print(f"📋 IDs disponibles: {[f.get('id') for f in favorites]}")
-            
             initial_count = len(favorites)
-            # Comparer les IDs en tant que chaînes
             favorites = [f for f in favorites if str(f.get('id')) != str(favorite_id)]
-            
-            print(f"📋 Nombre de favoris après suppression: {len(favorites)}")
             
             if len(favorites) < initial_count:
                 with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
                     json.dump(favorites, f, ensure_ascii=False, indent=2)
                 
-                print(f"✅ Favori supprimé: {favorite_id}")
                 return jsonify({'status': 'success', 'message': 'Favori supprimé'})
             else:
-                print(f"❌ Favori non trouvé: {favorite_id}")
                 return jsonify({'status': 'error', 'message': 'Favori non trouvé'})
         
         return jsonify({'status': 'error', 'message': 'Aucun favori'})
@@ -1957,7 +1886,6 @@ def api_seasonal_calendar():
 def api_alerts_subscribe():
     """API pour s'abonner aux alertes - VERSION AVEC SENDGRID"""
     try:
-        # Vérifier si des données ont été envoyées
         if not request.data:
             return jsonify({
                 'status': 'error', 
@@ -1966,8 +1894,7 @@ def api_alerts_subscribe():
         
         try:
             data = request.get_json()
-        except Exception as json_error:
-            print(f"❌ Erreur parsing JSON: {json_error}")
+        except Exception:
             return jsonify({
                 'status': 'error', 
                 'message': 'Format JSON invalide'
@@ -1981,8 +1908,6 @@ def api_alerts_subscribe():
         
         email = data.get('email', '').strip().lower()
         preferences = data.get('preferences', {})
-        
-        print(f"📧 Abonnement en cours pour: {email}")
         
         # Validation d'email simplifiée
         if not email or '@' not in email or '.' not in email.split('@')[-1]:
@@ -1999,10 +1924,8 @@ def api_alerts_subscribe():
             if os.path.exists(alerts_file):
                 with open(alerts_file, 'r', encoding='utf-8') as f:
                     subscriptions = json.load(f)
-        except (json.JSONDecodeError, IOError):
-            # Si fichier corrompu, on repart à zéro
+        except:
             subscriptions = []
-            print("⚠️ Fichier abonnements réinitialisé")
         
         # Vérifier existence email
         existing_index = -1
@@ -2044,8 +1967,7 @@ def api_alerts_subscribe():
             os.makedirs(os.path.dirname(alerts_file), exist_ok=True)
             with open(alerts_file, 'w', encoding='utf-8') as f:
                 json.dump(subscriptions, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"❌ Erreur sauvegarde: {e}")
+        except Exception:
             return jsonify({
                 'status': 'error',
                 'message': 'Erreur technique lors de l\'enregistrement.'
@@ -2055,11 +1977,9 @@ def api_alerts_subscribe():
         email_sent = False
         try:
             email_sent = send_confirmation_email(email, confirmation_id)
-        except Exception as e:
-            print(f"⚠️ Email non envoyé: {e}")
-            # On continue même si l'email échoue
+        except Exception:
+            pass
         
-        # Réponse SUCCÈS toujours en JSON
         return jsonify({
             'status': 'success',
             'message': f'Abonnement {operation} avec succès.',
@@ -2070,9 +1990,6 @@ def api_alerts_subscribe():
         })
         
     except Exception as e:
-        # Capture TOUTES les exceptions et retourne un JSON propre
-        print(f"❌ Erreur serveur: {type(e).__name__}: {str(e)[:200]}")
-        
         return jsonify({
             'status': 'error',
             'message': 'Une erreur technique est survenue.',
@@ -2101,7 +2018,6 @@ def api_alerts_unsubscribe():
                 with open(ALERTS_FILE, 'w', encoding='utf-8') as f:
                     json.dump(subscriptions, f, ensure_ascii=False, indent=2)
                 
-                print(f"✅ Désabonnement: {email}")
                 return jsonify({'status': 'success', 'message': 'Désabonnement réussi'})
         
         return jsonify({'status': 'error', 'message': 'Email non trouvé'})
@@ -2178,7 +2094,6 @@ def admin_email_logs():
         else:
             logs = []
         
-        # Trier par date (du plus récent au plus ancien)
         logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
         return render_template('email_logs.html', logs=logs, count=len(logs))
@@ -2200,14 +2115,12 @@ def cleanup_old_cache():
                     
                     if time.time() > cache_data.get('expires_at', 0):
                         os.remove(filepath)
-                        print(f"🗑️ Fichier cache expiré supprimé: {filename}")
                 
-                except Exception as e:
+                except Exception:
                     os.remove(filepath)
-                    print(f"🗑️ Fichier cache corrompu supprimé: {filename}")
     
-    except Exception as e:
-        print(f"⚠️ Erreur nettoyage cache: {e}")
+    except Exception:
+        pass
 
 # ===== ROUTES STATIQUES =====
 
@@ -2280,7 +2193,7 @@ def sitemap():
     
     response = make_response(xml)
     response.headers['Content-Type'] = 'application/xml'
-    response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache 1 heure
+    response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
 
 @app.route('/google-verification')
@@ -2401,9 +2314,6 @@ def admin_send_test_email():
         import time
         confirmation_id = f"TEST-{int(time.time())}-{secrets.token_hex(4).upper()}"
         
-        print(f"🧪 Envoi email de test à: {email}")
-        
-        # Utiliser la fonction principale
         result = send_confirmation_email(email, confirmation_id)
         
         if result:
@@ -2437,9 +2347,6 @@ if __name__=='__main__':
     if not email_ok:
         print("\n⚠️ ATTENTION: La configuration email a échoué!")
         print("   Les emails NE seront PAS envoyés, mais l'application démarrera.")
-        print("   Pour résoudre:")
-        print("   1. Vérifiez votre .env sur Render")
-        print("   2. Ajoutez SENDGRID_API_KEY ou configurez Gmail")
     else:
         print("\n✅ Configuration email validée!")
     
@@ -2454,7 +2361,6 @@ if __name__=='__main__':
         if not os.path.exists(file_path):
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump([], f, ensure_ascii=False, indent=2)
-            print(f"✅ Fichier créé: {file_path}")
     
     # Valider la configuration
     try:
