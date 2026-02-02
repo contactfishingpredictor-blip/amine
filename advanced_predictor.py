@@ -111,8 +111,6 @@ class ScientificFishingPredictor:
         self.SEAWATER_DENSITY = 1025  # kg/m³ (Méditerranée)
         self.SALINITY_MEDITERRANEAN = 38.0  # g/L
         self.ATMOSPHERIC_PRESSURE_SEA = 1013.25  # hPa
-        
-        print("✅ Prédicteur scientifique initialisé - 3 nouveaux facteurs scientifiques")
 
     # ===== NOUVELLES MÉTHODES SCIENTIFIQUES =====
     
@@ -215,6 +213,37 @@ class ScientificFishingPredictor:
             'tide_phase': 'montante' if tide_phase < 0.25 or tide_phase > 0.75 else 'descendante',
             'fishing_impact': current_for_fishing
         }
+
+    # ===== MÉTHODES POUR L'ESTIMATION DE TEMPÉRATURE DE L'EAU =====
+    
+    def estimate_water_from_position(self, lat: float, lon: float) -> float:
+        """Estime température eau basée sur position et saison"""
+        month = datetime.now().month
+        
+        # Températures moyennes pour la Tunisie par région
+        if lat > 37.0:  # Nord
+            base_temp = {1:14,2:14,3:15,4:17,5:20,6:23,7:26,8:27,9:25,10:22,11:19,12:16}.get(month, 20)
+        elif lat > 36.0:  # Centre (Tunis, Sousse)
+            base_temp = {1:15,2:15,3:16,4:18,5:21,6:24,7:27,8:28,9:26,10:23,11:20,12:17}.get(month, 20)
+        else:  # Sud (Sfax, Djerba)
+            base_temp = {1:16,2:16,3:17,4:19,5:22,6:25,7:28,8:29,9:27,10:24,11:21,12:18}.get(month, 20)
+        
+        # Variation journalière
+        hour = datetime.now().hour
+        hour_variation = math.sin(hour * math.pi / 12) * 1.5
+        
+        return round(base_temp + hour_variation, 1)
+    
+    def estimate_water_from_air(self, air_temp: float) -> float:
+        """Estime température eau depuis température air pour la Tunisie"""
+        month = datetime.now().month
+        # Modèle spécifique à la Tunisie
+        if 6 <= month <= 9:  # Été
+            return max(air_temp - 4.0, 22.0)  # Min 22°C en été
+        elif 12 <= month or month <= 2:  # Hiver
+            return min(air_temp + 2.0, 16.0)  # Max 16°C en hiver
+        else:  # Printemps/Automne
+            return air_temp - 2.0
 
     def calculate_weather_factor(self, weather_data: dict, species: str) -> float:
         """Calcule un facteur météo pour la pêche (0-1) avec nouveaux facteurs"""
@@ -583,7 +612,6 @@ class ScientificFishingPredictor:
         elif moon_sensitivity == "moderate":
             moon_score = 0.6 + 0.4 * abs(math.sin(moon_phase * math.pi))
         else:
-            # REMPLACÉ : plus d'aléatoire, formule déterministe
             moon_score = 0.7 + 0.3 * math.sin(moon_phase * math.pi * 2)
         
         tide_cycle = 12.4
@@ -635,7 +663,6 @@ class ScientificFishingPredictor:
         return min(1.0, max(0.0, factor))
     
     def get_bathymetry_data(self, lat: float, lon: float) -> dict:
-        # Méthode existante inchangée
         known_depths = {
             (36.9000, 10.3333): {"depth": 5.0, "type": "sand"},
             (36.8185, 10.3050): {"depth": 8.0, "type": "mixed"},
@@ -735,7 +762,6 @@ class ScientificFishingPredictor:
         
         adjusted_hours = []
         for hour, base_score in base_hours:
-            # Moins d'aléatoire, plus déterministe
             deterministic_variation = 0.95 + (hour % 3) * 0.025
             hour_factor = 1.0 - abs(hour - 12) / 24 * 0.3
             adjusted_score = base_score * weather_adjustment * hour_factor * deterministic_variation
@@ -792,37 +818,11 @@ class ScientificFishingPredictor:
         
         return base_techniques[:3]
 
-    # Les autres méthodes existantes restent similaires...
-
 if __name__ == "__main__":
     predictor = ScientificFishingPredictor()
     print("=" * 60)
-    print("🧪 SCIENTIFIC FISHING PREDICTOR - VERSION 2.1")
+    print("🧪 SCIENTIFIC FISHING PREDICTOR - VERSION 2.2")
     print("=" * 60)
+    print("✅ Méthodes d'estimation de température d'eau ajoutées")
     print("✅ 3 nouveaux facteurs scientifiques intégrés")
-    print("✅ Oxygène dissous calculé scientifiquement")
-    print("✅ Chlorophylle estimée saisonnièrement")
-    print("✅ Courants de marée calculés")
-    print("=" * 60)
-    
-    # Test des nouveaux facteurs
-    test_lat, test_lon = 36.8, 10.1
-    test_temp = 22.5
-    
-    print("\n🔬 TEST DES NOUVEAUX FACTEURS:")
-    print(f"📍 Position: {test_lat}, {test_lon}")
-    
-    # Test oxygène dissous
-    oxygen = predictor.calculate_dissolved_oxygen(test_temp, 38.0, 1013)
-    print(f"💨 Oxygène dissous: {oxygen} mg/L")
-    
-    # Test chlorophylle
-    month = datetime.now().month
-    chlorophyll = predictor.estimate_chlorophyll(month, test_lat, test_lon)
-    print(f"🌿 Chlorophylle estimée: {chlorophyll} mg/m³")
-    
-    # Test courants
-    current = predictor.calculate_tidal_current(test_lat, test_lon, datetime.now())
-    print(f"🌊 Courant de marée: {current['speed_mps']} m/s ({current['direction']})")
-    
     print("=" * 60)
