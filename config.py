@@ -13,7 +13,7 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
     DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
     APP_NAME = "Fishing Predictor Pro"
-    APP_VERSION = "2.1.0"
+    APP_VERSION = "2.2.0"
     
     # ===== CONFIGURATION EMAIL (CRITIQUE) =====
     GMAIL_USER = os.getenv('GMAIL_USER')  # contactfishingpredictor@gmail.com
@@ -27,7 +27,8 @@ class Config:
     STORMGLASS_API_KEY = os.getenv('STORMGLASS_API_KEY')
     WORLDTIDES_API_KEY = os.getenv('WORLDTIDES_API_KEY')
     METEO_CONCEPT_TOKEN = os.getenv('METEO_CONCEPT_TOKEN')
-    WEKEO_API_TOKEN = os.getenv('WEKEO_API_TOKEN')
+    WEKEO_USER = os.getenv('WEKEO_USER', 'aminech')
+    WEKEO_PASSWORD = os.getenv('WEKEO_PASSWORD', 'Nour2024')
     
     # ===== CHEMINS ET FICHIERS =====
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -108,18 +109,18 @@ class Config:
         print("="*50)
         
         # Vérification critique des emails
-        print(f"📧 GMAIL_USER: {'✅ ' + cls.GMAIL_USER if cls.GMAIL_USER else '❌ MANQUANT'}")
-        print(f"🔑 GMAIL_APP_PASSWORD: {'✅ ' + ('*' * 8) if cls.GMAIL_APP_PASSWORD else '❌ MANQUANT'}")
-        print(f"📧 SENDGRID_API_KEY: {'✅ Configurée' if cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.') else '❌ MANQUANTE'}")
-        print(f"📧 EMAIL_FROM: {'✅ ' + cls.EMAIL_FROM if cls.EMAIL_FROM else '❌ MANQUANT'}")
+        print(f"📧 GMAIL_USER: {'✅ Configuré' if cls.GMAIL_USER else '⚠️  Partiel'}")
+        print(f"🔑 GMAIL_APP_PASSWORD: {'✅ Configuré' if cls.GMAIL_APP_PASSWORD else '⚠️  Partiel'}")
+        print(f"📧 SENDGRID_API_KEY: {'✅ Configurée' if cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.') else '⚠️  Non configurée'}")
+        print(f"📧 EMAIL_FROM: {'✅ ' + cls.EMAIL_FROM if cls.EMAIL_FROM else '⚠️  Utilise valeur par défaut'}")
         
         # Vérifier au moins une méthode email
         has_sendgrid = cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.')
         has_gmail = cls.GMAIL_USER and cls.GMAIL_APP_PASSWORD
         
         if not has_sendgrid and not has_gmail:
-            print(f"\n🚨 ATTENTION: Aucun fournisseur email configuré!")
-            print("   ⚠️ Les emails NE fonctionneront PAS sans SendGrid ou Gmail")
+            print(f"\n⚠️  ATTENTION: Aucun fournisseur email configuré!")
+            print("   Les emails NE fonctionneront PAS sans SendGrid ou Gmail")
             return False
         
         # Vérifier les APIs
@@ -129,7 +130,6 @@ class Config:
             ('OpenWeather', cls.OPENWEATHER_API_KEY),
             ('StormGlass', cls.STORMGLASS_API_KEY),
             ('WorldTides', cls.WORLDTIDES_API_KEY),
-            ('MeteoConcept', cls.METEO_CONCEPT_TOKEN),
         ]
         
         for name, key in apis:
@@ -137,6 +137,8 @@ class Config:
                 print(f"   {name}: {'✅' if key and key.startswith('SG.') else '❌'}")
             else:
                 print(f"   {name}: {'✅' if key else '❌'}")
+        
+        print(f"   WEkEO: {'✅' if cls.WEKEO_USER and cls.WEKEO_PASSWORD else '❌'}")
         
         print("="*50 + "\n")
         return True
