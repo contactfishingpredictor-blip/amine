@@ -1,24 +1,24 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "4003449214a6",
+    "prediction_id": "58cf656af4d0",
     "stable": true,
-    "valid_until": "2026-02-02T14:00:24.824524",
+    "valid_until": "2026-02-02T14:00:30.485331",
     "scores": {
       "final": 89,
-      "environmental": 62,
+      "environmental": 63,
       "behavioral": 70,
       "bathymetry_factor": 100,
       "weather_factor": 100,
       "components": {
-        "scientific": 62,
+        "scientific": 63,
         "depth": 100,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 16.99,
+      "temperature": 17.02,
       "wind_speed": 14.832,
       "wind_direction": 180,
       "wind_direction_abbr": "S",
@@ -27,12 +27,12 @@
       "wind_fishing_impact": "Vent du sud - Chaud, peut réduire l'activité des poissons",
       "wind_offshore": false,
       "wind_onshore": false,
-      "pressure": 1009,
+      "pressure": 1010,
       "humidity": 55,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 0.5,
-      "updated": "2026-02-02T13:00:24.824524",
+      "updated": "2026-02-02T13:00:30.485331",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
@@ -43,7 +43,7 @@
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.63,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -72,46 +72,46 @@
       ]
     },
     "bathymetry": {
-      "depth": 8.0,
-      "seabed_type": "mixed",
-      "seabed_description": "Fond mixte",
-      "slope": 0.5,
-      "accuracy": "moyenne",
+      "depth": 15.0,
+      "seabed_type": "rock",
+      "seabed_description": "Rochers",
+      "slope": 3.0,
+      "accuracy": "haute",
       "optimal_for_species": true,
       "zone": "ولاية تونس",
       "recommended_fishing": [
-        "Profondeur: 8.0m (optimale)",
-        "Type de fond: Fond mixte",
-        "Précision: moyenne"
+        "Profondeur: 15.0m (optimale)",
+        "Type de fond: Rochers",
+        "Précision: haute"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
+      "lat": 36.86071731816188,
+      "lon": 10.355987548828127,
+      "name": "قرطاج, تونس, ولاية تونس, 2016, تونس",
       "type": "city",
       "region": "ولاية تونس"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-02T13:00:24.824524",
+      "timestamp": "2026-02-02T13:00:30.485331",
       "data_source": "modèle scientifique",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
       "next_update_recommended": "14:00",
       "api_usage_info": {
-        "openweather_calls_today": 0,
-        "using_cache": true
+        "openweather_calls_today": 2,
+        "using_cache": false
       }
     }
   },
-  "timestamp": 1770033624.824524,
-  "expires_at": 1770037224.824524,
+  "timestamp": 1770033630.4864342,
+  "expires_at": 1770037230.4864342,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 36.86071731816188,
+    "lon": 10.355987548828127,
     "species": "loup"
   }
 }

@@ -1,7 +1,6 @@
 User-agent: *
-Allow: /
 Disallow: /admin/
-Disallow: /venv/
-Disallow: /api/test/
+Disallow: /private/
+Allow: /
 
-Sitemap: https://votredomaine.com/sitemap.xml
+Sitemap: https://fishing-activity.onrender.com/sitemap.xml

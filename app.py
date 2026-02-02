@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, redirect
 from datetime import datetime, timedelta
 import math, random, json, os, time, concurrent.futures, hashlib
 import requests
@@ -10,13 +10,23 @@ from advanced_predictor import ScientificFishingPredictor
 # Import de la configuration centralisée
 from config import config
 
+# Import SendGrid handler
+from sendgrid_handler import sendgrid_handler
+
+# Import silencieux de WEkEO
+try:
+    from wekeo_handler import wekeo_enhancer
+    WEKEO_ENABLED = True
+except ImportError:
+    WEKEO_ENABLED = False
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 predictor = ScientificFishingPredictor()
 
-# ===== CONFIGURATION EMAIL GMAIL =====
+# ===== CONFIGURATION EMAIL =====
 GMAIL_USER = config.GMAIL_USER
 GMAIL_PASSWORD = config.GMAIL_APP_PASSWORD
-EMAIL_CONFIG = config.EMAIL_CONFIG
+EMAIL_CONFIG = config.EMAIL_CONFIG  # Utilise la propriété dynamique
 
 OPENWEATHER_API_KEY = config.OPENWEATHER_API_KEY
 STORMGLASS_API_KEY = config.STORMGLASS_API_KEY
@@ -43,7 +53,7 @@ API_RATE_LIMITS = {
     'worldtides': {
         'max_per_day': 10,
         'cache_duration': 6 * 60 * 60,
-        'use_cache_only': True
+        'use_cache_only': True  # Force le mode cache seulement
     },
     'nominatim': {
         'max_per_hour': 1,
@@ -110,11 +120,9 @@ def load_from_cache(api_name: str, params: dict, max_age_hours: int = 24):
         if cache_age > max_age_seconds:
             return None
         
-        print(f"📦 Données chargées depuis le cache: {api_name}")
         return cache_data['data']
     
     except Exception as e:
-        print(f"⚠️ Erreur chargement cache: {e}")
         return None
 
 # ===== CACHE MÉMOIRE POUR DONNÉES FRÉQUEMMENT UTILISÉES =====
@@ -140,54 +148,38 @@ WEATHER_CONDITIONS_FR = {
     'Tornado': 'Tornade'
 }
 
-# ===== FONCTIONS EMAIL GMAIL =====
-
-def send_gmail(to_email: str, subject: str, html_content: str, text_content: str = None) -> bool:
-    """Envoie un email via Gmail SMTP"""
-    try:
-        if not EMAIL_CONFIG['enabled']:
-            print(f"⚠️ Envoi d'email désactivé, email non envoyé à: {to_email}")
-            return False
-        
-        # Créer le message
-        msg = MIMEMultipart('alternative')
-        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        
-        # Ajouter les versions texte et HTML
-        if text_content:
-            msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
-        
-        # Connexion au serveur SMTP
-        print(f"📧 Connexion à Gmail SMTP...")
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-        server.ehlo()
-        
-        if EMAIL_CONFIG.get('use_tls', True):
-            server.starttls()
-            server.ehlo()
-        
-        # Authentification
-        print(f"📧 Authentification avec: {GMAIL_USER}")
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        
-        # Envoi de l'email
-        print(f"📧 Envoi de l'email à: {to_email}")
-        server.send_message(msg)
-        server.quit()
-        
-        print(f"✅ Email envoyé avec succès à: {to_email}")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Erreur envoi email Gmail: {e}")
-        return False
+# ===== FONCTIONS EMAIL AVEC SENDGRID =====
 
 def send_confirmation_email(email: str, confirmation_id: str) -> bool:
-    """Envoie un email de confirmation d'abonnement via Gmail"""
+    """Envoie un email de confirmation d'abonnement via SendGrid ou Gmail"""
     try:
+        # Essayer SendGrid d'abord
+        if sendgrid_handler.is_configured():
+            result = sendgrid_handler.send_confirmation_email(email, confirmation_id)
+            
+            if result.get('success'):
+                return True
+            else:
+                print(f"⚠️ SendGrid échoué, tentative Gmail: {result.get('error', 'Unknown error')}")
+        
+        # Fallback sur Gmail si SendGrid échoue ou n'est pas configuré
+        return send_confirmation_email_gmail(email, confirmation_id)
+        
+    except Exception as e:
+        print(f"❌ Erreur envoi email: {e}")
+        # Essayer Gmail comme dernier recours
+        try:
+            return send_confirmation_email_gmail(email, confirmation_id)
+        except:
+            print(f"❌ Tous les services email ont échoué pour: {email}")
+            return False
+
+def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
+    """Envoie un email de confirmation d'abonnement via Gmail (fallback)"""
+    try:
+        if not EMAIL_CONFIG['enabled']:
+            return False
+        
         timestamp = datetime.now().strftime('%d/%m/%Y à %H:%M')
         
         # Contenu HTML de l'email
@@ -231,11 +223,11 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
                 </ul>
                 
                 <p style="text-align: center;">
-                    <a href="http://localhost:5000" class="button">Consulter les prédictions</a>
+                    <a href="https://fishing-activity.onrender.com" class="button">Consulter les prédictions</a>
                 </p>
                 
                 <p><strong>Pour gérer vos préférences ou vous désabonner :</strong><br>
-                Visitez la page <a href="http://localhost:5000/alerts">Alertes Intelligentes</a> ou cliquez sur le lien de désabonnement présent dans chaque email.</p>
+                Visitez la page <a href="https://fishing-activity.onrender.com/alerts">Alertes Intelligentes</a> ou cliquez sur le lien de désabonnement présent dans chaque email.</p>
                 
                 <p>Bonne pêche ! 🐟</p>
                 
@@ -266,7 +258,7 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
         Vous recevrez désormais des alertes par email lorsque les conditions de pêche seront excellentes.
         
         Pour gérer vos préférences ou vous désabonner :
-        Visitez http://localhost:5000/alerts ou cliquez sur le lien de désabonnement présent dans chaque email.
+        Visitez https://fishing-activity.onrender.com/alerts ou cliquez sur le lien de désabonnement présent dans chaque email.
         
         Bonne pêche !
         
@@ -277,21 +269,38 @@ def send_confirmation_email(email: str, confirmation_id: str) -> bool:
         © 2024 Fishing Predictor Pro
         """
         
-        # Envoyer l'email
-        email_sent = send_gmail(
-            to_email=email,
-            subject="🎣 Confirmation d'abonnement aux alertes - Fishing Predictor Pro",
-            html_content=html_content,
-            text_content=text_content
-        )
+        # Créer le message
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = email
+        msg['Subject'] = "🎣 Confirmation d'abonnement aux alertes - Fishing Predictor Pro"
+        
+        # Ajouter les versions texte et HTML
+        if text_content:
+            msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
+        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+        
+        # Connexion au serveur SMTP
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        
+        # Authentification
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        
+        # Envoi de l'email
+        server.send_message(msg)
+        server.quit()
         
         # Sauvegarder le log
-        save_email_log(email, 'confirmation', confirmation_id, email_sent)
+        save_email_log(email, 'confirmation', confirmation_id, True)
         
-        return email_sent
+        return True
         
     except Exception as e:
-        print(f"❌ Erreur préparation email: {e}")
+        print(f"❌ Erreur envoi email Gmail: {e}")
+        save_email_log(email, 'confirmation', confirmation_id, False)
         return False
 
 def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool):
@@ -311,7 +320,7 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
             'confirmation_id': confirmation_id,
             'sent': sent,
             'timestamp': datetime.now().isoformat(),
-            'server': 'Gmail SMTP'
+            'server': 'Gmail SMTP' if '@gmail.com' in str(EMAIL_CONFIG.get('sender_email', '')) else 'SendGrid'
         }
         
         logs.append(log_entry)
@@ -319,10 +328,51 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
         with open(log_file, 'w', encoding='utf-8') as f:
             json.dump(logs, f, ensure_ascii=False, indent=2)
         
-        print(f"📋 Log email sauvegardé: {email} - {'✅ Envoyé' if sent else '❌ Échec'}")
-        
     except Exception as e:
         print(f"⚠️ Erreur sauvegarde log email: {e}")
+
+def test_email_configuration():
+    """Teste la configuration email avant le démarrage"""
+    print("\n" + "="*60)
+    print("🧪 TEST DE CONFIGURATION EMAIL")
+    print("="*60)
+    
+    # Vérifier SendGrid
+    if sendgrid_handler.is_configured():
+        print("✅ SendGrid configuré avec succès!")
+        print(f"   Clé API: {sendgrid_handler.api_key[:15]}...")
+        print(f"   Email d'envoi: {sendgrid_handler.from_email}")
+        return True
+    
+    # Vérifier Gmail
+    if not GMAIL_USER:
+        print("❌ GMAIL_USER est vide!")
+        print("   Vérifiez votre fichier .env sur Render")
+        return False
+    
+    if not GMAIL_PASSWORD:
+        print("❌ GMAIL_APP_PASSWORD est vide!")
+        print("   Vérifiez votre fichier .env sur Render")
+        return False
+    
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        print("✅ Connexion Gmail SMTP réussie!")
+        
+        server.quit()
+        return True
+        
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ Erreur d'authentification Gmail: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Erreur de connexion Gmail: {type(e).__name__}: {str(e)[:100]}")
+        return False
 
 # ===== FONCTIONS AVEC GESTION DE LIMITATION =====
 
@@ -337,15 +387,12 @@ def get_openweather_data_with_limits(lat: float, lon: float):
     limits = API_RATE_LIMITS['openweather']
     
     if limits.get('use_cache_only', False):
-        print("⚠️ OpenWeatherMap: Mode cache seulement activé")
         return get_fallback_weather_data(lat, lon)
     
     if limits['count_today'] >= limits['max_per_day']:
-        print(f"⚠️ Limite quotidienne OpenWeather atteinte: {limits['count_today']}/{limits['max_per_day']}")
         return get_fallback_weather_data(lat, lon)
     
     try:
-        print(f"🌤️ Appel OpenWeatherMap pour: {lat}, {lon}")
         url = "https://api.openweathermap.org/data/2.5/weather"
         params_api = {
             'lat': lat,
@@ -359,7 +406,6 @@ def get_openweather_data_with_limits(lat: float, lon: float):
         
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Données OpenWeatherMap reçues: {data['name']}")
             
             API_RATE_LIMITS['openweather']['count_today'] += 1
             
@@ -405,21 +451,17 @@ def get_openweather_data_with_limits(lat: float, lon: float):
             return {'success': True, 'weather': weather_info, 'source': 'api'}
         
         elif response.status_code == 429:
-            print("⚠️ OpenWeatherMap: Limite d'API atteinte (429)")
             API_RATE_LIMITS['openweather']['use_cache_only'] = True
             return get_fallback_weather_data(lat, lon)
         
         else:
-            print(f"⚠️ OpenWeatherMap erreur HTTP: {response.status_code}")
             return get_fallback_weather_data(lat, lon)
             
     except Exception as e:
-        print(f"⚠️ Exception OpenWeatherMap: {e}")
         return get_fallback_weather_data(lat, lon)
 
 def get_fallback_weather_data(lat: float, lon: float):
     """Données météo de secours (modèle cohérent)"""
-    print(f"🔄 Utilisation des données de secours pour {lat}, {lon}")
     return generate_consistent_weather(lat, lon)
 
 def get_wind_direction_name(degrees: float) -> dict:
@@ -514,7 +556,6 @@ def get_cached_weather(lat: float, lon: float, force_refresh: bool = False):
     if not force_refresh and cache_key in weather_cache:
         cached_data, timestamp = weather_cache[cache_key]
         if now - timestamp < WEATHER_CACHE_DURATION:
-            print(f"📦 Utilisation du cache météo mémoire pour {lat}, {lon}")
             return cached_data
     
     weather_result = get_openweather_data_with_limits(lat, lon)
@@ -643,52 +684,121 @@ def get_emodnet_bathymetry_with_cache(lat: float, lon: float) -> float:
     return None
 
 def get_tide_data_with_cache(lat: float, lon: float) -> dict:
-    """Récupère les données de marée avec cache"""
+    """Récupère les données de marée - VERSION CORRIGÉE"""
     params = {'lat': lat, 'lon': lon}
     
-    cached_data = load_from_cache('worldtides', params, max_age_hours=12)
+    # Vérifier d'abord le cache (6 heures)
+    cached_data = load_from_cache('worldtides', params, max_age_hours=6)
     if cached_data:
         return cached_data
     
-    if API_RATE_LIMITS['worldtides'].get('use_cache_only', True):
-        return get_fallback_tide_data(lat, lon)
+    # Mode fallback seulement (crédits API épuisés ou erreur 400)
+    fallback_data = get_fallback_tide_data(lat, lon)
     
-    try:
-        url = "https://www.worldtides.info/api/v3"
-        params_api = {
-            'lat': lat,
-            'lon': lon,
-            'key': WORLDTIDES_API_KEY,
-            'date': 'today',
-            'days': 1,
-            'datum': 'CD',
-            'step': 3600
-        }
-        
-        response = requests.get(url, params=params_api, timeout=5)
-        
-        if response.status_code == 200:
-            data = response.json()
-            save_to_cache('worldtides', params, data, 12)
-            return data
+    # Sauvegarder dans le cache pour 6 heures
+    save_to_cache('worldtides', params, fallback_data, 6)
     
-    except Exception as e:
-        print(f"⚠️ Erreur WorldTides: {e}")
-    
-    return get_fallback_tide_data(lat, lon)
+    return fallback_data
 
 def get_fallback_tide_data(lat: float, lon: float) -> dict:
-    """Données de marée de secours"""
-    now = int(time.time())
-    tide_height = 0.5 + math.sin(now / 18000) * 0.3
+    """Données de marée de secours - AMÉLIORÉE"""
+    now = datetime.now()
+    today = now.date()
+    
+    # Heure de départ (minuit aujourd'hui)
+    start_time = datetime(today.year, today.month, today.day, 0, 0, 0)
+    start_timestamp = int(start_time.timestamp())
+    
+    # Paramètres basés sur la position
+    base_height = 0.5
+    amplitude = 0.3
+    
+    # Décalage basé sur la longitude pour simuler des heures de marée différentes
+    lon_offset = lon / 15.0
+    
+    heights = []
+    extremes = []
+    
+    # Générer des points toutes les 30 minutes pour 24 heures (48 points)
+    for i in range(48):
+        current_time = start_timestamp + i * 1800
+        hours_from_midnight = i * 0.5
+        
+        tide_progress = (hours_from_midnight + lon_offset) / 12.4
+        height = base_height + amplitude * math.sin(2 * math.pi * tide_progress)
+        
+        heights.append({
+            'dt': current_time,
+            'date': datetime.fromtimestamp(current_time).isoformat() + '+01:00',
+            'height': round(height, 2)
+        })
+    
+    # Identifier les marées hautes et basses
+    for cycle in range(4):
+        cycle_start = cycle * 6.2
+        
+        max_height = -999
+        max_hour = cycle_start
+        
+        for offset in range(-5, 6):
+            check_hour = cycle_start + offset * 0.5
+            if 0 <= check_hour < 24:
+                idx = int(check_hour * 2)
+                if idx < len(heights) and heights[idx]['height'] > max_height:
+                    max_height = heights[idx]['height']
+                    max_hour = check_hour
+        
+        high_tide_time = start_timestamp + int(max_hour * 3600)
+        extremes.append({
+            'dt': high_tide_time,
+            'date': datetime.fromtimestamp(high_tide_time).isoformat() + '+01:00',
+            'height': round(max_height, 2),
+            'type': 'High'
+        })
+        
+        low_hour = cycle_start + 3.1
+        
+        min_height = 999
+        min_hour = low_hour
+        
+        for offset in range(-5, 6):
+            check_hour = low_hour + offset * 0.5
+            if 0 <= check_hour < 24:
+                idx = int(check_hour * 2)
+                if idx < len(heights) and heights[idx]['height'] < min_height:
+                    min_height = heights[idx]['height']
+                    min_hour = check_hour
+        
+        low_tide_time = start_timestamp + int(min_hour * 3600)
+        extremes.append({
+            'dt': low_tide_time,
+            'date': datetime.fromtimestamp(low_tide_time).isoformat() + '+01:00',
+            'height': round(min_height, 2),
+            'type': 'Low'
+        })
+    
+    # Trier les extrêmes par heure
+    extremes.sort(key=lambda x: x['dt'])
+    
+    # Garder seulement les 4 premiers extrêmes (2 hautes, 2 basses)
+    if len(extremes) > 4:
+        extremes = extremes[:4]
     
     return {
         'status': 200,
-        'heights': [{'dt': now, 'height': tide_height}],
-        'extremes': [
-            {'dt': now + 18000, 'height': 0.8, 'type': 'High'},
-            {'dt': now + 28800, 'height': 0.2, 'type': 'Low'}
-        ]
+        'heights': heights,
+        'extremes': extremes,
+        'callCount': 0,
+        'copyright': 'Modèle de marée méditerranéenne - Fishing Predictor Pro',
+        'requestLat': lat,
+        'requestLon': lon,
+        'responseLat': lat,
+        'responseLon': lon,
+        'datum': 'CD',
+        'timezone': 'Africa/Tunis',
+        'model': 'semi-diurnal',
+        'amplitude': round(amplitude, 2),
+        'mean_height': round(base_height, 2)
     }
 
 def get_location_name_with_cache(lat: float, lon: float) -> dict:
@@ -839,15 +949,13 @@ def assess_fishing_suitability(bathymetry) -> dict:
     return {**suitability,'best_technique':best_technique,'risk_level':'low' if depth>3 else 'medium'}
 
 def get_real_bathymetry(lat:float,lon:float)->dict:
-    print(f"🔍 Recherche bathymétrie réelle pour: {lat}, {lon}")
     try:
-        print("🌊 Tentative EMODnet avec cache...")
         depth = get_emodnet_bathymetry_with_cache(lat,lon)
         if depth and depth>0:
             seabed_type = determine_seabed_type_emodnet(lat,lon,depth)
             return {'success':True,'depth':round(depth,1),'seabed_type':seabed_type,'source':'EMODnet (cache)','accuracy':'haute','confidence':0.8}
-    except Exception as e: print(f"⚠️ EMODnet échoué: {e}")
-    print("🔧 Utilisation du modèle scientifique...")
+    except Exception as e:
+        pass
     return predictor.get_bathymetry_data(lat,lon)
 
 def determine_seabed_type_emodnet(lat:float,lon:float,depth:float)->str:
@@ -889,71 +997,61 @@ def get_stormglass_marine_data(lat:float,lon:float)->dict:
     save_to_cache('stormglass', params, simulated_data, 24)
     return simulated_data
 
-# ===== NOUVELLES FONCTIONS POUR LES 3 FACTEURS SCIENTIFIQUES =====
+# ===== NOUVELLES FONCTIONS POUR LES DONNÉES MARINES =====
 
 def get_marine_data_multi_source(lat: float, lon: float) -> dict:
-    """Combine Stormglass, Open-Météo et estimations pour données marines"""
+    """Version améliorée et silencieuse avec WEkEO"""
     marine_data = {
         'water_temperature': None,
         'chlorophyll': None,
         'current_speed': None,
         'salinity': config.SALINITY_MEDITERRANEAN,
-        'sources': []
+        'wind_speed_kmh': None,
+        'wind_direction_deg': None,
+        'data_quality': 'standard'
     }
     
-    # 1. Essayer Stormglass (si clé disponible)
+    # 1. Température eau - StormGlass (silencieux)
     if config.STORMGLASS_API_KEY:
         try:
             url = f"{config.STORMGLASS_URL}/weather/point"
-            params = {
-                'lat': lat,
-                'lng': lon,
-                'params': 'waterTemperature,chlorophyll'
-            }
+            params = {'lat': lat, 'lng': lon, 'params': 'waterTemperature,chlorophyll'}
             headers = {'Authorization': config.STORMGLASS_API_KEY}
             
-            response = requests.get(url, params=params, headers=headers, timeout=5)
+            response = requests.get(url, params=params, headers=headers, timeout=3)
             if response.status_code == 200:
                 data = response.json()
                 if 'hours' in data and len(data['hours']) > 0:
                     marine_data['water_temperature'] = data['hours'][0].get('waterTemperature', {}).get('sg')
                     marine_data['chlorophyll'] = data['hours'][0].get('chlorophyll', {}).get('sg')
-                    marine_data['sources'].append('Stormglass')
-                    print(f"✅ Données Stormglass reçues")
-        except Exception as e:
-            print(f"⚠️ Erreur Stormglass: {e}")
+        except:
+            pass
     
-    # 2. Essayer Open-Météo (gratuit, pas de clé)
-    if not marine_data['water_temperature']:
+    # 2. Vent - WEkEO en arrière-plan (silencieux)
+    if WEKEO_ENABLED:
+        wekeo_wind = wekeo_enhancer.enhance_wind_data(lat, lon)
+        if wekeo_wind and wekeo_wind.get('wind_speed_kmh'):
+            marine_data['wind_speed_kmh'] = wekeo_wind['wind_speed_kmh']
+            marine_data['wind_direction_deg'] = wekeo_wind['wind_direction_deg']
+            marine_data['data_quality'] = 'enhanced'
+    
+    # 3. Fallback OpenWeather (si WEkEO échoue)
+    if marine_data['wind_speed_kmh'] is None:
         try:
-            url = config.OPEN_METEO_URL
-            params = {
-                'latitude': lat,
-                'longitude': lon,
-                'current': 'temperature_2m',
-                'hourly': 'temperature_2m',
-                'timezone': 'auto'
-            }
-            
-            response = requests.get(url, params=params, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                air_temp = data['current']['temperature_2m']
-                # Estimer température eau depuis température air
-                marine_data['water_temperature'] = estimate_water_from_air(air_temp)
-                marine_data['sources'].append('Open-Météo')
-                print(f"✅ Données Open-Météo reçues")
-        except Exception as e:
-            print(f"⚠️ Erreur Open-Météo: {e}")
+            weather_result = get_cached_weather(lat, lon)
+            if weather_result.get('success'):
+                marine_data['wind_speed_kmh'] = weather_result['weather'].get('wind_speed')
+                marine_data['wind_direction_deg'] = weather_result['weather'].get('wind_direction')
+        except:
+            pass
     
-    # 3. Estimation si pas de données
-    if not marine_data['water_temperature']:
-        marine_data['water_temperature'] = estimate_water_from_position(lat, lon)
+    # 4. Estimation scientifique pour les données manquantes
+    if marine_data['water_temperature'] is None:
+        marine_data['water_temperature'] = predictor.estimate_water_from_position(lat, lon)
+    
+    if marine_data['chlorophyll'] is None:
         marine_data['chlorophyll'] = predictor.estimate_chlorophyll(datetime.now().month, lat, lon)
-        marine_data['sources'].append('Modèle scientifique')
-        print(f"🔬 Utilisation du modèle scientifique")
     
-    # 4. Estimation du courant
     current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
     marine_data['current_speed'] = current_data['speed_mps']
     
@@ -962,26 +1060,23 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
 def estimate_water_from_air(air_temp: float) -> float:
     """Estime température eau depuis température air pour la Tunisie"""
     month = datetime.now().month
-    # Modèle spécifique à la Tunisie
-    if 6 <= month <= 9:  # Été
-        return max(air_temp - 4.0, 22.0)  # Min 22°C en été
-    elif 12 <= month or month <= 2:  # Hiver
-        return min(air_temp + 2.0, 16.0)  # Max 16°C en hiver
-    else:  # Printemps/Automne
+    if 6 <= month <= 9:
+        return max(air_temp - 4.0, 22.0)
+    elif 12 <= month or month <= 2:
+        return min(air_temp + 2.0, 16.0)
+    else:
         return air_temp - 2.0
 
 def estimate_water_from_position(lat: float, lon: float) -> float:
     """Estime température eau basée sur position et saison"""
     month = datetime.now().month
-    # Températures moyennes pour la Tunisie par région
-    if lat > 37.0:  # Nord
+    if lat > 37.0:
         base_temp = {1:14,2:14,3:15,4:17,5:20,6:23,7:26,8:27,9:25,10:22,11:19,12:16}.get(month, 20)
-    elif lat > 36.0:  # Centre (Tunis, Sousse)
+    elif lat > 36.0:
         base_temp = {1:15,2:15,3:16,4:18,5:21,6:24,7:27,8:28,9:26,10:23,11:20,12:17}.get(month, 20)
-    else:  # Sud (Sfax, Djerba)
+    else:
         base_temp = {1:16,2:16,3:17,4:19,5:22,6:25,7:28,8:29,9:27,10:24,11:21,12:18}.get(month, 20)
     
-    # Variation journalière
     hour = datetime.now().hour
     hour_variation = math.sin(hour * math.pi / 12) * 1.5
     
@@ -1014,8 +1109,6 @@ def api_current_weather():
         lon = float(request.args.get('lon', 10.1815))
         refresh = request.args.get('refresh', 'false').lower() == 'true'
         
-        print(f"🌤️ API Météo pour: {lat}, {lon}, refresh: {refresh}")
-        
         weather_result = get_cached_weather(lat, lon, force_refresh=refresh)
         
         return jsonify({
@@ -1045,16 +1138,10 @@ def api_tunisian_prediction():
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
         
-        print(f"🎣 Prédiction améliorée pour: {lat}, {lon}, {species}")
-        
-        # ✅ AJOUTER : Récupérer données marines
-        marine_data = get_marine_data_multi_source(lat, lon)
-        
         cache_key = f"prediction_{lat:.4f}_{lon:.4f}_{species}"
         cached_prediction = load_from_cache('prediction', {'lat': lat, 'lon': lon, 'species': species}, max_age_hours=1)
         
         if cached_prediction:
-            print(f"📦 Prédiction chargée depuis le cache")
             return jsonify(cached_prediction)
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -1066,19 +1153,20 @@ def api_tunisian_prediction():
             bathymetry = future_bathymetry.result()
             weather_result = future_weather.result()
         
+        marine_data = get_marine_data_multi_source(lat, lon)
+        
         if weather_result['success']:
             real_weather = weather_result['weather']
             
             predictor_weather = {
                 'temperature': real_weather['temperature'],
-                'wind_speed': real_weather['wind_speed'],
+                'wind_speed': marine_data.get('wind_speed_kmh', real_weather['wind_speed']) / 3.6,
+                'wind_direction': marine_data.get('wind_direction_deg', real_weather['wind_direction']),
                 'pressure': real_weather['pressure'],
                 'wave_height': real_weather.get('wave_height', 0.5),
                 'turbidity': real_weather.get('turbidity', 1.0),
                 'humidity': real_weather['humidity'],
                 'condition': real_weather['condition'],
-                'wind_direction': real_weather['wind_direction'],
-                # ✅ AJOUTER LES NOUVEAUX FACTEURS
                 'water_temperature': marine_data['water_temperature'],
                 'salinity': marine_data['salinity'],
                 'current_speed': marine_data['current_speed']
@@ -1090,14 +1178,13 @@ def api_tunisian_prediction():
             
             predictor_weather = {
                 'temperature': fallback_weather['temperature'],
-                'wind_speed': fallback_weather['wind_speed'],
+                'wind_speed': marine_data.get('wind_speed_kmh', fallback_weather['wind_speed']) / 3.6,
+                'wind_direction': marine_data.get('wind_direction_deg', fallback_weather['wind_direction']),
                 'pressure': fallback_weather['pressure'],
                 'wave_height': fallback_weather['wave_height'],
                 'turbidity': fallback_weather['turbidity'],
                 'humidity': fallback_weather['humidity'],
                 'condition': fallback_weather['condition'],
-                'wind_direction': fallback_weather['wind_direction'],
-                # ✅ AJOUTER LES NOUVEAUX FACTEURS (estimés)
                 'water_temperature': marine_data['water_temperature'],
                 'salinity': marine_data['salinity'],
                 'current_speed': marine_data['current_speed']
@@ -1105,7 +1192,6 @@ def api_tunisian_prediction():
             
             weather_source = 'modèle cohérent'
         
-        # ✅ AJOUTER : Calculer l'oxygène et chlorophylle
         oxygen_level = predictor.calculate_dissolved_oxygen(
             marine_data['water_temperature'],
             marine_data['salinity'],
@@ -1117,13 +1203,11 @@ def api_tunisian_prediction():
         
         current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
         
-        # Ajouter à predictor_weather
         predictor_weather.update({
             'oxygen': oxygen_level,
             'chlorophyll': chlorophyll_level
         })
         
-        # Appeler le prédicteur amélioré
         prediction = predictor.predict_daily_activity(
             lat, lon, datetime.now(), species, predictor_weather
         )
@@ -1162,7 +1246,7 @@ def api_tunisian_prediction():
             },
             'weather': {
                 'temperature': predictor_weather['temperature'],
-                'wind_speed': predictor_weather['wind_speed'],
+                'wind_speed': marine_data.get('wind_speed_kmh', 0),
                 'wind_direction': predictor_weather.get('wind_direction', 0),
                 'wind_direction_abbr': real_weather.get('wind_direction_abbr', 'N'),
                 'wind_direction_name': real_weather.get('wind_direction_name', 'Nord'),
@@ -1178,13 +1262,11 @@ def api_tunisian_prediction():
                 'updated': datetime.now().isoformat(),
                 'source': weather_source
             },
-            # ✅ AJOUTER DANS RESPONSE_DATA :
             'scientific_factors': prediction.get('scientific_factors', {
                 'dissolved_oxygen': {'value': oxygen_level, 'unit': 'mg/L'},
                 'chlorophyll_a': {'value': chlorophyll_level, 'unit': 'mg/m³'},
                 'tidal_current': current_data
             }),
-            'marine_data_sources': marine_data['sources'],
             'recommendations': {
                 'tips': [
                     f"Opportunité: {prediction['fishing_opportunity']}",
@@ -1193,7 +1275,7 @@ def api_tunisian_prediction():
                     f"Type de fond recommandé: {get_optimal_seabed(species)}",
                     f"Météo: {weather_result['weather'].get('condition_fr', predictor_weather['condition'])}, "
                     f"{predictor_weather['temperature']:.1f}°C, "
-                    f"Vent: {predictor_weather['wind_speed']:.1f} km/h ({real_weather.get('wind_direction_name', 'N')})"
+                    f"Vent: {marine_data.get('wind_speed_kmh', 0):.1f} km/h"
                 ],
                 'techniques': prediction.get('recommended_techniques', ['surfcasting', 'pêche à soutenir'])
             },
@@ -1525,7 +1607,7 @@ def api_tide_chart():
             'chart_points': tide_points,
             'next_high_tide': get_next_high_tide(tide_data),
             'next_low_tide': get_next_low_tide(tide_data),
-            'current_height': tide_data.get('heights', [{}])[0].get('height', 0.5),
+            'current_height': tide_data.get('heights', [{}])[0].get('height', 0.5) if tide_data.get('heights') else 0.5,
             'recommendations': {
                 'best_fishing_tide': 'marée montante',
                 'worst_fishing_tide': 'marée basse fixe',
@@ -1658,7 +1740,6 @@ def api_favorites_post():
         with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
             json.dump(favorites, f, ensure_ascii=False, indent=2)
         
-        print(f"✅ Favori ajouté: {favorite_id} - {data.get('name')}")
         return jsonify({'status': 'success', 'id': favorite_id})
         
     except Exception as e:
@@ -1669,40 +1750,27 @@ def api_favorites_post():
 def api_favorites_delete():
     """Supprimer un favori"""
     try:
-        # Essayer de récupérer l'ID depuis les paramètres d'abord
         favorite_id = request.args.get('id')
         
-        # Si non trouvé dans les paramètres, essayer dans le corps JSON
         if not favorite_id and request.json:
             favorite_id = request.json.get('id')
         
         if not favorite_id:
-            print("❌ ID manquant pour suppression de favori")
             return jsonify({'status': 'error', 'message': 'ID manquant'})
-        
-        print(f"🔍 Tentative de suppression du favori ID: {favorite_id}")
         
         if os.path.exists(FAVORITES_FILE):
             with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
                 favorites = json.load(f)
             
-            print(f"📋 Nombre de favoris avant suppression: {len(favorites)}")
-            print(f"📋 IDs disponibles: {[f.get('id') for f in favorites]}")
-            
             initial_count = len(favorites)
-            # Comparer les IDs en tant que chaînes
             favorites = [f for f in favorites if str(f.get('id')) != str(favorite_id)]
-            
-            print(f"📋 Nombre de favoris après suppression: {len(favorites)}")
             
             if len(favorites) < initial_count:
                 with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
                     json.dump(favorites, f, ensure_ascii=False, indent=2)
                 
-                print(f"✅ Favori supprimé: {favorite_id}")
                 return jsonify({'status': 'success', 'message': 'Favori supprimé'})
             else:
-                print(f"❌ Favori non trouvé: {favorite_id}")
                 return jsonify({'status': 'error', 'message': 'Favori non trouvé'})
         
         return jsonify({'status': 'error', 'message': 'Aucun favori'})
@@ -1816,39 +1884,59 @@ def api_seasonal_calendar():
 
 @app.route('/api/alerts/subscribe', methods=['POST'])
 def api_alerts_subscribe():
-    """API pour s'abonner aux alertes"""
+    """API pour s'abonner aux alertes - VERSION AVEC SENDGRID"""
     try:
-        data = request.json
+        if not request.data:
+            return jsonify({
+                'status': 'error', 
+                'message': 'Aucune donnée reçue'
+            }), 400
+        
+        try:
+            data = request.get_json()
+        except Exception:
+            return jsonify({
+                'status': 'error', 
+                'message': 'Format JSON invalide'
+            }), 400
+        
         if not data:
-            return jsonify({'status': 'error', 'message': 'Données manquantes'})
+            return jsonify({
+                'status': 'error', 
+                'message': 'Données manquantes'
+            }), 400
         
         email = data.get('email', '').strip().lower()
         preferences = data.get('preferences', {})
         
-        if not email or '@' not in email:
-            return jsonify({'status': 'error', 'message': 'Email invalide'})
-        
-        # Vérifier le format de l'email
-        import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            return jsonify({'status': 'error', 'message': 'Format email invalide'})
+        # Validation d'email simplifiée
+        if not email or '@' not in email or '.' not in email.split('@')[-1]:
+            return jsonify({
+                'status': 'error', 
+                'message': 'Adresse email invalide. Exemple: nom@domaine.com'
+            }), 400
         
         # Charger les abonnements existants
         subscriptions = []
-        if os.path.exists(ALERTS_FILE):
-            with open(ALERTS_FILE, 'r', encoding='utf-8') as f:
-                subscriptions = json.load(f)
+        alerts_file = config.ALERTS_FILE
         
-        # Vérifier si l'email est déjà abonné
+        try:
+            if os.path.exists(alerts_file):
+                with open(alerts_file, 'r', encoding='utf-8') as f:
+                    subscriptions = json.load(f)
+        except:
+            subscriptions = []
+        
+        # Vérifier existence email
         existing_index = -1
         for i, sub in enumerate(subscriptions):
-            if sub['email'] == email:
+            if sub.get('email') == email:
                 existing_index = i
                 break
         
-        # Générer un ID de confirmation
-        confirmation_id = hashlib.md5(f"{email}{time.time()}".encode()).hexdigest()[:12].upper()
+        # Générer ID de confirmation
+        import secrets
+        confirmation_id = f"SUB-{secrets.token_hex(6).upper()}"
         
         subscription_data = {
             'email': email,
@@ -1866,37 +1954,47 @@ def api_alerts_subscribe():
             'active': True
         }
         
+        # Mettre à jour ou ajouter
         if existing_index >= 0:
-            # Mettre à jour l'abonnement existant
             subscriptions[existing_index] = subscription_data
-            message = "Abonnement mis à jour"
+            operation = "mise à jour"
         else:
-            # Nouvel abonnement
             subscriptions.append(subscription_data)
-            message = "Abonnement créé"
+            operation = "création"
         
-        # Sauvegarder
-        with open(ALERTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(subscriptions, f, ensure_ascii=False, indent=2)
+        # Sauvegarde sécurisée
+        try:
+            os.makedirs(os.path.dirname(alerts_file), exist_ok=True)
+            with open(alerts_file, 'w', encoding='utf-8') as f:
+                json.dump(subscriptions, f, ensure_ascii=False, indent=2)
+        except Exception:
+            return jsonify({
+                'status': 'error',
+                'message': 'Erreur technique lors de l\'enregistrement.'
+            }), 500
         
-        # Envoyer l'email de confirmation
-        email_sent = send_confirmation_email(email, confirmation_id)
-        
-        print(f"✅ Abonnement aux alertes: {email}")
-        print(f"   Confirmation ID: {confirmation_id}")
-        print(f"   Email envoyé: {email_sent}")
+        # Envoi email
+        email_sent = False
+        try:
+            email_sent = send_confirmation_email(email, confirmation_id)
+        except Exception:
+            pass
         
         return jsonify({
             'status': 'success',
-            'message': f'{message} avec succès',
+            'message': f'Abonnement {operation} avec succès.',
             'confirmation_id': confirmation_id,
             'email_sent': email_sent,
-            'email': email
+            'email': email,
+            'timestamp': datetime.now().isoformat()
         })
         
     except Exception as e:
-        print(f"❌ Erreur abonnement alertes: {e}")
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({
+            'status': 'error',
+            'message': 'Une erreur technique est survenue.',
+            'suggestion': 'Veuillez réessayer dans quelques instants.'
+        }), 500
 
 @app.route('/api/alerts/unsubscribe', methods=['POST'])
 def api_alerts_unsubscribe():
@@ -1920,7 +2018,6 @@ def api_alerts_unsubscribe():
                 with open(ALERTS_FILE, 'w', encoding='utf-8') as f:
                     json.dump(subscriptions, f, ensure_ascii=False, indent=2)
                 
-                print(f"✅ Désabonnement: {email}")
                 return jsonify({'status': 'success', 'message': 'Désabonnement réussi'})
         
         return jsonify({'status': 'error', 'message': 'Email non trouvé'})
@@ -1997,7 +2094,6 @@ def admin_email_logs():
         else:
             logs = []
         
-        # Trier par date (du plus récent au plus ancien)
         logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
         return render_template('email_logs.html', logs=logs, count=len(logs))
@@ -2019,14 +2115,12 @@ def cleanup_old_cache():
                     
                     if time.time() > cache_data.get('expires_at', 0):
                         os.remove(filepath)
-                        print(f"🗑️ Fichier cache expiré supprimé: {filename}")
                 
-                except Exception as e:
+                except Exception:
                     os.remove(filepath)
-                    print(f"🗑️ Fichier cache corrompu supprimé: {filename}")
     
-    except Exception as e:
-        print(f"⚠️ Erreur nettoyage cache: {e}")
+    except Exception:
+        pass
 
 # ===== ROUTES STATIQUES =====
 
@@ -2054,7 +2148,208 @@ def test_meteo_simple():
 def test_mobile_simple():
     return render_template('test_mobile_simple.html')
 
+# ===== ROUTES SITEMAP ET ROBOTS (CORRIGÉES) =====
+
+@app.route('/robots.txt')
+def robots():
+    """Fichier robots.txt CORRIGÉ - permet l'accès à Googlebot"""
+    robots_content = """User-agent: *
+Disallow: /admin/
+Disallow: /private/
+Allow: /
+Sitemap: https://fishing-activity.onrender.com/sitemap.xml
+"""
+    return robots_content, 200, {'Content-Type': 'text/plain'}
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """Génère le sitemap dynamiquement avec date actuelle"""
+    base_url = 'https://fishing-activity.onrender.com'
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    pages = [
+        {'url': '/', 'priority': '1.0', 'changefreq': 'daily'},
+        {'url': '/predictions', 'priority': '0.9', 'changefreq': 'weekly'},
+        {'url': '/species_selector', 'priority': '0.8', 'changefreq': 'weekly'},
+        {'url': '/favorites', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'url': '/science', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'url': '/alerts', 'priority': '0.6', 'changefreq': 'monthly'},
+    ]
+    
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+'''
+    
+    for page in pages:
+        xml += f'''  <url>
+    <loc>{base_url}{page['url']}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>{page['changefreq']}</changefreq>
+    <priority>{page['priority']}</priority>
+  </url>
+'''
+    
+    xml += '</urlset>'
+    
+    response = make_response(xml)
+    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+@app.route('/google-verification')
+def google_verification():
+    """Page de vérification pour Google"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Google Verification Page</title>
+        <meta name="robots" content="index, follow">
+        <meta name="googlebot" content="index, follow">
+    </head>
+    <body>
+        <h1>✅ Googlebot Verification</h1>
+        <p>This page verifies that Googlebot can access the site.</p>
+        <p>Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><a href="/">Return to homepage</a></p>
+    </body>
+    </html>
+    """
+
+@app.route('/test-robots-access')
+def test_robots_access():
+    """Page pour tester l'accès robots.txt"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Robots.txt Access</title>
+    </head>
+    <body>
+        <h1>Test d'accès Robots.txt</h1>
+        <p><a href="/robots.txt" target="_blank">Voir robots.txt</a></p>
+        <p><a href="https://fishing-activity.onrender.com/robots.txt" target="_blank">Voir robots.txt (URL complète)</a></p>
+        <p><a href="https://search.google.com/test/robots-txt" target="_blank">Tester avec l'outil Google</a></p>
+        <p><a href="/">Retour à l'accueil</a></p>
+    </body>
+    </html>
+    """
+
+@app.route('/api/alerts/health')
+def api_alerts_health():
+    """Endpoint de santé pour vérifier le système d'alertes"""
+    health_data = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'components': {
+            'sendgrid_configured': sendgrid_handler.is_configured(),
+            'gmail_configured': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
+            'alerts_file': os.path.exists(config.ALERTS_FILE),
+            'email_logs': os.path.exists(config.EMAIL_LOGS_FILE),
+            'data_dir': os.path.exists(config.DATA_DIR)
+        }
+    }
+    
+    try:
+        if os.path.exists(config.ALERTS_FILE):
+            with open(config.ALERTS_FILE, 'r') as f:
+                subscriptions = json.load(f)
+                health_data['subscriptions_count'] = len(subscriptions)
+    except:
+        health_data['components']['alerts_file'] = 'corrupted'
+    
+    return jsonify(health_data)
+
+# ===== ROUTES ADMIN POUR TEST SENDGRID =====
+
+@app.route('/admin/sendgrid_test')
+def admin_sendgrid_test():
+    """Page pour tester SendGrid"""
+    api_key = config.SENDGRID_API_KEY
+    has_key = bool(api_key and api_key.startswith('SG.'))
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test SendGrid</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .success {{ color: green; }}
+            .error {{ color: red; }}
+            .test-form {{ margin-top: 20px; }}
+        </style>
+    </head>
+    <body>
+        <h1>🔧 Test Configuration SendGrid</h1>
+        <p>Clé API définie: <strong class="{'success' if has_key else 'error'}">{'✅ OUI' if has_key else '❌ NON'}</strong></p>
+        <p>Clé: {api_key[:20]}...{api_key[-20:] if api_key and len(api_key) > 40 else ''}</p>
+        <p>Fournisseur: {config.EMAIL_CONFIG['provider'].upper()}</p>
+        
+        <div class="test-form">
+            <h2>Test d'envoi</h2>
+            <form action="/admin/send_test_email" method="POST">
+                <input type="email" name="email" placeholder="Votre email" required style="padding: 8px; width: 300px;">
+                <button type="submit" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px;">Envoyer un test</button>
+            </form>
+        </div>
+        
+        <h2>Logs</h2>
+        <a href="/admin/email_logs" target="_blank">Voir les logs d'emails</a>
+        <br><br>
+        <a href="/alerts">← Retour aux alertes</a>
+    </body>
+    </html>
+    """
+
+@app.route('/admin/send_test_email', methods=['POST'])
+def admin_send_test_email():
+    """Envoie un email de test"""
+    try:
+        email = request.form.get('email')
+        if not email:
+            return "❌ Email manquant"
+        
+        import secrets
+        import time
+        confirmation_id = f"TEST-{int(time.time())}-{secrets.token_hex(4).upper()}"
+        
+        result = send_confirmation_email(email, confirmation_id)
+        
+        if result:
+            return f"""
+            <h1>✅ Email de test envoyé !</h1>
+            <p>Email: {email}</p>
+            <p>ID: {confirmation_id}</p>
+            <p><a href="/admin/sendgrid_test">← Retour au test</a></p>
+            """
+        else:
+            return f"""
+            <h1>❌ Échec de l'envoi</h1>
+            <p>Impossible d'envoyer l'email à {email}</p>
+            <p><a href="/admin/sendgrid_test">← Retour au test</a></p>
+            """
+            
+    except Exception as e:
+        return f"❌ Erreur: {str(e)}"
+
+# ===== DÉMARRAGE DE L'APPLICATION =====
+
 if __name__=='__main__':
+    # Test de configuration avant démarrage
+    print("\n" + "="*60)
+    print("🎣 FISHING PREDICTOR PRO - DÉMARRAGE")
+    print("="*60)
+    
+    # Tester la configuration email
+    email_ok = test_email_configuration()
+    
+    if not email_ok:
+        print("\n⚠️ ATTENTION: La configuration email a échoué!")
+        print("   Les emails NE seront PAS envoyés, mais l'application démarrera.")
+    else:
+        print("\n✅ Configuration email validée!")
+    
     # Créer les répertoires nécessaires
     os.makedirs(config.DATA_DIR, exist_ok=True)
     os.makedirs(config.STATIC_DIR + '/js', exist_ok=True)
@@ -2062,108 +2357,16 @@ if __name__=='__main__':
     os.makedirs(config.TEMPLATES_DIR, exist_ok=True)
     
     # Initialiser les fichiers de données
-    if not os.path.exists(ALERTS_FILE):
-        with open(ALERTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    
-    if not os.path.exists(FAVORITES_FILE):
-        with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    
-    # Créer le template pour les logs d'emails
-    email_logs_template = '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Logs d'Emails - Fishing Predictor Pro</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-            .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
-            h1 { color: #333; }
-            .log-item { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
-            .log-item.success { border-left: 5px solid #10b981; }
-            .log-item.error { border-left: 5px solid #ef4444; }
-            .log-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-            .log-email { font-weight: bold; color: #3b82f6; }
-            .log-time { color: #64748b; font-size: 0.9em; }
-            .log-content { background: #f8fafc; padding: 10px; border-radius: 5px; font-family: monospace; }
-            .status-success { color: #10b981; font-weight: bold; }
-            .status-error { color: #ef4444; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>📧 Logs d'Emails</h1>
-            <p>Total: {{ count }} emails envoyés via Gmail</p>
-            <div id="logs">
-                {% for log in logs %}
-                <div class="log-item {% if log.sent %}success{% else %}error{% endif %}">
-                    <div class="log-header">
-                        <span class="log-email">{{ log.to }}</span>
-                        <span class="log-time">{{ log.timestamp }}</span>
-                    </div>
-                    <div class="log-content">
-                        Type: {{ log.type }}<br>
-                        Confirmation ID: {{ log.confirmation_id }}<br>
-                        Statut: <span class="{% if log.sent %}status-success{% else %}status-error{% endif %}">
-                            {% if log.sent %}✅ ENVOYÉ{% else %}❌ ÉCHEC{% endif %}
-                        </span><br>
-                        Serveur: {{ log.server }}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <div style="margin-top: 20px;">
-                <a href="/alerts" style="color: #3b82f6;">← Retour aux alertes</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    '''
-    
-    # Sauvegarder le template
-    with open('templates/email_logs.html', 'w', encoding='utf-8') as f:
-        f.write(email_logs_template)
-    
-    cleanup_old_cache()
+    for file_path in [config.ALERTS_FILE, config.FAVORITES_FILE, config.EMAIL_LOGS_FILE]:
+        if not os.path.exists(file_path):
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
     
     # Valider la configuration
     try:
         config.validate_config()
-        print("✅ Configuration validée avec succès")
-    except ValueError as e:
-        print(f"⚠️ Attention: {e}")
-        print("   L'application va démarrer avec les valeurs par défaut")
-    
-    print("="*60)
-    print("🎣 FISHING PREDICTOR PRO - VERSION AVEC EMAILS GMAIL")
-    print("="*60)
-    print(f"✅ Configuration Gmail: {GMAIL_USER}")
-    print(f"✅ SMTP: {EMAIL_CONFIG['smtp_server']}:{EMAIL_CONFIG['smtp_port']}")
-    print("✅ Système d'emails activé")
-    print("="*60)
-    print("🌐 Accès:")
-    print("   http://127.0.0.1:5000")
-    print("   http://localhost:5000")
-    print("   Logs emails: http://localhost:5000/admin/email_logs")
-    print("="*60)
-    
-    print("\n🧪 Test de connexion Gmail...")
-    try:
-        # Test rapide de connexion SMTP
-        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        server.quit()
-        print("✅ Connexion Gmail SMTP réussie !")
     except Exception as e:
-        print(f"⚠️ Erreur connexion Gmail: {e}")
-        print("   Vérifiez:")
-        print("   1. Que le mot de passe d'application est correct")
-        print("   2. Que les applications moins sécurisées sont activées")
-        print("   3. Que l'accès SMTP est autorisé sur le compte Gmail")
+        print(f"⚠️ Validation config: {e}")
     
-    print("\n🚀 Démarrage du serveur...")
+    print("\n🚀 DÉMARRAGE DU SERVEUR...")
     app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
