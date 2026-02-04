@@ -775,7 +775,6 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
         'amplitude': round(amplitude, 2),
         'mean_height': round(base_height, 2)
     }
-}
 
 def get_location_name_with_cache(lat: float, lon: float) -> dict:
     """Récupère le nom de localisation avec cache"""
@@ -834,7 +833,6 @@ def get_fallback_location_data(lat: float, lon: float) -> dict:
         'type': 'water',
         'address': {'state': region, 'country': 'Tunisie'}
     }
-}
 
 def calculate_weather_score(weather_data: dict) -> float:
     """Calcule un score de 0-1 pour la pêche basé sur la météo RÉELLE"""
