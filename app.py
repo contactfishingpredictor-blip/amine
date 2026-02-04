@@ -2157,6 +2157,7 @@ def robots():
 Disallow: /admin/
 Disallow: /private/
 Allow: /
+
 Sitemap: https://fishing-activity.onrender.com/sitemap.xml
 """
     return robots_content, 200, {'Content-Type': 'text/plain'}
@@ -2164,37 +2165,67 @@ Sitemap: https://fishing-activity.onrender.com/sitemap.xml
 @app.route('/sitemap.xml')
 def sitemap():
     """Génère le sitemap dynamiquement avec date actuelle"""
-    base_url = 'https://fishing-activity.onrender.com'
-    today = datetime.now().strftime('%Y-%m-%d')
-    
-    pages = [
-        {'url': '/', 'priority': '1.0', 'changefreq': 'daily'},
-        {'url': '/predictions', 'priority': '0.9', 'changefreq': 'weekly'},
-        {'url': '/species_selector', 'priority': '0.8', 'changefreq': 'weekly'},
-        {'url': '/favorites', 'priority': '0.7', 'changefreq': 'monthly'},
-        {'url': '/science', 'priority': '0.7', 'changefreq': 'monthly'},
-        {'url': '/alerts', 'priority': '0.6', 'changefreq': 'monthly'},
-    ]
-    
-    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+    try:
+        base_url = 'https://fishing-activity.onrender.com'
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        pages = [
+            {'url': '/', 'priority': '1.0', 'changefreq': 'daily'},
+            {'url': '/predictions', 'priority': '0.9', 'changefreq': 'weekly'},
+            {'url': '/species_selector', 'priority': '0.8', 'changefreq': 'weekly'},
+            {'url': '/favorites', 'priority': '0.7', 'changefreq': 'monthly'},
+            {'url': '/science', 'priority': '0.7', 'changefreq': 'monthly'},
+            {'url': '/alerts', 'priority': '0.6', 'changefreq': 'monthly'},
+        ]
+        
+        xml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 '''
-    
-    for page in pages:
-        xml += f'''  <url>
+        
+        for page in pages:
+            xml += f'''  <url>
     <loc>{base_url}{page['url']}</loc>
     <lastmod>{today}</lastmod>
     <changefreq>{page['changefreq']}</changefreq>
     <priority>{page['priority']}</priority>
   </url>
 '''
-    
-    xml += '</urlset>'
-    
-    response = make_response(xml)
-    response.headers['Content-Type'] = 'application/xml'
-    response.headers['Cache-Control'] = 'public, max-age=3600'
-    return response
+        
+        xml += '</urlset>'
+        
+        response = make_response(xml)
+        response.headers['Content-Type'] = 'application/xml'
+        response.headers['Cache-Control'] = 'public, max-age=86400'  # 24 heures
+        return response
+        
+    except Exception as e:
+        # Fallback en cas d'erreur
+        xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://fishing-activity.onrender.com/</loc>
+    <lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>'''
+        response = make_response(xml)
+        response.headers['Content-Type'] = 'application/xml'
+        return response
+
+@app.route('/sitemap')
+def sitemap_redirect():
+    """Redirection vers le sitemap XML"""
+    return redirect('/sitemap.xml')
+
+@app.route('/ping')
+def ping():
+    """Endpoint de vérification de disponibilité"""
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'fishing-predictor-pro'
+    })
 
 @app.route('/google-verification')
 def google_verification():
@@ -2367,6 +2398,9 @@ if __name__=='__main__':
         config.validate_config()
     except Exception as e:
         print(f"⚠️ Validation config: {e}")
+    
+    # Nettoyer le cache ancien
+    cleanup_old_cache()
     
     print("\n🚀 DÉMARRAGE DU SERVEUR...")
     app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
