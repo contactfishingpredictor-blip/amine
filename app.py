@@ -775,6 +775,7 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
         'amplitude': round(amplitude, 2),
         'mean_height': round(base_height, 2)
     }
+}
 
 def get_location_name_with_cache(lat: float, lon: float) -> dict:
     """Récupère le nom de localisation avec cache"""
@@ -833,6 +834,7 @@ def get_fallback_location_data(lat: float, lon: float) -> dict:
         'type': 'water',
         'address': {'state': region, 'country': 'Tunisie'}
     }
+}
 
 def calculate_weather_score(weather_data: dict) -> float:
     """Calcule un score de 0-1 pour la pêche basé sur la météo RÉELLE"""
@@ -2108,15 +2110,39 @@ def test_mobile_simple():
 # ===== ROUTES SITEMAP ET ROBOTS (CORRIGÉES) =====
 @app.route('/robots.txt')
 def robots():
-    """Fichier robots.txt simplifié et efficace"""
+    """Fichier robots.txt ULTRA-SIMPLE pour débloquer Google"""
     robots_content = """User-agent: *
-Disallow: /admin/
-Disallow: /private/
 Allow: /
 
 Sitemap: https://fishing-activity.onrender.com/sitemap.xml
 """
-    return robots_content, 200, {'Content-Type': 'text/plain'}
+    response = make_response(robots_content)
+    response.headers['Content-Type'] = 'text/plain'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+@app.route('/test-google-access')
+def test_google_access():
+    """Page spéciale pour vérifier l'accès Google"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Accès Google</title>
+        <meta name="robots" content="index, follow">
+    </head>
+    <body>
+        <h1>✅ Page accessible à Google</h1>
+        <p>Heure: {datetime.now().isoformat()}</p>
+        <p><a href="/robots.txt" target="_blank">Voir robots.txt</a></p>
+        <p><a href="/sitemap.xml" target="_blank">Voir sitemap.xml</a></p>
+    </body>
+    </html>
+    """
+    return html
 
 @app.route('/sitemap.xml')
 def sitemap():
