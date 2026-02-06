@@ -1,43 +1,43 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "4003449214a6",
+    "prediction_id": "d68d6aac4790",
     "stable": true,
-    "valid_until": "2026-02-02T14:00:24.824524",
+    "valid_until": "2026-02-07T01:44:57.021542",
     "scores": {
-      "final": 89,
-      "environmental": 62,
-      "behavioral": 70,
+      "final": 87,
+      "environmental": 59,
+      "behavioral": 63,
       "bathymetry_factor": 100,
       "weather_factor": 100,
       "components": {
-        "scientific": 62,
+        "scientific": 59,
         "depth": 100,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 16.99,
-      "wind_speed": 14.832,
-      "wind_direction": 180,
-      "wind_direction_abbr": "S",
-      "wind_direction_name": "Sud",
-      "wind_direction_icon": "⬇️",
-      "wind_fishing_impact": "Vent du sud - Chaud, peut réduire l'activité des poissons",
+      "temperature": 12.99,
+      "wind_speed": 11.124,
+      "wind_direction": 240,
+      "wind_direction_abbr": "OSO",
+      "wind_direction_name": "Ouest-Sud-Ouest",
+      "wind_direction_icon": "↙️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
-      "wind_onshore": false,
-      "pressure": 1009,
-      "humidity": 55,
+      "wind_onshore": true,
+      "pressure": 1011,
+      "humidity": 71,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 0.5,
-      "updated": "2026-02-02T13:00:24.824524",
+      "updated": "2026-02-07T00:44:57.021542",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.33,
+        "value": 5.29,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -49,21 +49,21 @@
         "status": "suboptimal"
       },
       "tidal_current": {
-        "speed_mps": 0.06,
-        "speed_knots": 0.12,
-        "direction": "SO-NE",
-        "tide_height": 0.1,
-        "tide_phase": "descendante",
-        "fishing_impact": "trop faible"
+        "speed_mps": 0.18,
+        "speed_knots": 0.35,
+        "direction": "NE-SO",
+        "tide_height": 0.2,
+        "tide_phase": "montante",
+        "fishing_impact": "favorable"
       }
     },
     "recommendations": {
       "tips": [
-        "Opportunité: TRÈS BONNE",
+        "Opportunité: BONNE",
         "Heures optimales: 19h, 6h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 17.0°C, Vent: 14.8 km/h"
+        "Météo: Nuageux, 13.0°C, Vent: 11.1 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -94,20 +94,20 @@
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-02T13:00:24.824524",
+      "timestamp": "2026-02-07T00:44:57.021542",
       "data_source": "modèle scientifique",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "14:00",
+      "next_update_recommended": "01:44",
       "api_usage_info": {
-        "openweather_calls_today": 0,
-        "using_cache": true
+        "openweather_calls_today": 2,
+        "using_cache": false
       }
     }
   },
-  "timestamp": 1770033624.824524,
-  "expires_at": 1770037224.824524,
+  "timestamp": 1770421497.021542,
+  "expires_at": 1770425097.021542,
   "api_name": "prediction",
   "params": {
     "lat": 36.8065,

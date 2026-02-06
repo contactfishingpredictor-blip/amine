@@ -11,8 +11,8 @@
     },
     "type": "city"
   },
-  "timestamp": 1770032659.178367,
-  "expires_at": 1770119059.178367,
+  "timestamp": 1770421495.054979,
+  "expires_at": 1770507895.054979,
   "api_name": "nominatim",
   "params": {
     "lat": 36.8065,

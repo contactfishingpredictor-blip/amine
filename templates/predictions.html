@@ -554,7 +554,7 @@
     let currentSpecies = 'loup';
     let currentForecast = null;
     
-    // Dictionnaire des espèces (solution temporaire en attendant l'API)
+    // Dictionnaire des espèces
     const speciesNames = {
         'loup': 'Loup', 'daurade': 'Daurade', 'pageot': 'Pageot', 'maquereau': 'Maquereau',
         'thon': 'Thon', 'rouget': 'Rouget', 'sar': 'Sar', 'sériole': 'Sériole',
@@ -566,14 +566,12 @@
     // Initialisation sécurisée de la carte
     function initMap() {
         try {
-            // Vérifier que le conteneur existe
             const mapContainer = document.getElementById('map-container');
             if (!mapContainer) {
                 console.error("❌ Conteneur de carte non trouvé");
                 return;
             }
             
-            // Vérifier si Leaflet est chargé
             if (typeof L === 'undefined') {
                 console.error("❌ Leaflet n'est pas chargé");
                 mapContainer.innerHTML = `
@@ -587,7 +585,6 @@
                 return;
             }
             
-            // Créer la carte
             map = L.map('map-container').setView([currentLat, currentLon], 13);
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -609,7 +606,6 @@
                 
                 updateLocationInfo();
                 loadSpotInfo();
-                // Mettre à jour les facteurs scientifiques lorsqu'on change de position
                 loadScientificFactors();
             });
             
@@ -655,7 +651,6 @@
             `${currentLat.toFixed(4)}° N, ${currentLon.toFixed(4)}° E`;
         
         try {
-            // Essayer d'abord l'API de recherche de localisation
             const response = await fetch(`/api/location_search?q=${currentLat},${currentLon}`);
             if (!response.ok) {
                 throw new Error('API location_search non disponible');
@@ -671,7 +666,6 @@
                     `Position (${currentLat.toFixed(4)}, ${currentLon.toFixed(4)})`;
             }
         } catch (error) {
-            // Fallback: utiliser les coordonnées
             console.log("⚠️ Fallback pour les informations de localisation");
             document.getElementById('current-location-name').textContent = 
                 `Position (${currentLat.toFixed(4)}, ${currentLon.toFixed(4)})`;
@@ -737,7 +731,6 @@
             }
         } catch (error) {
             console.log("⚠️ Fallback pour le chargement des espèces");
-            // Espèces par défaut
             const defaultSpecies = [
                 {key: 'loup', name: 'Loup de Mer', icon: '🐟'},
                 {key: 'daurade', name: 'Daurade Royale', icon: '🐠'},
@@ -777,7 +770,6 @@
         if (currentForecast) {
             showDayDetails(currentForecast[0].date);
         }
-        // Mettre à jour les facteurs scientifiques lorsqu'on change d'espèce
         loadScientificFactors();
     }
     
@@ -798,7 +790,9 @@
             const data = await response.json();
             
             if (data.status === 'success') {
-                currentForecast = data.forecasts;
+                // CORRECTION IMPORTANTE: utiliser data.forecast (singulier) au lieu de data.forecasts
+                currentForecast = data.forecast;
+                currentForecast = normalizeForecastData(currentForecast);
                 displayForecast(currentForecast);
                 document.getElementById('forecast-container').style.display = 'block';
             } else {
@@ -809,11 +803,29 @@
             
             // Afficher les données simulées
             currentForecast = generateMockForecast();
+            currentForecast = normalizeForecastData(currentForecast);
             displayForecast(currentForecast);
             document.getElementById('forecast-container').style.display = 'block';
         } finally {
             document.getElementById('forecast-loading').style.display = 'none';
         }
+    }
+    
+    // NOUVELLE FONCTION: Normaliser les données de prévisions
+    function normalizeForecastData(forecastData) {
+        if (!forecastData || !Array.isArray(forecastData)) {
+            return [];
+        }
+        
+        return forecastData.map(day => {
+            return {
+                ...day,
+                optimal_hours: day.best_hours || day.optimal_hours || generateOptimalHours(day.date),
+                recommendations: Array.isArray(day.recommendation) 
+                    ? day.recommendation 
+                    : [day.recommendation || day.fishing_opportunity || '']
+            };
+        });
     }
     
     function displayForecast(forecasts) {
@@ -825,21 +837,20 @@
             const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
             const dayNumber = dateObj.getDate();
             
-            // Déterminer la couleur et la décision basée sur le score
             const score = day.score || 50;
             let color, decision;
             
             if (score >= 80) {
-                color = '#10b981'; // vert
+                color = '#10b981';
                 decision = 'Excellent';
             } else if (score >= 60) {
-                color = '#3b82f6'; // bleu
+                color = '#3b82f6';
                 decision = 'Bon';
             } else if (score >= 40) {
-                color = '#f59e0b'; // orange
+                color = '#f59e0b';
                 decision = 'Moyen';
             } else {
-                color = '#ef4444'; // rouge
+                color = '#ef4444';
                 decision = 'Faible';
             }
             
@@ -871,7 +882,6 @@
         const container = document.getElementById('day-details');
         const dateObj = new Date(date);
         
-        // Déterminer la couleur et la décision
         const score = day.score || 50;
         let color, decision;
         
@@ -909,7 +919,7 @@
             </div>
         `;
         
-        // Heures optimales (simulées si non présentes)
+        // Heures optimales
         const optimalHours = day.optimal_hours || generateOptimalHours(date);
         
         if (optimalHours && optimalHours.length > 0) {
@@ -942,11 +952,11 @@
             html += `</div>`;
         }
         
-        // Recommandations (simulées si non présentes)
+        // Recommandations
         const recommendations = day.recommendations || [
             `Meilleur moment: ${optimalHours?.[0]?.hour || 'matin'}h`,
             `Météo: ${day.weather?.condition || 'favorable'}`,
-            `Température eau: 18-22°C`,
+            `Température eau: ${day.scientific_factors?.water_temperature || '18-22'}°C`,
             `Vent: ${day.weather?.wind_speed || 10} km/h ${day.weather?.wind_direction || 'Nord'}`
         ];
         
@@ -1002,7 +1012,6 @@
                 
                 updateLocationInfo();
                 loadSpotInfo();
-                // Mettre à jour les facteurs scientifiques
                 loadScientificFactors();
                 
                 if (typeof showNotification === 'function') {
@@ -1025,7 +1034,6 @@
     }
     
     function showNotification(message, type = 'info') {
-        // Créer une notification simple si la fonction globale n'existe pas
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
@@ -1059,14 +1067,13 @@
     }
     
     // ==================================================
-    // FONCTIONS POUR LES FACTEURS SCIENTIFIQUES (NOUVEAU)
+    // FONCTIONS POUR LES FACTEURS SCIENTIFIQUES
     // ==================================================
     
     async function loadScientificFactors() {
         console.log("🔬 Chargement des facteurs scientifiques...");
         
         try {
-            // Essayer d'abord l'API
             const response = await fetch(
                 `/api/scientific_factors?lat=${currentLat}&lon=${currentLon}&species=${currentSpecies}`
             );
@@ -1079,21 +1086,18 @@
             }
             
             if (data.status === 'success') {
-                // Utiliser les données de l'API
                 updateScientificFactorsUI(data.factors);
             } else {
                 throw new Error('Données invalides');
             }
         } catch (error) {
             console.log("⚠️ Fallback pour les facteurs scientifiques");
-            // Générer des données simulées
             const mockFactors = generateMockScientificFactors();
             updateScientificFactorsUI(mockFactors);
         }
     }
     
     function generateMockScientificFactors() {
-        // Générer des données aléatoires mais réalistes basées sur la position et l'espèce
         const latFactor = Math.sin(currentLat * 0.1);
         const lonFactor = Math.cos(currentLon * 0.1);
         const speciesFactor = currentSpecies.length * 0.1;
@@ -1104,14 +1108,14 @@
                 unit: "mg/L",
                 status: getOxygenStatus(5.5 + latFactor + speciesFactor),
                 optimal_range: "5.0-8.0 mg/L",
-                tip: getOxygenTip(5.5 + latFactor + speciesFactor)
+                tip: getOxygenTip(5.5 + latFactor + speciesFactor, currentSpecies)
             },
             chlorophyll: {
                 value: (1.2 + lonFactor * 0.8).toFixed(2),
                 unit: "mg/m³",
                 status: getChlorophyllStatus(1.2 + lonFactor * 0.8),
                 optimal_range: "0.8-3.0 mg/m³",
-                tip: getChlorophyllTip(1.2 + lonFactor * 0.8)
+                tip: getChlorophyllTip(1.2 + lonFactor * 0.8, currentSpecies)
             },
             current: {
                 value: (0.3 + Math.abs(latFactor) * 0.4).toFixed(2),
@@ -1120,7 +1124,7 @@
                 direction: getRandomDirection(),
                 phase: getTidalPhase(),
                 status: getCurrentStatus(0.3 + Math.abs(latFactor) * 0.4),
-                tip: getCurrentTip(0.3 + Math.abs(latFactor) * 0.4)
+                tip: getCurrentTip(0.3 + Math.abs(latFactor) * 0.4, currentSpecies)
             },
             sources: "Copernicus, Wekeo, NOAA"
         };
@@ -1134,7 +1138,6 @@
         document.getElementById('oxygen-optimal-range').textContent = factors.oxygen.optimal_range;
         document.getElementById('oxygen-tip-text').textContent = factors.oxygen.tip;
         
-        // Mettre à jour la couleur du statut de l'oxygène
         updateStatusColor('oxygen-status', factors.oxygen.status);
         
         // Chlorophylle-a
@@ -1144,7 +1147,6 @@
         document.getElementById('chlorophyll-optimal-range').textContent = factors.chlorophyll.optimal_range;
         document.getElementById('chlorophyll-tip-text').textContent = factors.chlorophyll.tip;
         
-        // Mettre à jour la couleur du statut de la chlorophylle
         updateStatusColor('chlorophyll-status', factors.chlorophyll.status);
         
         // Courant de marée
@@ -1156,7 +1158,6 @@
         document.getElementById('current-status').textContent = factors.current.status;
         document.getElementById('current-tip-text').textContent = factors.current.tip;
         
-        // Mettre à jour la couleur du statut du courant
         updateStatusColor('current-status', factors.current.status);
         
         // Sources de données
@@ -1172,11 +1173,9 @@
         const element = document.getElementById(elementId);
         if (!element) return;
         
-        // Réinitialiser les styles
         element.style.background = '';
         element.style.color = '';
         
-        // Appliquer les couleurs selon le statut
         if (status.includes('Optimal') || status.includes('Excellent')) {
             element.style.background = '#d1fae5';
             element.style.color = '#065f46';
@@ -1197,11 +1196,11 @@
         return 'Faible';
     }
     
-    function getOxygenTip(value) {
-        if (value >= 7.0) return 'Niveau d\'oxygène excellent. Les poissons sont très actifs.';
-        if (value >= 5.5) return 'Conditions optimales pour la pêche.';
-        if (value >= 4.0) return 'Oxygène modéré. Essayez les zones peu profondes.';
-        return 'Faible niveau d\'oxygène. Activité réduite des poissons.';
+    function getOxygenTip(value, species) {
+        if (value >= 7.0) return `Niveau d'oxygène excellent pour le ${species}. Les poissons sont très actifs.`;
+        if (value >= 5.5) return `Conditions optimales pour la pêche du ${species}.`;
+        if (value >= 4.0) return `Oxygène modéré. Privilégiez les zones peu profondes pour le ${species}.`;
+        return `Faible niveau d'oxygène. Activité réduite du ${species}.`;
     }
     
     function getChlorophyllStatus(value) {
@@ -1211,11 +1210,11 @@
         return 'Faible';
     }
     
-    function getChlorophyllTip(value) {
-        if (value >= 2.0) return 'Zone très productive. Bonnes chances de prises.';
-        if (value >= 1.0) return 'Productivité normale pour la pêche.';
-        if (value >= 0.5) return 'Productivité moyenne. Ciblez les zones de concentration.';
-        return 'Productivité faible. Cherchez les zones de remontée d\'eau.';
+    function getChlorophyllTip(value, species) {
+        if (value >= 2.0) return `Zone très productive. Excellentes chances de prise de ${species}.`;
+        if (value >= 1.0) return `Productivité normale, favorable pour le ${species}.`;
+        if (value >= 0.5) return `Productivité moyenne. Ciblez les zones de concentration pour le ${species}.`;
+        return `Productivité faible. Cherchez les zones de remontée d'eau pour le ${species}.`;
     }
     
     function getCurrentStatus(value) {
@@ -1225,11 +1224,11 @@
         return 'Faible';
     }
     
-    function getCurrentTip(value) {
-        if (value >= 0.8) return 'Courant fort. Privilégiez les leurres lourds.';
-        if (value >= 0.4) return 'Courant idéal pour la pêche au leurre.';
-        if (value >= 0.2) return 'Courant modéré. Bon pour la pêche à la traîne.';
-        return 'Courant faible. Essayez la pêche à la dérive.';
+    function getCurrentTip(value, species) {
+        if (value >= 0.8) return `Courant fort. Privilégiez les leurres lourds pour le ${species}.`;
+        if (value >= 0.4) return `Courant idéal pour la pêche au leurre du ${species}.`;
+        if (value >= 0.2) return `Courant modéré. Bon pour la pêche à la traîne du ${species}.`;
+        return `Courant faible. Essayez la pêche à la dérive pour le ${species}.`;
     }
     
     function getRandomDirection() {
@@ -1251,7 +1250,6 @@
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             
-            // Score aléatoire mais cohérent basé sur la date
             const daySeed = date.getDate() + date.getMonth() * 31;
             const score = 40 + Math.sin(daySeed * 0.5) * 30 + Math.random() * 10;
             
@@ -1275,7 +1273,6 @@
         const daySeed = dateObj.getDate() + dateObj.getMonth() * 31;
         const hours = [];
         
-        // Générer 4 heures optimales
         for (let i = 0; i < 4; i++) {
             const hour = 6 + i * 4 + (daySeed % 3);
             const score = 50 + Math.sin(daySeed * 0.5 + i) * 30 + Math.random() * 10;
@@ -1286,7 +1283,6 @@
             });
         }
         
-        // Trier par score décroissant
         return hours.sort((a, b) => b.score - a.score);
     }
     
@@ -1336,7 +1332,6 @@
                     }
                 } catch (error) {
                     console.log('Recherche locale');
-                    // Fallback: recherche locale
                     const localResults = getLocalSearchResults(query);
                     
                     if (localResults.length > 0) {
@@ -1409,7 +1404,6 @@
         
         loadSpotInfo();
         loadForecast();
-        // Charger les facteurs scientifiques pour la nouvelle position
         loadScientificFactors();
     }
     
@@ -1417,25 +1411,19 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log("🚀 Initialisation de la page Prévisions 10 Jours");
         
-        // Initialiser la carte
         setTimeout(() => initMap(), 100);
         
-        // Mettre à jour les informations
         updateLocationInfo();
         loadSpotInfo();
         loadSpecies();
         
-        // Charger les prévisions après un court délai
         setTimeout(() => loadForecast(), 500);
         
-        // Configurer la recherche
         setupSearch();
         
-        // Charger les facteurs scientifiques
         setTimeout(() => loadScientificFactors(), 800);
         
         console.log("✅ Page Prévisions 10 Jours initialisée");
     });
 </script>
 {% endblock %}
-[file content end]
