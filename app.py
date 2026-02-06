@@ -260,7 +260,7 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
         
         ---
         Cet email a été envoyé à {email}
-        © 2024 Fishing Predictor Pro
+        © 2026 Fishing Predictor Pro
         """
         
         msg = MIMEMultipart('alternative')
@@ -2296,6 +2296,12 @@ def admin_send_test_email():
             
     except Exception as e:
         return f"❌ Erreur: {str(e)}"
+        
+# ===== ROUTE DE VÉRIFICATION TWILIO/SENDGRID =====
+@app.route('/024346fe0e57359cde6130c37f3b7a22.html')
+def twilio_verification():
+    """Route pour la vérification de domaine Twilio/SendGrid"""
+    return 'twilio-domain-verification=024346fe0e57359cde6130c37f3b7a22'
 
 # ===== DÉMARRAGE DE L'APPLICATION =====
 if __name__=='__main__':
