@@ -1,6 +1,18 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, redirect
+"""
+Fishing Predictor Pro - Application Flask principale
+Version 2.2.0 - Configuration Gmail uniquement (SendGrid supprimé)
+"""
+
+import os
+import json
+import logging
+import time
+import math
+import hashlib
+import random
+import concurrent.futures
 from datetime import datetime, timedelta
-import math, random, json, os, time, concurrent.futures, hashlib
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, redirect
 import requests
 import smtplib
 from email.mime.text import MIMEText
@@ -9,9 +21,6 @@ from advanced_predictor import ScientificFishingPredictor
 
 # Import de la configuration centralisée
 from config import config
-
-# Import SendGrid handler
-from sendgrid_handler import sendgrid_handler
 
 # Import silencieux de WEkEO
 try:
@@ -23,17 +32,20 @@ except ImportError:
 app = Flask(__name__, template_folder='templates', static_folder='static')
 predictor = ScientificFishingPredictor()
 
-# ===== CONFIGURATION EMAIL =====
+# ===== CONFIGURATION EMAIL GMAIL UNIQUEMENT =====
 GMAIL_USER = config.GMAIL_USER
 GMAIL_PASSWORD = config.GMAIL_APP_PASSWORD
-EMAIL_CONFIG = config.EMAIL_CONFIG  # Utilise la propriété dynamique
+EMAIL_FROM = config.EMAIL_FROM
+EMAIL_FROM_NAME = config.EMAIL_FROM_NAME
 
+# ===== API KEYS =====
 OPENWEATHER_API_KEY = config.OPENWEATHER_API_KEY
 STORMGLASS_API_KEY = config.STORMGLASS_API_KEY
 WORLDTIDES_API_KEY = config.WORLDTIDES_API_KEY
 NOMINATIM_API = "https://nominatim.openstreetmap.org/reverse"
 FAVORITES_FILE = config.FAVORITES_FILE
 ALERTS_FILE = config.ALERTS_FILE
+EMAIL_LOGS_FILE = config.EMAIL_LOGS_FILE
 
 # ===== CONFIGURATION DE LIMITATION D'APPELS API =====
 API_RATE_LIMITS = {
@@ -53,7 +65,7 @@ API_RATE_LIMITS = {
     'worldtides': {
         'max_per_day': 10,
         'cache_duration': 6 * 60 * 60,
-        'use_cache_only': True  # Force le mode cache seulement
+        'use_cache_only': True
     },
     'nominatim': {
         'max_per_hour': 1,
@@ -148,41 +160,24 @@ WEATHER_CONDITIONS_FR = {
     'Tornado': 'Tornade'
 }
 
-# ===== FONCTIONS EMAIL AVEC SENDGRID =====
-
+# ===== FONCTIONS EMAIL GMAIL UNIQUEMENT =====
 def send_confirmation_email(email: str, confirmation_id: str) -> bool:
-    """Envoie un email de confirmation d'abonnement via SendGrid ou Gmail"""
+    """Envoie un email de confirmation d'abonnement via Gmail"""
     try:
-        # Essayer SendGrid d'abord
-        if sendgrid_handler.is_configured():
-            result = sendgrid_handler.send_confirmation_email(email, confirmation_id)
-            
-            if result.get('success'):
-                return True
-            else:
-                print(f"⚠️ SendGrid échoué, tentative Gmail: {result.get('error', 'Unknown error')}")
-        
-        # Fallback sur Gmail si SendGrid échoue ou n'est pas configuré
         return send_confirmation_email_gmail(email, confirmation_id)
-        
     except Exception as e:
         print(f"❌ Erreur envoi email: {e}")
-        # Essayer Gmail comme dernier recours
-        try:
-            return send_confirmation_email_gmail(email, confirmation_id)
-        except:
-            print(f"❌ Tous les services email ont échoué pour: {email}")
-            return False
+        return False
 
 def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
-    """Envoie un email de confirmation d'abonnement via Gmail (fallback)"""
+    """Envoie un email de confirmation d'abonnement via Gmail"""
     try:
-        if not EMAIL_CONFIG['enabled']:
+        if not GMAIL_USER or not GMAIL_PASSWORD:
+            print("❌ Configuration Gmail manquante")
             return False
         
         timestamp = datetime.now().strftime('%d/%m/%Y à %H:%M')
         
-        # Contenu HTML de l'email
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -242,7 +237,6 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
         </html>
         """
         
-        # Version texte simple
         text_content = f"""
         Confirmation d'abonnement - Fishing Predictor Pro
         
@@ -269,33 +263,28 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
         © 2024 Fishing Predictor Pro
         """
         
-        # Créer le message
         msg = MIMEMultipart('alternative')
-        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['From'] = f"{EMAIL_FROM_NAME} <{EMAIL_FROM}>"
         msg['To'] = email
         msg['Subject'] = "🎣 Confirmation d'abonnement aux alertes - Fishing Predictor Pro"
         
-        # Ajouter les versions texte et HTML
         if text_content:
             msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
         msg.attach(MIMEText(html_content, 'html', 'utf-8'))
         
-        # Connexion au serveur SMTP
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=30)
         server.ehlo()
         server.starttls()
         server.ehlo()
         
-        # Authentification
         server.login(GMAIL_USER, GMAIL_PASSWORD)
         
-        # Envoi de l'email
         server.send_message(msg)
         server.quit()
         
-        # Sauvegarder le log
         save_email_log(email, 'confirmation', confirmation_id, True)
         
+        print(f"✅ Email de confirmation envoyé à {email}")
         return True
         
     except Exception as e:
@@ -306,12 +295,11 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
 def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool):
     """Sauvegarde les logs d'emails envoyés"""
     try:
-        log_file = config.EMAIL_LOGS_FILE
-        os.makedirs(config.DATA_DIR, exist_ok=True)
+        os.makedirs(os.path.dirname(EMAIL_LOGS_FILE), exist_ok=True)
         
         logs = []
-        if os.path.exists(log_file):
-            with open(log_file, 'r', encoding='utf-8') as f:
+        if os.path.exists(EMAIL_LOGS_FILE):
+            with open(EMAIL_LOGS_FILE, 'r', encoding='utf-8') as f:
                 logs = json.load(f)
         
         log_entry = {
@@ -320,31 +308,23 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
             'confirmation_id': confirmation_id,
             'sent': sent,
             'timestamp': datetime.now().isoformat(),
-            'server': 'Gmail SMTP' if '@gmail.com' in str(EMAIL_CONFIG.get('sender_email', '')) else 'SendGrid'
+            'server': 'Gmail SMTP'
         }
         
         logs.append(log_entry)
         
-        with open(log_file, 'w', encoding='utf-8') as f:
+        with open(EMAIL_LOGS_FILE, 'w', encoding='utf-8') as f:
             json.dump(logs, f, ensure_ascii=False, indent=2)
         
     except Exception as e:
         print(f"⚠️ Erreur sauvegarde log email: {e}")
 
-def test_email_configuration():
-    """Teste la configuration email avant le démarrage"""
+def test_gmail_configuration():
+    """Teste la configuration Gmail"""
     print("\n" + "="*60)
-    print("🧪 TEST DE CONFIGURATION EMAIL")
+    print("🧪 TEST DE CONFIGURATION GMAIL")
     print("="*60)
     
-    # Vérifier SendGrid
-    if sendgrid_handler.is_configured():
-        print("✅ SendGrid configuré avec succès!")
-        print(f"   Clé API: {sendgrid_handler.api_key[:15]}...")
-        print(f"   Email d'envoi: {sendgrid_handler.from_email}")
-        return True
-    
-    # Vérifier Gmail
     if not GMAIL_USER:
         print("❌ GMAIL_USER est vide!")
         print("   Vérifiez votre fichier .env sur Render")
@@ -369,13 +349,127 @@ def test_email_configuration():
         
     except smtplib.SMTPAuthenticationError as e:
         print(f"❌ Erreur d'authentification Gmail: {e}")
+        print("   Vérifiez votre App Password (16 caractères sans espaces)")
         return False
     except Exception as e:
         print(f"❌ Erreur de connexion Gmail: {type(e).__name__}: {str(e)[:100]}")
         return False
 
-# ===== FONCTIONS AVEC GESTION DE LIMITATION =====
+# ===== NOUVELLES FONCTIONS POUR TESTS GMAIL =====
+@app.route('/api/test-gmail')
+def api_test_gmail():
+    """Test complet de la configuration Gmail"""
+    try:
+        # Vérifier la configuration
+        config_status = {
+            'gmail_user': bool(GMAIL_USER),
+            'gmail_password': bool(GMAIL_PASSWORD),
+            'email_from': bool(EMAIL_FROM),
+            'email_from_name': bool(EMAIL_FROM_NAME)
+        }
+        
+        # Tester la connexion SMTP
+        connection_ok = False
+        try:
+            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(GMAIL_USER, GMAIL_PASSWORD)
+            connection_ok = True
+            server.quit()
+        except Exception as e:
+            connection_ok = False
+            error_msg = str(e)
+        
+        # Tester l'envoi d'email
+        send_ok = False
+        if connection_ok:
+            test_email = GMAIL_USER  # Envoyer un test à soi-même
+            try:
+                send_ok = send_confirmation_email_gmail(test_email, f"TEST-{int(time.time())}")
+            except Exception:
+                send_ok = False
+        
+        return jsonify({
+            "app": config.APP_NAME,
+            "version": config.APP_VERSION,
+            "config": config_status,
+            "connection": "✅ OK" if connection_ok else f"❌ Échec: {error_msg if 'error_msg' in locals() else 'Inconnu'}",
+            "send_test": "✅ OK" if send_ok else "❌ Échec",
+            "gmail_user": GMAIL_USER,
+            "app_password_length": len(GMAIL_PASSWORD) if GMAIL_PASSWORD else 0,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+@app.route('/api/send-test-email/<email>')
+def api_send_test_email(email):
+    """Envoyer un email de test à une adresse spécifique"""
+    try:
+        # Valider l'email
+        if '@' not in email or '.' not in email:
+            return jsonify({'error': 'Email invalide'}), 400
+        
+        # Envoyer email de test
+        confirmation_id = f"TEST-{int(time.time())}-{random.randint(1000, 9999)}"
+        success = send_confirmation_email_gmail(email, confirmation_id)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'Email de test envoyé à {email}',
+                'confirmation_id': confirmation_id,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Échec de l\'envoi de l\'email',
+                'timestamp': datetime.now().isoformat()
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/email-config')
+def api_email_config():
+    """Afficher la configuration email"""
+    try:
+        return jsonify({
+            "gmail_user": GMAIL_USER,
+            "email_from": EMAIL_FROM,
+            "email_from_name": EMAIL_FROM_NAME,
+            "app_password_configured": bool(GMAIL_PASSWORD),
+            "app_password_length": len(GMAIL_PASSWORD) if GMAIL_PASSWORD else 0,
+            "smtp_server": "smtp.gmail.com",
+            "smtp_port": 587,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/email-logs')
+def api_email_logs():
+    """Récupérer les logs d'emails"""
+    try:
+        if os.path.exists(EMAIL_LOGS_FILE):
+            with open(EMAIL_LOGS_FILE, 'r') as f:
+                logs = json.load(f)
+            return jsonify({
+                "total": len(logs),
+                "logs": logs[-20:]  # 20 derniers
+            })
+        else:
+            return jsonify({"total": 0, "logs": []})
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===== FONCTIONS AVEC GESTION DE LIMITATION =====
 def get_openweather_data_with_limits(lat: float, lon: float):
     """Récupère les données météo avec gestion des limites d'API"""
     params = {'lat': lat, 'lon': lon}
@@ -687,15 +781,12 @@ def get_tide_data_with_cache(lat: float, lon: float) -> dict:
     """Récupère les données de marée - VERSION CORRIGÉE"""
     params = {'lat': lat, 'lon': lon}
     
-    # Vérifier d'abord le cache (6 heures)
     cached_data = load_from_cache('worldtides', params, max_age_hours=6)
     if cached_data:
         return cached_data
     
-    # Mode fallback seulement (crédits API épuisés ou erreur 400)
     fallback_data = get_fallback_tide_data(lat, lon)
     
-    # Sauvegarder dans le cache pour 6 heures
     save_to_cache('worldtides', params, fallback_data, 6)
     
     return fallback_data
@@ -705,21 +796,17 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
     now = datetime.now()
     today = now.date()
     
-    # Heure de départ (minuit aujourd'hui)
     start_time = datetime(today.year, today.month, today.day, 0, 0, 0)
     start_timestamp = int(start_time.timestamp())
     
-    # Paramètres basés sur la position
     base_height = 0.5
     amplitude = 0.3
     
-    # Décalage basé sur la longitude pour simuler des heures de marée différentes
     lon_offset = lon / 15.0
     
     heights = []
     extremes = []
     
-    # Générer des points toutes les 30 minutes pour 24 heures (48 points)
     for i in range(48):
         current_time = start_timestamp + i * 1800
         hours_from_midnight = i * 0.5
@@ -733,7 +820,6 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
             'height': round(height, 2)
         })
     
-    # Identifier les marées hautes et basses
     for cycle in range(4):
         cycle_start = cycle * 6.2
         
@@ -777,10 +863,8 @@ def get_fallback_tide_data(lat: float, lon: float) -> dict:
             'type': 'Low'
         })
     
-    # Trier les extrêmes par heure
     extremes.sort(key=lambda x: x['dt'])
     
-    # Garder seulement les 4 premiers extrêmes (2 hautes, 2 basses)
     if len(extremes) > 4:
         extremes = extremes[:4]
     
@@ -997,8 +1081,6 @@ def get_stormglass_marine_data(lat:float,lon:float)->dict:
     save_to_cache('stormglass', params, simulated_data, 24)
     return simulated_data
 
-# ===== NOUVELLES FONCTIONS POUR LES DONNÉES MARINES =====
-
 def get_marine_data_multi_source(lat: float, lon: float) -> dict:
     """Version améliorée et silencieuse avec WEkEO"""
     marine_data = {
@@ -1011,7 +1093,6 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
         'data_quality': 'standard'
     }
     
-    # 1. Température eau - StormGlass (silencieux)
     if config.STORMGLASS_API_KEY:
         try:
             url = f"{config.STORMGLASS_URL}/weather/point"
@@ -1027,7 +1108,6 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
         except:
             pass
     
-    # 2. Vent - WEkEO en arrière-plan (silencieux)
     if WEKEO_ENABLED:
         wekeo_wind = wekeo_enhancer.enhance_wind_data(lat, lon)
         if wekeo_wind and wekeo_wind.get('wind_speed_kmh'):
@@ -1035,7 +1115,6 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
             marine_data['wind_direction_deg'] = wekeo_wind['wind_direction_deg']
             marine_data['data_quality'] = 'enhanced'
     
-    # 3. Fallback OpenWeather (si WEkEO échoue)
     if marine_data['wind_speed_kmh'] is None:
         try:
             weather_result = get_cached_weather(lat, lon)
@@ -1045,7 +1124,6 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
         except:
             pass
     
-    # 4. Estimation scientifique pour les données manquantes
     if marine_data['water_temperature'] is None:
         marine_data['water_temperature'] = predictor.estimate_water_from_position(lat, lon)
     
@@ -1082,8 +1160,7 @@ def estimate_water_from_position(lat: float, lon: float) -> float:
     
     return round(base_temp + hour_variation, 1)
 
-# ===== ROUTES API =====
-
+# ===== ROUTES PRINCIPALES =====
 @app.route('/')
 def index(): return render_template('index.html')
 
@@ -1730,7 +1807,6 @@ def api_favorites_post():
             with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
                 favorites = json.load(f)
         
-        # Générer un ID unique
         favorite_id = hashlib.md5(f"{data.get('name')}{data.get('lat')}{data.get('lon')}{time.time()}".encode()).hexdigest()[:8]
         data['id'] = favorite_id
         data['added_date'] = datetime.now().isoformat()
@@ -1881,10 +1957,9 @@ def api_seasonal_calendar():
         return jsonify({'status': 'error', 'message': str(e)})
 
 # ===== API ALERTES EMAIL =====
-
 @app.route('/api/alerts/subscribe', methods=['POST'])
 def api_alerts_subscribe():
-    """API pour s'abonner aux alertes - VERSION AVEC SENDGRID"""
+    """API pour s'abonner aux alertes - VERSION GMAIL"""
     try:
         if not request.data:
             return jsonify({
@@ -1909,16 +1984,14 @@ def api_alerts_subscribe():
         email = data.get('email', '').strip().lower()
         preferences = data.get('preferences', {})
         
-        # Validation d'email simplifiée
         if not email or '@' not in email or '.' not in email.split('@')[-1]:
             return jsonify({
                 'status': 'error', 
                 'message': 'Adresse email invalide. Exemple: nom@domaine.com'
             }), 400
         
-        # Charger les abonnements existants
         subscriptions = []
-        alerts_file = config.ALERTS_FILE
+        alerts_file = ALERTS_FILE
         
         try:
             if os.path.exists(alerts_file):
@@ -1927,14 +2000,12 @@ def api_alerts_subscribe():
         except:
             subscriptions = []
         
-        # Vérifier existence email
         existing_index = -1
         for i, sub in enumerate(subscriptions):
             if sub.get('email') == email:
                 existing_index = i
                 break
         
-        # Générer ID de confirmation
         import secrets
         confirmation_id = f"SUB-{secrets.token_hex(6).upper()}"
         
@@ -1954,7 +2025,6 @@ def api_alerts_subscribe():
             'active': True
         }
         
-        # Mettre à jour ou ajouter
         if existing_index >= 0:
             subscriptions[existing_index] = subscription_data
             operation = "mise à jour"
@@ -1962,7 +2032,6 @@ def api_alerts_subscribe():
             subscriptions.append(subscription_data)
             operation = "création"
         
-        # Sauvegarde sécurisée
         try:
             os.makedirs(os.path.dirname(alerts_file), exist_ok=True)
             with open(alerts_file, 'w', encoding='utf-8') as f:
@@ -1973,10 +2042,9 @@ def api_alerts_subscribe():
                 'message': 'Erreur technique lors de l\'enregistrement.'
             }), 500
         
-        # Envoi email
         email_sent = False
         try:
-            email_sent = send_confirmation_email(email, confirmation_id)
+            email_sent = send_confirmation_email_gmail(email, confirmation_id)
         except Exception:
             pass
         
@@ -2010,7 +2078,6 @@ def api_alerts_unsubscribe():
             with open(ALERTS_FILE, 'r', encoding='utf-8') as f:
                 subscriptions = json.load(f)
             
-            # Filtrer pour supprimer cet email
             original_count = len(subscriptions)
             subscriptions = [sub for sub in subscriptions if sub['email'] != email]
             
@@ -2053,40 +2120,11 @@ def api_alerts_status():
         print(f"❌ Erreur vérification statut: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
-@app.route('/api/alerts/send_test')
-def api_alerts_send_test():
-    """API de test pour envoyer une alerte de test"""
-    try:
-        email = request.args.get('email')
-        
-        if not email and os.path.exists(ALERTS_FILE):
-            with open(ALERTS_FILE, 'r', encoding='utf-8') as f:
-                subscriptions = json.load(f)
-            
-            if subscriptions:
-                email = subscriptions[0]['email']
-        
-        if email:
-            confirmation_id = hashlib.md5(f"test_{email}_{time.time()}".encode()).hexdigest()[:12].upper()
-            email_sent = send_confirmation_email(email, f"TEST-{confirmation_id}")
-            
-            return jsonify({
-                'status': 'success',
-                'message': f'Email de test envoyé à {email}',
-                'email_sent': email_sent
-            })
-        
-        return jsonify({'status': 'error', 'message': 'Aucun email disponible'})
-        
-    except Exception as e:
-        print(f"❌ Erreur test email: {e}")
-        return jsonify({'status': 'error', 'message': str(e)})
-
 @app.route('/admin/email_logs')
 def admin_email_logs():
     """Page admin pour voir les logs d'emails"""
     try:
-        log_file = config.EMAIL_LOGS_FILE
+        log_file = EMAIL_LOGS_FILE
         
         if os.path.exists(log_file):
             with open(log_file, 'r', encoding='utf-8') as f:
@@ -2102,7 +2140,6 @@ def admin_email_logs():
         return f"Erreur: {e}"
 
 # ===== FONCTIONS DE MAINTENANCE DU CACHE =====
-
 def cleanup_old_cache():
     """Nettoie les fichiers de cache expirés"""
     try:
@@ -2123,7 +2160,6 @@ def cleanup_old_cache():
         pass
 
 # ===== ROUTES STATIQUES =====
-
 @app.route('/static/js/leaflet.js')
 def serve_leaflet_js():
     """Servir Leaflet localement si le CDN échoue"""
@@ -2149,52 +2185,60 @@ def test_mobile_simple():
     return render_template('test_mobile_simple.html')
 
 # ===== ROUTES SITEMAP ET ROBOTS (CORRIGÉES) =====
-
 @app.route('/robots.txt')
 def robots():
-    """Fichier robots.txt CORRIGÉ - permet l'accès à Googlebot"""
+    """Fichier robots.txt ULTRA-SIMPLE pour débloquer Google"""
     robots_content = """User-agent: *
-Disallow: /admin/
-Disallow: /private/
 Allow: /
+
 Sitemap: https://fishing-activity.onrender.com/sitemap.xml
 """
-    return robots_content, 200, {'Content-Type': 'text/plain'}
+    response = make_response(robots_content)
+    response.headers['Content-Type'] = 'text/plain'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+@app.route('/test-google-access')
+def test_google_access():
+    """Page spéciale pour vérifier l'accès Google"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Accès Google</title>
+        <meta name="robots" content="index, follow">
+    </head>
+    <body>
+        <h1>✅ Page accessible à Google</h1>
+        <p>Heure: {datetime.now().isoformat()}</p>
+        <p><a href="/robots.txt" target="_blank">Voir robots.txt</a></p>
+        <p><a href="/sitemap.xml" target="_blank">Voir sitemap.xml</a></p>
+    </body>
+    </html>
+    """
+    return html
 
 @app.route('/sitemap.xml')
 def sitemap():
-    """Génère le sitemap dynamiquement avec date actuelle"""
-    base_url = 'https://fishing-activity.onrender.com'
-    today = datetime.now().strftime('%Y-%m-%d')
-    
-    pages = [
-        {'url': '/', 'priority': '1.0', 'changefreq': 'daily'},
-        {'url': '/predictions', 'priority': '0.9', 'changefreq': 'weekly'},
-        {'url': '/species_selector', 'priority': '0.8', 'changefreq': 'weekly'},
-        {'url': '/favorites', 'priority': '0.7', 'changefreq': 'monthly'},
-        {'url': '/science', 'priority': '0.7', 'changefreq': 'monthly'},
-        {'url': '/alerts', 'priority': '0.6', 'changefreq': 'monthly'},
-    ]
-    
-    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-'''
-    
-    for page in pages:
-        xml += f'''  <url>
-    <loc>{base_url}{page['url']}</loc>
-    <lastmod>{today}</lastmod>
-    <changefreq>{page['changefreq']}</changefreq>
-    <priority>{page['priority']}</priority>
-  </url>
-'''
-    
-    xml += '</urlset>'
-    
-    response = make_response(xml)
-    response.headers['Content-Type'] = 'application/xml'
-    response.headers['Cache-Control'] = 'public, max-age=3600'
-    return response
+    """Sitemap statique - 100% fiable pour Google"""
+    return send_from_directory('static', 'sitemap.xml')
+
+@app.route('/ping')
+def ping():
+    """Endpoint de vérification de disponibilité"""
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'fishing-predictor-pro'
+    })
+
+@app.route('/sitemap')
+def sitemap_redirect():
+    """Redirection vers le sitemap XML"""
+    return redirect('/sitemap.xml')
 
 @app.route('/google-verification')
 def google_verification():
@@ -2242,17 +2286,16 @@ def api_alerts_health():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'components': {
-            'sendgrid_configured': sendgrid_handler.is_configured(),
-            'gmail_configured': bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD),
-            'alerts_file': os.path.exists(config.ALERTS_FILE),
-            'email_logs': os.path.exists(config.EMAIL_LOGS_FILE),
+            'gmail_configured': bool(GMAIL_USER and GMAIL_PASSWORD),
+            'alerts_file': os.path.exists(ALERTS_FILE),
+            'email_logs': os.path.exists(EMAIL_LOGS_FILE),
             'data_dir': os.path.exists(config.DATA_DIR)
         }
     }
     
     try:
-        if os.path.exists(config.ALERTS_FILE):
-            with open(config.ALERTS_FILE, 'r') as f:
+        if os.path.exists(ALERTS_FILE):
+            with open(ALERTS_FILE, 'r') as f:
                 subscriptions = json.load(f)
                 health_data['subscriptions_count'] = len(subscriptions)
     except:
@@ -2260,19 +2303,17 @@ def api_alerts_health():
     
     return jsonify(health_data)
 
-# ===== ROUTES ADMIN POUR TEST SENDGRID =====
-
-@app.route('/admin/sendgrid_test')
-def admin_sendgrid_test():
-    """Page pour tester SendGrid"""
-    api_key = config.SENDGRID_API_KEY
-    has_key = bool(api_key and api_key.startswith('SG.'))
+# ===== NOUVELLES ROUTES POUR ADMIN GMAIL =====
+@app.route('/admin/gmail_test')
+def admin_gmail_test():
+    """Page pour tester Gmail"""
+    has_config = bool(GMAIL_USER and GMAIL_PASSWORD)
     
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Test SendGrid</title>
+        <title>Test Gmail</title>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; }}
             .success {{ color: green; }}
@@ -2281,18 +2322,26 @@ def admin_sendgrid_test():
         </style>
     </head>
     <body>
-        <h1>🔧 Test Configuration SendGrid</h1>
-        <p>Clé API définie: <strong class="{'success' if has_key else 'error'}">{'✅ OUI' if has_key else '❌ NON'}</strong></p>
-        <p>Clé: {api_key[:20]}...{api_key[-20:] if api_key and len(api_key) > 40 else ''}</p>
-        <p>Fournisseur: {config.EMAIL_CONFIG['provider'].upper()}</p>
+        <h1>🔧 Test Configuration Gmail</h1>
+        <p>Gmail User défini: <strong class="{'success' if GMAIL_USER else 'error'}">{'✅ OUI' if GMAIL_USER else '❌ NON'}</strong></p>
+        <p>App Password défini: <strong class="{'success' if GMAIL_PASSWORD else 'error'}">{'✅ OUI' if GMAIL_PASSWORD else '❌ NON'}</strong></p>
+        <p>Email d'envoi: {EMAIL_FROM}</p>
+        <p>Nom d'envoi: {EMAIL_FROM_NAME}</p>
         
         <div class="test-form">
             <h2>Test d'envoi</h2>
-            <form action="/admin/send_test_email" method="POST">
+            <form action="/admin/send_gmail_test" method="POST">
                 <input type="email" name="email" placeholder="Votre email" required style="padding: 8px; width: 300px;">
-                <button type="submit" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px;">Envoyer un test</button>
+                <button type="submit" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px;">Envoyer un test Gmail</button>
             </form>
         </div>
+        
+        <h2>API de test</h2>
+        <ul>
+            <li><a href="/api/test-gmail" target="_blank">/api/test-gmail</a> - Test complet Gmail</li>
+            <li><a href="/api/email-config" target="_blank">/api/email-config</a> - Configuration email</li>
+            <li><a href="/api/email-logs" target="_blank">/api/email-logs</a> - Logs d'emails</li>
+        </ul>
         
         <h2>Logs</h2>
         <a href="/admin/email_logs" target="_blank">Voir les logs d'emails</a>
@@ -2302,9 +2351,9 @@ def admin_sendgrid_test():
     </html>
     """
 
-@app.route('/admin/send_test_email', methods=['POST'])
-def admin_send_test_email():
-    """Envoie un email de test"""
+@app.route('/admin/send_gmail_test', methods=['POST'])
+def admin_send_gmail_test():
+    """Envoie un email de test via Gmail"""
     try:
         email = request.form.get('email')
         if not email:
@@ -2314,59 +2363,56 @@ def admin_send_test_email():
         import time
         confirmation_id = f"TEST-{int(time.time())}-{secrets.token_hex(4).upper()}"
         
-        result = send_confirmation_email(email, confirmation_id)
+        result = send_confirmation_email_gmail(email, confirmation_id)
         
         if result:
             return f"""
-            <h1>✅ Email de test envoyé !</h1>
+            <h1>✅ Email de test Gmail envoyé !</h1>
             <p>Email: {email}</p>
             <p>ID: {confirmation_id}</p>
-            <p><a href="/admin/sendgrid_test">← Retour au test</a></p>
+            <p><a href="/admin/gmail_test">← Retour au test Gmail</a></p>
             """
         else:
             return f"""
-            <h1>❌ Échec de l'envoi</h1>
+            <h1>❌ Échec de l'envoi Gmail</h1>
             <p>Impossible d'envoyer l'email à {email}</p>
-            <p><a href="/admin/sendgrid_test">← Retour au test</a></p>
+            <p>Vérifiez votre configuration Gmail dans .env</p>
+            <p><a href="/admin/gmail_test">← Retour au test Gmail</a></p>
             """
             
     except Exception as e:
         return f"❌ Erreur: {str(e)}"
 
 # ===== DÉMARRAGE DE L'APPLICATION =====
-
 if __name__=='__main__':
-    # Test de configuration avant démarrage
     print("\n" + "="*60)
     print("🎣 FISHING PREDICTOR PRO - DÉMARRAGE")
     print("="*60)
     
-    # Tester la configuration email
-    email_ok = test_email_configuration()
+    email_ok = test_gmail_configuration()
     
     if not email_ok:
-        print("\n⚠️ ATTENTION: La configuration email a échoué!")
+        print("\n⚠️ ATTENTION: La configuration Gmail a échoué!")
         print("   Les emails NE seront PAS envoyés, mais l'application démarrera.")
     else:
-        print("\n✅ Configuration email validée!")
+        print("\n✅ Configuration Gmail validée!")
     
-    # Créer les répertoires nécessaires
     os.makedirs(config.DATA_DIR, exist_ok=True)
     os.makedirs(config.STATIC_DIR + '/js', exist_ok=True)
     os.makedirs(config.STATIC_DIR + '/css', exist_ok=True)
     os.makedirs(config.TEMPLATES_DIR, exist_ok=True)
     
-    # Initialiser les fichiers de données
-    for file_path in [config.ALERTS_FILE, config.FAVORITES_FILE, config.EMAIL_LOGS_FILE]:
+    for file_path in [ALERTS_FILE, FAVORITES_FILE, EMAIL_LOGS_FILE]:
         if not os.path.exists(file_path):
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump([], f, ensure_ascii=False, indent=2)
     
-    # Valider la configuration
     try:
         config.validate_config()
     except Exception as e:
         print(f"⚠️ Validation config: {e}")
+    
+    cleanup_old_cache()
     
     print("\n🚀 DÉMARRAGE DU SERVEUR...")
     app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)

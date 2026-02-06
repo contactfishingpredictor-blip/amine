@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Diagnostic Données Réelles - Fishing Predictor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        h1 { color: #333; margin-bottom: 30px; text-align: center; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; }
+        .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .card h3 { color: #3b82f6; margin-bottom: 15px; }
+        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .status-success { background: #10b981; color: white; }
+        .status-error { background: #ef4444; color: white; }
+        .status-warning { background: #f59e0b; color: white; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        button:hover { background: #2563eb; }
+        #results { margin-top: 30px; background: #f1f5f9; padding: 20px; border-radius: 8px; display: none; }
+        .api-item { margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid #3b82f6; }
+        .real-data { border-left-color: #10b981 !important; }
+        .simulated-data { border-left-color: #f59e0b !important; }
+        .cached-data { border-left-color: #8b5cf6 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Diagnostic Données Réelles</h1>
+        
+        <div class="card">
+            <h3>Instructions</h3>
+            <p>Cette page vous permet de forcer l'utilisation des données réelles et de diagnostiquer les problèmes d'API.</p>
+            <p><strong>Position de test :</strong> Tunis (36.8065, 10.1815)</p>
+            
+            <div style="margin-top: 15px;">
+                <button onclick="testRealData()">🧪 Tester les données réelles</button>
+                <button onclick="forceRefresh()">🔄 Forcer le rafraîchissement</button>
+                <button onclick="checkAPIs()">📡 Vérifier les APIs</button>
+                <button onclick="clearAllCache()">🧹 Nettoyer le cache</button>
+            </div>
+        </div>
+        
+        <div id="results">
+            <h3>Résultats du diagnostic</h3>
+            <div id="apiStatus"></div>
+            <div id="dataDetails" style="margin-top: 20px;"></div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>OpenWeather</h3>
+                <p><strong>Statut :</strong> <span id="openweather-status" class="status">Non testé</span></p>
+                <p><strong>Appels aujourd'hui :</strong> <span id="openweather-calls">0</span></p>
+                <p><strong>Utilise le cache :</strong> <span id="openweather-cached">-</span></p>
+            </div>
+            
+            <div class="card">
+                <h3>StormGlass</h3>
+                <p><strong>Statut :</strong> <span id="stormglass-status" class="status">Non testé</span></p>
+                <p><strong>Clé API :</strong> <span id="stormglass-key">Non vérifiée</span></p>
+            </div>
+            
+            <div class="card">
+                <h3>WorldTides</h3>
+                <p><strong>Statut :</strong> <span id="worldtides-status" class="status">Non testé</span></p>
+                <p><strong>Clé API :</strong> <span id="worldtides-key">Non vérifiée</span></p>
+            </div>
+            
+            <div class="card">
+                <h3>EMODnet</h3>
+                <p><strong>Statut :</strong> <span id="emodnet-status" class="status">Non testé</span></p>
+                <p><strong>Données réelles :</strong> <span id="emodnet-real">Non vérifié</span></p>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 30px;">
+            <h3>Problèmes connus & Solutions</h3>
+            <ul style="margin-left: 20px; line-height: 1.6;">
+                <li><strong>SendGrid 401 :</strong> La clé API SendGrid est invalide. Régénérez-la dans votre compte SendGrid.</li>
+                <li><strong>Données en cache :</strong> Utilisez <code>?refresh=true</code> dans les appels API ou nettoyez le cache.</li>
+                <li><strong>Limites d'API :</strong> Vérifiez que vous n'avez pas dépassé les limites quotidiennes.</li>
+                <li><strong>Clés API manquantes :</strong> Vérifiez votre fichier <code>.env</code> sur Render.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        async function testRealData() {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            
+            const response = await fetch('/api/debug/force_real?lat=36.8065&lon=10.1815');
+            const data = await response.json();
+            
+            document.getElementById('apiStatus').innerHTML = `
+                <div class="api-item ${data.data_sources.weather.cached ? 'cached-data' : 'real-data'}">
+                    <strong>Météo :</strong> ${data.data_sources.weather.source} (${data.data_sources.weather.cached ? 'Cache' : 'API réelle'})
+                </div>
+                <div class="api-item ${data.data_sources.marine.data_quality === 'enhanced' ? 'real-data' : 'simulated-data'}">
+                    <strong>Données marines :</strong> ${data.data_sources.marine.data_quality} (APIs: ${data.data_sources.marine.apis_used.join(', ') || 'aucune'})
+                </div>
+                <div class="api-item ${data.data_sources.tides.source === 'worldtides_api' ? 'real-data' : 'simulated-data'}">
+                    <strong>Marées :</strong> ${data.data_sources.tides.source}
+                </div>
+                <div class="api-item ${data.data_sources.bathymetry.api_used ? 'real-data' : 'simulated-data'}">
+                    <strong>Bathymétrie :</strong> ${data.data_sources.bathymetry.source} (${data.data_sources.bathymetry.api_used ? 'API réelle' : 'modèle local'})
+                </div>
+            `;
+        }
+        
+        async function forceRefresh() {
+            const response = await fetch('/api/tunisian_prediction?lat=36.8065&lon=10.1815&species=loup&refresh=true');
+            const data = await response.json();
+            
+            alert(`✅ Prédiction rafraîchie !\nScore: ${data.scores.final}%\nSource météo: ${data.weather.source}\nQualité données: ${data.metadata.api_usage_info.data_quality}`);
+        }
+        
+        async function checkAPIs() {
+            const response = await fetch('/debug/real_data_status');
+            const data = await response.json();
+            
+            // Mettre à jour les statuts
+            updateStatus('openweather', data.openweather.success, 
+                `Source: ${data.openweather.source}, Appels: ${data.openweather.calls_today}`);
+            updateStatus('stormglass', data.stormglass.source === 'stormglass_api', 
+                `Source: ${data.stormglass.source}`);
+            updateStatus('worldtides', data.worldtides.source === 'worldtides_api', 
+                `Source: ${data.worldtides.source}`);
+            updateStatus('emodnet', data.emodnet.depth_found, 
+                `Données: ${data.emodnet.depth_found ? 'Trouvées' : 'Non trouvées'}`);
+        }
+        
+        function updateStatus(elementId, success, text) {
+            const element = document.getElementById(elementId + '-status');
+            const status = success ? 'status-success' : 'status-error';
+            element.className = `status ${status}`;
+            element.textContent = success ? '✅ OK' : '❌ Erreur';
+            
+            // Mettre à jour le texte supplémentaire
+            if (elementId === 'openweather') {
+                document.getElementById('openweather-calls').textContent = text.split('Appels: ')[1];
+                document.getElementById('openweather-cached').textContent = text.includes('cache') ? 'Oui' : 'Non';
+            }
+        }
+        
+        async function clearAllCache() {
+            const response = await fetch('/api/debug/force_real?lat=36.8065&lon=10.1815');
+            alert('🧹 Cache nettoyé ! Les prochains appels utiliseront les données réelles.');
+        }
+    </script>
+</body>
+</html>

@@ -1,13 +1,10 @@
-"""
-Configuration centrale sécurisée pour Fishing Predictor Pro
-"""
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class Config:
-    """Configuration de base"""
+    """Configuration de base - Gmail uniquement"""
     
     # ===== CONFIGURATION GÉNÉRALE =====
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
@@ -15,11 +12,10 @@ class Config:
     APP_NAME = "Fishing Predictor Pro"
     APP_VERSION = "2.2.0"
     
-    # ===== CONFIGURATION EMAIL (CRITIQUE) =====
-    GMAIL_USER = os.getenv('GMAIL_USER')  # contactfishingpredictor@gmail.com
-    GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')  # opyr jyhe vjsr rftu
-    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-    EMAIL_FROM = os.getenv('EMAIL_FROM', 'alerts@fishingpredictor.pro')
+    # ===== CONFIGURATION EMAIL GMAIL UNIQUEMENT =====
+    GMAIL_USER = os.getenv('GMAIL_USER')
+    GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
+    EMAIL_FROM = os.getenv('EMAIL_FROM', 'contactfishingpredictor@gmail.com')
     EMAIL_FROM_NAME = os.getenv('EMAIL_FROM_NAME', 'Fishing Predictor Pro')
     
     # ===== API KEYS =====
@@ -27,8 +23,8 @@ class Config:
     STORMGLASS_API_KEY = os.getenv('STORMGLASS_API_KEY')
     WORLDTIDES_API_KEY = os.getenv('WORLDTIDES_API_KEY')
     METEO_CONCEPT_TOKEN = os.getenv('METEO_CONCEPT_TOKEN')
-    WEKEO_USER = os.getenv('WEKEO_USER', 'aminech')
-    WEKEO_PASSWORD = os.getenv('WEKEO_PASSWORD', 'Nour2024')
+    WEKEO_USER = os.getenv('WEKEO_USER')
+    WEKEO_PASSWORD = os.getenv('WEKEO_PASSWORD')
     
     # ===== CHEMINS ET FICHIERS =====
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -71,76 +67,70 @@ class Config:
     WORLDTIDES_URL = "https://www.worldtides.info/api/v3"
     METEO_CONCEPT_URL = "https://api.meteo-concept.com/api"
     
-    # ===== CONFIGURATION EMAIL =====
+    # ===== CONFIGURATION GMAIL POUR RENDER =====
     @property
-    def EMAIL_CONFIG(self):
-        """Configuration email dynamique"""
-        sender_email = self.EMAIL_FROM if self.EMAIL_FROM else 'alerts@fishingpredictor.pro'
+    def GMAIL_CONFIG(self):
+        """Configuration Gmail optimisée"""
         return {
-            'enabled': True,
             'smtp_server': 'smtp.gmail.com',
-            'smtp_port': 587,
-            'sender_email': sender_email,
+            'smtp_port': 587,  # Port TLS
+            'sender_email': self.GMAIL_USER,
             'sender_name': self.EMAIL_FROM_NAME,
-            'use_tls': True
+            'username': self.GMAIL_USER,
+            'password': self.GMAIL_APP_PASSWORD,
+            'use_tls': True,
+            'timeout': 30
         }
     
-    def check_email_config(self):
-        """Vérifie la configuration email de manière silencieuse"""
+    def check_gmail_config(self):
+        """Vérifie la configuration Gmail"""
         try:
-            has_sendgrid = bool(self.SENDGRID_API_KEY and self.SENDGRID_API_KEY.startswith('SG.'))
-            has_gmail_user = bool(self.GMAIL_USER and '@' in self.GMAIL_USER)
-            has_gmail_pass = bool(self.GMAIL_APP_PASSWORD and len(self.GMAIL_APP_PASSWORD) >= 8)
+            has_gmail = bool(self.GMAIL_USER and '@gmail.com' in self.GMAIL_USER)
+            has_password = bool(self.GMAIL_APP_PASSWORD and len(self.GMAIL_APP_PASSWORD) >= 16)
             
             return {
-                'email_system_ready': has_sendgrid or (has_gmail_user and has_gmail_pass),
-                'sendgrid_configured': has_sendgrid,
-                'gmail_configured': has_gmail_user and has_gmail_pass,
-                'sender_email': self.EMAIL_FROM
+                'gmail_ready': has_gmail and has_password,
+                'user_configured': has_gmail,
+                'password_configured': has_password,
+                'sender': self.GMAIL_USER
             }
         except:
-            return {'email_system_ready': False}
+            return {'gmail_ready': False}
     
     @classmethod
     def validate_config(cls):
-        """Valide que toutes les configurations requises sont présentes"""
+        """Valide la configuration"""
         print("\n" + "="*50)
-        print("🔧 VALIDATION DE LA CONFIGURATION")
+        print("🔧 VALIDATION CONFIGURATION GMAIL")
         print("="*50)
         
-        # Vérification critique des emails
-        print(f"📧 GMAIL_USER: {'✅ Configuré' if cls.GMAIL_USER else '⚠️  Partiel'}")
-        print(f"🔑 GMAIL_APP_PASSWORD: {'✅ Configuré' if cls.GMAIL_APP_PASSWORD else '⚠️  Partiel'}")
-        print(f"📧 SENDGRID_API_KEY: {'✅ Configurée' if cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.') else '⚠️  Non configurée'}")
-        print(f"📧 EMAIL_FROM: {'✅ ' + cls.EMAIL_FROM if cls.EMAIL_FROM else '⚠️  Utilise valeur par défaut'}")
+        # Vérification Gmail
+        print(f"📧 GMAIL_USER: {'✅ ' + cls.GMAIL_USER if cls.GMAIL_USER else '❌ Manquant'}")
         
-        # Vérifier au moins une méthode email
-        has_sendgrid = cls.SENDGRID_API_KEY and cls.SENDGRID_API_KEY.startswith('SG.')
-        has_gmail = cls.GMAIL_USER and cls.GMAIL_APP_PASSWORD
+        if cls.GMAIL_APP_PASSWORD:
+            if len(cls.GMAIL_APP_PASSWORD) >= 16:
+                print(f"🔑 GMAIL_APP_PASSWORD: ✅ Format correct ({len(cls.GMAIL_APP_PASSWORD)} caractères)")
+            else:
+                print(f"🔑 GMAIL_APP_PASSWORD: ❌ MAUVAIS FORMAT! Doit être 16+ caractères")
+        else:
+            print(f"🔑 GMAIL_APP_PASSWORD: ❌ Manquant")
         
-        if not has_sendgrid and not has_gmail:
-            print(f"\n⚠️  ATTENTION: Aucun fournisseur email configuré!")
-            print("   Les emails NE fonctionneront PAS sans SendGrid ou Gmail")
+        # Vérifier si Gmail est opérationnel
+        has_gmail = bool(cls.GMAIL_USER and cls.GMAIL_APP_PASSWORD and 
+                        len(cls.GMAIL_APP_PASSWORD) >= 16 and 
+                        '@gmail.com' in cls.GMAIL_USER)
+        
+        if not has_gmail:
+            print("\n❌ GMAIL NON CONFIGURÉ!")
+            print("   Pour générer un App Password correct:")
+            print("   1. Active 2FA sur https://myaccount.google.com/security")
+            print("   2. Généres un App Password: 'Sécurité' → 'Mots de passe d'application'")
+            print("   3. Sélectionne 'Autre', nomme 'Render'")
+            print("   4. Copie les 16 caractères SANS les espaces")
             return False
         
-        # Vérifier les APIs
-        print("\n📡 APIs DISPONIBLES:")
-        apis = [
-            ('SendGrid', cls.SENDGRID_API_KEY),
-            ('OpenWeather', cls.OPENWEATHER_API_KEY),
-            ('StormGlass', cls.STORMGLASS_API_KEY),
-            ('WorldTides', cls.WORLDTIDES_API_KEY),
-        ]
-        
-        for name, key in apis:
-            if name == 'SendGrid':
-                print(f"   {name}: {'✅' if key and key.startswith('SG.') else '❌'}")
-            else:
-                print(f"   {name}: {'✅' if key else '❌'}")
-        
-        print(f"   WEkEO: {'✅' if cls.WEKEO_USER and cls.WEKEO_PASSWORD else '❌'}")
-        
-        print("="*50 + "\n")
+        print("\n✅ GMAIL PRÊT")
+        print("="*50)
         return True
 
 # Instance de configuration
