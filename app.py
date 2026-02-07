@@ -260,7 +260,7 @@ def send_confirmation_email_gmail(email: str, confirmation_id: str) -> bool:
         
         ---
         Cet email a été envoyé à {email}
-        © 2024 Fishing Predictor Pro
+        © 2026 Fishing Predictor Pro
         """
         
         msg = MIMEMultipart('alternative')
@@ -320,9 +320,9 @@ def save_email_log(email: str, email_type: str, confirmation_id: str, sent: bool
         print(f"⚠️ Erreur sauvegarde log email: {e}")
 
 def test_gmail_configuration():
-    """Teste la configuration Gmail"""
+    """Teste la configuration Gmail - VERSION RENDER"""
     print("\n" + "="*60)
-    print("🧪 TEST DE CONFIGURATION GMAIL")
+    print("🧪 TEST DE CONFIGURATION GMAIL (RENDER)")
     print("="*60)
     
     if not GMAIL_USER:
@@ -335,18 +335,35 @@ def test_gmail_configuration():
         print("   Vérifiez votre fichier .env sur Render")
         return False
     
+    # Tester d'abord le port 465 (SSL)
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        
+        print("🔧 Test port 465 (SSL)...")
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10)
         server.login(GMAIL_USER, GMAIL_PASSWORD)
-        print("✅ Connexion Gmail SMTP réussie!")
-        
+        print("✅ Connexion Gmail SMTP SSL réussie! (port 465)")
         server.quit()
         return True
         
+    except Exception as ssl_error:
+        print(f"⚠️ Port 465 échoué: {ssl_error}")
+        
+        # Tester le port 587 (TLS) comme fallback
+        try:
+            print("🔧 Test port 587 (TLS)...")
+            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(GMAIL_USER, GMAIL_PASSWORD)
+            print("✅ Connexion Gmail SMTP TLS réussie! (port 587)")
+            server.quit()
+            return True
+            
+        except Exception as tls_error:
+            print(f"❌ Tous les ports ont échoué: {tls_error}")
+            print("   Render bloque probablement les ports SMTP")
+            print("   Solution: Utiliser un service email externe ou contacter le support Render")
+            return False        
     except smtplib.SMTPAuthenticationError as e:
         print(f"❌ Erreur d'authentification Gmail: {e}")
         print("   Vérifiez votre App Password (16 caractères sans espaces)")
