@@ -386,7 +386,7 @@
         </div>
         <div>
             <h3 style="font-size: 1.5rem; font-weight: 600; margin: 0; color: #1e40af;">Nouveautés Scientifiques</h3>
-            <p style="margin: 0.25rem 0 0 0; color: #64748b;">3 facteurs avancés pour une précision inégalée</p>                                                                                                                                                  
+            <p style="margin: 0.25rem 0 0 0; color: #64748b;">3 facteurs avancés pour une précision inégalée</p>
         </div>
     </div>
     
@@ -474,7 +474,6 @@ let weatherDataCache = null;
 // ===== INITIALISATION =====
 function initMap() {
     console.log("🎣 Initialisation de Fishing Predictor Pro...");
-    console.log("🔍 Vérification module favoris:", typeof window.saveToFavorites);
     
     try {
         map = L.map('map').setView([currentLat, currentLon], 12);
@@ -722,7 +721,7 @@ function showFallbackWeather() {
     }
     
     // Mettre à jour
-    update = (id, text) => {
+    const update = (id, text) => {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     };
@@ -757,7 +756,27 @@ async function updatePrediction() {
         
         if (data.status === 'success') {
             console.log("📊 Données reçues:", data);
-            const score = data.scores.final || 75;
+            
+            // ===== CORRECTION CRITIQUE : NORMALISATION DU SCORE =====
+            let score = data.scores?.final || 75;
+            
+            // Si le score est > 100 (ex: 7100), c'est qu'il est multiplié par 100
+            if (score > 100 && score <= 10000) {
+                console.log(`⚠️ Correction du score ${score} -> ${Math.round(score / 100)}`);
+                score = Math.round(score / 100);
+            }
+            // Si le score est entre 0 et 1, le convertir en pourcentage
+            else if (score > 0 && score <= 1) {
+                score = Math.round(score * 100);
+            }
+            // Si le score est déjà entre 1 et 100, le garder tel quel
+            else if (score > 1 && score <= 100) {
+                score = Math.round(score);
+            }
+            
+            // Forcer les limites 0-100
+            score = Math.max(0, Math.min(100, score));
+            
             document.getElementById('prediction-score').textContent = score + '%';
             updatePredictionBadge(score);
             
@@ -801,8 +820,9 @@ async function updatePrediction() {
 function updatePredictionBadge(score) {
     let badge = document.getElementById('prediction-badge');
     let color, text;
-    if (score >= 85) { text = 'EXCELLENT'; color = '#10b981'; }
-    else if (score >= 70) { text = 'BONNE'; color = '#3b82f6'; }
+    if (score >= 80) { text = 'EXCELLENT'; color = '#10b981'; }
+    else if (score >= 70) { text = 'TRÈS BONNE'; color = '#22c55e'; }
+    else if (score >= 60) { text = 'BONNE'; color = '#3b82f6'; }
     else if (score >= 50) { text = 'MOYENNE'; color = '#f59e0b'; }
     else { text = 'FAIBLE'; color = '#ef4444'; }
     badge.textContent = text;
@@ -951,9 +971,17 @@ function updateBathymetryDisplay(bathymetry) {
 
 function updateScoreDetails(scores) {
     if (scores.components) {
-        document.getElementById('score-scientific').textContent = `${scores.components.scientific || '--'}%`;
-        document.getElementById('score-bathymetry').textContent = `${scores.components.depth || '--'}%`;
-        document.getElementById('score-regional').textContent = `${scores.components.regional || '--'}%`;
+        // Normaliser les scores des composants
+        const normalizeScore = (score) => {
+            if (score > 100 && score <= 10000) return Math.round(score / 100);
+            if (score > 0 && score <= 1) return Math.round(score * 100);
+            if (score > 1 && score <= 100) return Math.round(score);
+            return score || '--';
+        };
+        
+        document.getElementById('score-scientific').textContent = `${normalizeScore(scores.components.scientific)}%`;
+        document.getElementById('score-bathymetry').textContent = `${normalizeScore(scores.components.depth)}%`;
+        document.getElementById('score-regional').textContent = `${normalizeScore(scores.components.regional)}%`;
     }
     if (scores.factors) {
         window.scoreFactors = scores.factors;
@@ -1032,17 +1060,14 @@ function getCurrentLocation() {
     }
 }
 
-// ===== FONCTION ADD TO FAVORITES CORRIGÉE =====
+// ===== FONCTION ADD TO FAVORITES =====
 function addToFavorites() {
     console.log("⭐ Bouton favori cliqué !");
-    console.log("🔍 Vérification de window.saveToFavorites:", typeof window.saveToFavorites);
     
-    // Utiliser l'élément correct pour le nom du spot (class au lieu d'ID)
     const spotName = document.querySelector('#location-info .location-name')?.textContent || 
                     document.querySelector('.location-name')?.textContent || 
                     `Spot ${currentLat.toFixed(4)}, ${currentLon.toFixed(4)}`;
     
-    // Récupérer le score correctement (enlever le %)
     const scoreText = document.getElementById('prediction-score')?.textContent || '75%';
     const score = parseInt(scoreText.replace('%', '')) || 75;
     
