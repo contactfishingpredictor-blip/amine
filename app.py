@@ -1,8 +1,3 @@
-"""
-Fishing Predictor Pro - Application Flask principale
-Version 2.2.0 - Configuration Gmail uniquement (SendGrid supprimé)
-"""
-
 import os
 import json
 import logging
@@ -748,6 +743,54 @@ def generate_consistent_weather(lat: float, lon: float):
     }
     
     return {'success': True, 'weather': weather_info}
+
+def generate_forecast_weather(lat: float, lon: float, date: datetime) -> dict:
+    """Génère des données météo variées pour les prévisions"""
+    # Créer une clé unique basée sur la date pour avoir des variations
+    day_of_year = date.timetuple().tm_yday
+    unique_key = f"{lat:.2f}_{lon:.2f}_{day_of_year}"
+    unique_hash = int(hashlib.md5(unique_key.encode()).hexdigest()[:8], 16)
+    
+    # Température basée sur la saison
+    month = date.month
+    if 6 <= month <= 8:  # Été
+        base_temp = 25 + (lat - 36.0) * 0.5
+    elif 12 <= month or month <= 2:  # Hiver
+        base_temp = 15 + (lat - 36.0) * 0.3
+    else:  # Printemps/Automne
+        base_temp = 20 + (lat - 36.0) * 0.4
+    
+    # Variation quotidienne basée sur le hash
+    temp_variation = ((unique_hash % 100) / 100) * 6 - 3
+    temperature = base_temp + temp_variation
+    
+    # Vent basé sur le hash
+    wind_speed = 10 + ((unique_hash // 100) % 100) / 100 * 15
+    
+    # Direction du vent variée
+    wind_direction = (unique_hash % 360)
+    wind_direction_info = get_wind_direction_name(wind_direction)
+    
+    # Pression variée
+    pressure = 1015 + ((unique_hash // 10000) % 100) / 100 * 20 - 10
+    
+    # Conditions variées
+    conditions_list = ['Clear', 'Clouds', 'Partly Cloudy', 'Mostly Sunny', 'Light Rain']
+    conditions_fr_list = ['Ciel dégagé', 'Nuageux', 'Partiellement nuageux', 'Très ensoleillé', 'Pluie légère']
+    condition_idx = (unique_hash // 1000) % len(conditions_list)
+    
+    return {
+        'temperature': round(temperature, 1),
+        'wind_speed': round(wind_speed, 1),
+        'wind_direction': wind_direction,
+        'wind_direction_name': wind_direction_info['name'],
+        'pressure': round(pressure, 1),
+        'condition': conditions_list[condition_idx],
+        'condition_fr': conditions_fr_list[condition_idx],
+        'humidity': 60 + (unique_hash % 20),
+        'wave_height': round(0.3 + (unique_hash % 100) / 100 * 1.2, 1),
+        'turbidity': 1.0 + (unique_hash % 10) / 10
+    }
 
 def get_emodnet_bathymetry_with_cache(lat: float, lon: float) -> float:
     """Récupère la bathymétrie EMODnet avec cache persistant"""
@@ -1537,7 +1580,7 @@ def api_spot_info():
 
 @app.route('/api/forecast_10days')
 def api_forecast_10days():
-    """Prévisions sur 10 jours (simplifiées)"""
+    """Prévisions sur 10 jours (AMÉLIORÉE)"""
     try:
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
@@ -1548,34 +1591,61 @@ def api_forecast_10days():
         for day in range(10):
             date = datetime.now() + timedelta(days=day)
             
-            weather = generate_consistent_weather(lat, lon)
+            # Générer des données météo variées pour chaque jour
+            weather_data = generate_forecast_weather(lat, lon, date)
             
+            # Estimer la température de l'eau spécifique au jour
+            water_temp = predictor.estimate_water_from_position(lat, lon)
+            month_factor = date.month / 12.0
+            seasonal_adj = math.sin(month_factor * 2 * math.pi) * 2.0
+            water_temp += seasonal_adj
+            
+            # Profondeur plus réaliste (avec variation journalière)
+            depth = 10 + math.sin(day * 0.5) * 5 + random.uniform(-2, 2)
+            depth = max(2, min(30, depth))
+            depth_factor = calculate_depth_factor(depth, species)
+            
+            # Préparer les données météo complètes
+            full_weather_data = {
+                'temperature': weather_data['temperature'],
+                'wind_speed': weather_data['wind_speed'] / 3.6,  # km/h -> m/s
+                'wind_direction': weather_data['wind_direction'],
+                'pressure': weather_data['pressure'],
+                'wave_height': weather_data.get('wave_height', 0.5),
+                'turbidity': weather_data.get('turbidity', 1.0),
+                'humidity': weather_data.get('humidity', 60),
+                'condition': weather_data['condition'],
+                'water_temperature': water_temp,
+                'salinity': config.SALINITY_MEDITERRANEAN,
+                'current_speed': 0.2 + math.sin(day) * 0.1
+            }
+            
+            # Utiliser le prédicteur scientifique
             prediction = predictor.predict_daily_activity(
-                lat, lon, date, species, weather['weather']
+                lat, lon, date, species, full_weather_data
             )
             
-            depth = 10 + day % 5
-            depth_factor = calculate_depth_factor(depth, species)
-            weather_score = calculate_weather_score(weather['weather'])
-            
-            final_score = (
-                prediction['activity_score'] * 0.4 +
-                depth_factor * 0.3 +
-                weather_score * 0.3
-            ) * 100
+            # Score final basé sur la prédiction scientifique
+            final_score = prediction['activity_score'] * 100
             
             forecast.append({
                 'day': day + 1,
                 'date': date.strftime('%Y-%m-%d'),
                 'score': round(final_score),
                 'weather': {
-                    'temperature': round(weather['weather']['temperature'], 1),
-                    'condition': weather['weather']['condition_fr'],
-                    'wind_speed': round(weather['weather']['wind_speed'], 1),
-                    'wind_direction': weather['weather']['wind_direction_name']
+                    'temperature': round(full_weather_data['temperature'], 1),
+                    'condition': weather_data['condition_fr'],
+                    'wind_speed': round(weather_data['wind_speed'], 1),
+                    'wind_direction': weather_data['wind_direction_name'],
+                    'water_temperature': round(water_temp, 1)
                 },
                 'best_hours': prediction['best_fishing_hours'][:2],
-                'recommendation': prediction['fishing_opportunity']
+                'recommendation': prediction['fishing_opportunity'],
+                'factors': {
+                    'depth_m': round(depth, 1),
+                    'depth_factor': round(depth_factor * 100),
+                    'weather_factor': round(prediction['weather_factor'] * 100)
+                }
             })
         
         return jsonify({
@@ -1583,7 +1653,9 @@ def api_forecast_10days():
             'forecast': forecast,
             'location': f'Position ({lat:.4f}, {lon:.4f})',
             'species': species,
-            'average_score': round(sum([day['score'] for day in forecast]) / len(forecast))
+            'average_score': round(sum([day['score'] for day in forecast]) / len(forecast)),
+            'trend': 'stable' if abs(forecast[0]['score'] - forecast[-1]['score']) < 10 else 
+                    'improving' if forecast[-1]['score'] > forecast[0]['score'] else 'declining'
         })
         
     except Exception as e:
@@ -1936,6 +2008,92 @@ def api_all_species_complete():
         {'key':'orphie','name':'Orphie','scientific':'Belone belone','category':'surface','difficulty':'facile','popularity':2,'seasons':['printemps','été'],'color':'#22c55e','icon':'🐟'}
     ]
     return jsonify({'status':'success','species':species_data})
+
+@app.route('/api/scientific_factors')
+def api_scientific_factors():
+    """API pour les facteurs scientifiques (oxygène, chlorophylle, courant)"""
+    try:
+        lat = float(request.args.get('lat', 36.8065))
+        lon = float(request.args.get('lon', 10.1815))
+        species = request.args.get('species', 'loup')
+        
+        # Récupérer les données météo
+        weather_result = get_cached_weather(lat, lon)
+        
+        if weather_result['success']:
+            real_weather = weather_result['weather']
+            
+            # Calculer l'oxygène dissous
+            water_temp = predictor.estimate_water_from_position(lat, lon)
+            oxygen_level = predictor.calculate_dissolved_oxygen(
+                water_temp,
+                config.SALINITY_MEDITERRANEAN,
+                real_weather['pressure']
+            )
+            
+            # Calculer la chlorophylle
+            month = datetime.now().month
+            chlorophyll_level = predictor.estimate_chlorophyll(month, lat, lon)
+            
+            # Calculer le courant
+            current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
+            
+            # Obtenir le profil de l'espèce
+            species_profile = predictor.species_profiles.get(species, predictor.species_profiles["loup"])
+            
+            return jsonify({
+                'status': 'success',
+                'factors': {
+                    'dissolved_oxygen': {
+                        'value': round(oxygen_level, 2),
+                        'unit': 'mg/L',
+                        'optimal_range': f"{species_profile.get('oxygen_optimal', [5.0, 8.0])[0]}-{species_profile.get('oxygen_optimal', [5.0, 8.0])[1]} mg/L",
+                        'status': 'optimal' if species_profile.get('oxygen_optimal', [5.0, 8.0])[0] <= oxygen_level <= species_profile.get('oxygen_optimal', [5.0, 8.0])[1] else 'suboptimal',
+                        'impact': 'Favorable' if oxygen_level > 6.0 else 'Modéré' if oxygen_level > 4.0 else 'Défavorable'
+                    },
+                    'chlorophyll_a': {
+                        'value': round(chlorophyll_level, 2),
+                        'unit': 'mg/m³',
+                        'optimal_range': f"{species_profile.get('chlorophyll_optimal', [0.8, 3.0])[0]}-{species_profile.get('chlorophyll_optimal', [0.8, 3.0])[1]} mg/m³",
+                        'status': 'optimal' if species_profile.get('chlorophyll_optimal', [0.8, 3.0])[0] <= chlorophyll_level <= species_profile.get('chlorophyll_optimal', [0.8, 3.0])[1] else 'suboptimal',
+                        'impact': 'Productivité élevée' if chlorophyll_level > 2.0 else 'Productivité moyenne' if chlorophyll_level > 1.0 else 'Productivité faible'
+                    },
+                    'tidal_current': {
+                        'speed_mps': current_data['speed_mps'],
+                        'speed_knots': current_data['speed_knots'],
+                        'direction': current_data['direction'],
+                        'fishing_impact': current_data['fishing_impact'],
+                        'optimal_range': f"{species_profile.get('current_preference', [0.1, 0.8])[0]}-{species_profile.get('current_preference', [0.1, 0.8])[1]} m/s",
+                        'status': 'optimal' if species_profile.get('current_preference', [0.1, 0.8])[0] <= current_data['speed_mps'] <= species_profile.get('current_preference', [0.1, 0.8])[1] else 'suboptimal'
+                    },
+                    'water_temperature': {
+                        'value': round(water_temp, 1),
+                        'unit': '°C',
+                        'optimal_range': f"{species_profile.get('temp_optimal', [15, 24])[0]}-{species_profile.get('temp_optimal', [15, 24])[1]}°C",
+                        'status': 'optimal' if species_profile.get('temp_optimal', [15, 24])[0] <= water_temp <= species_profile.get('temp_optimal', [15, 24])[1] else 'suboptimal'
+                    }
+                },
+                'location': {
+                    'lat': lat,
+                    'lon': lon,
+                    'region': 'Nord' if lat > 37.0 else 'Centre' if lat > 36.0 else 'Sud'
+                },
+                'species': species,
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Impossible de récupérer les données météo'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erreur facteurs scientifiques: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
 
 @app.route('/api/seasonal_calendar')
 def api_seasonal_calendar():
