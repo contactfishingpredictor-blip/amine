@@ -1,9 +1,0 @@
-echo services: > render.yaml
-echo   - type: web >> render.yaml
-echo     name: fishing-predictor-pro >> render.yaml
-echo     runtime: python >> render.yaml
-echo     buildCommand: pip install -r requirements.txt >> render.yaml
-echo     startCommand: gunicorn app:app >> render.yaml
-echo     envVars: >> render.yaml
-echo       - key: PYTHON_VERSION >> render.yaml
-echo         value: 3.11.10 >> render.yaml
