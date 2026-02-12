@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: fishingpredictor
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      # Ajoutez ici les variables spécifiques à fishingpredictor si elles existent
+    autoDeploy: true
+    branch: principal
+
+  - type: web
+    name: fishing-activity
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: GMAIL_USER
+        value: contactfishingpredictor@gmail.com
+      - key: GMAIL_APP_PASSWORD
+        sync: false  # Variable sensible - à définir manuellement
+      - key: OPENWEATHER_API_KEY
+        value: 4e921276120b0e23fb0a42eb6bb46c24
+      - key: STORMGLASS_API_KEY
+        value: 2ee99f44-5e9a-11f0-89b2-0242ac130006-2ee99fa8-5e9a-11f0-89b2-0242ac130006
+      - key: WORLDTIDES_API_KEY
+        value: 31bbc366-17f3-4fa2-b0f8-cd8a0336dbdeb
+      - key: METEO_CONCEPT_TOKEN
+        value: 2c5ff8f717199ae807c28eed4d599cc0676bc4cc71f253e982ebbfefac091fcf
+      - key: WEKEO_API_TOKEN
+        value: 036b0985-fc5b-4579-b036-382ba408b6d8
+      - key: SECRET_KEY
+        sync: false  # Variable sensible - à définir manuellement
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        value: sqlite:///data/fishing.db
+      - key: PYTHON_VERSION
+        value: 3.9.0
+    region: frankfurt
+    plan: free
+    autoDeploy: true
+    branch: principal

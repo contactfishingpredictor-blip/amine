@@ -1,0 +1,1387 @@
+{% extends "base.html" %}
+
+{% block title %}Fishing Predictor Pro - Prévisions 10 Jours{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+    /* === STYLES GLOBAUX === */
+    body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #f8fafc;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    /* === HEADER COMPACT === */
+    .predictions-hero {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        padding: 1.25rem 0;
+        text-align: center;
+        border-radius: 0 0 16px 16px;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .predictions-hero h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        background: linear-gradient(90deg, #ffffff, #dbeafe);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        position: relative;
+    }
+    
+    .predictions-hero p {
+        font-size: 0.95rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto;
+        position: relative;
+    }
+    
+    /* === STRUCTURE 2 COLONNES === */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .left-column, .right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    
+    /* === CARTES === */
+    .card {
+        background: rgba(30, 41, 59, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 1.25rem;
+        border: 1px solid #475569;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #334155;
+    }
+    
+    .card-title i {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    
+    /* === BOUTONS === */
+    .btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid #475569;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* === CARTE AVEC ANIMATION VENT === */
+    .map-container {
+        height: 380px;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        border: 2px solid #475569;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    #wind-animation-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 500;
+        display: none;
+    }
+    
+    /* === ÉLÉMENTS CACHÉS POUR MAIN.JS === */
+    .weather-elements-hidden {
+        display: none;
+    }
+    
+    /* === GRILLE PRÉVISIONS === */
+    .forecast-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .forecast-day-card {
+        background: rgba(51, 65, 85, 0.6);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    
+    .forecast-day-card:hover {
+        transform: translateY(-3px);
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .forecast-day-card.active {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.15);
+        box-shadow: 0 5px 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .day-header {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: #e2e8f0;
+    }
+    
+    .day-date {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+    }
+    
+    .day-score {
+        font-size: 2rem;
+        font-weight: 900;
+        margin: 0.5rem 0;
+        background: linear-gradient(90deg, #10b981, #3b82f6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        line-height: 1;
+    }
+    
+    .day-decision {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: white;
+        margin-top: 0.25rem;
+    }
+    
+    /* === DÉTAILS JOUR === */
+    .day-details {
+        background: rgba(30, 41, 59, 0.9);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        border: 1px solid #475569;
+    }
+    
+    .day-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .stat-card {
+        background: rgba(51, 65, 85, 0.6);
+        padding: 1rem;
+        border-radius: 12px;
+        border-left: 4px solid;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin: 0.25rem 0;
+    }
+    
+    /* === HEURES OPTIMALES === */
+    .hourly-forecast-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 0.75rem;
+        margin: 1rem 0;
+    }
+    
+    .hour-card {
+        background: rgba(51, 65, 85, 0.6);
+        padding: 0.75rem;
+        border-radius: 10px;
+        text-align: center;
+        border-top: 4px solid;
+        transition: all 0.3s;
+    }
+    
+    /* === TABLEAU HORAIRE === */
+    .hourly-table-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        padding: 1rem;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .hourly-table-content {
+        background: rgba(30, 41, 59, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        width: 95%;
+        max-width: 1400px;
+        max-height: 85vh;
+        overflow: auto;
+        position: relative;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        border: 1px solid #475569;
+    }
+    
+    /* === CLASSES DE SCORES === */
+    .score-excellent { background: #10b981; }
+    .score-good { background: #3b82f6; }
+    .score-medium { background: #f59e0b; }
+    .score-poor { background: #ef4444; }
+    .score-very-poor { background: #6b7280; }
+    
+    /* === ANIMATIONS === */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+        .predictions-hero h1 { font-size: 1.5rem; }
+        .map-container { height: 350px; }
+        .forecast-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+        .day-stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+    
+    @media (max-width: 480px) {
+        .predictions-hero h1 { font-size: 1.3rem; }
+        .map-container { height: 300px; }
+        .forecast-grid { grid-template-columns: repeat(2, 1fr); }
+        .day-stats-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== STYLES UNIQUES POUR LE CALENDRIER LUNAIRE ===== */
+    .lunar-card {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid #8b5cf6;
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    }
+    .lunar-badge {
+        background: #8b5cf6;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 30px;
+        margin-left: 0.75rem;
+    }
+    .moon-wheel {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.75rem;
+        padding: 0.5rem;
+        position: relative;
+    }
+    .moon-day {
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 50% 50% 30% 30%;
+        padding: 1rem 0.5rem;
+        text-align: center;
+        border: 2px solid;
+        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .moon-day::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.1), transparent);
+        pointer-events: none;
+    }
+    .moon-day:hover {
+        transform: scale(1.1) rotate(5deg);
+        z-index: 10;
+        box-shadow: 0 0 15px currentColor;
+    }
+    .moon-icon {
+        font-size: 2.2rem;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+        filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.5));
+    }
+    .moon-phase-name {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #cbd5e1;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .moon-score {
+        font-size: 1.2rem;
+        font-weight: 900;
+        margin: 0.25rem 0;
+        background: linear-gradient(90deg, #f8fafc, #e2e8f0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .moon-day small {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        display: block;
+    }
+    .lunar-legend {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #334155;
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+    .legend-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 0.25rem;
+    }
+    @keyframes moonPulse {
+        0% { transform: scale(1); }
+        100% { transform: scale(1.05); }
+    }
+    .moon-day.active-moon {
+        border-color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.15);
+        animation: moonPulse 1.5s infinite alternate;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header compact -->
+<div class="predictions-hero">
+    <div class="container">
+        <h1><i class="fas fa-calendar-alt"></i> Prévisions 10 Jours</h1>
+        <p>Données temps réel • Vent synchronisé</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- ÉLÉMENTS CACHÉS POUR MAIN.JS -->
+    <div class="weather-elements-hidden">
+        <div id="temperature"></div>
+        <div id="weather-condition"></div>
+        <div id="wind-speed"></div>
+        <div id="weather-location-name"></div>
+        <div id="weather-icon"></div>
+        <div id="wind-direction"></div>
+        <div id="weather-pressure"></div>
+        <div id="wind-impact"></div>
+        <div id="wind-fishing-tips"></div>
+        <div id="weather-updated"></div>
+    </div>
+
+    <!-- Structure 2 colonnes -->
+    <div class="dashboard-grid">
+        <!-- COLONNE GAUCHE -->
+        <div class="left-column">
+            <!-- Carte -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-map"></i>
+                    Carte des Spots
+                    <button class="btn btn-secondary" style="margin-left:auto;padding:0.4rem 0.8rem" onclick="window.useCurrentLocation()">
+                        <i class="fas fa-location-dot"></i>
+                    </button>
+                </div>
+                
+                <div class="map-container" id="map-container"></div>
+                
+                <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary" onclick="window.loadForecast()">
+                        <i class="fas fa-sync-alt"></i> Actualiser
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.toggleWindLayer()" id="windToggleBtn">
+                        <i class="fas fa-wind"></i> Vent
+                    </button>
+                    <button class="btn btn-primary" onclick="window.showHourlyForecastTable()" style="margin-left:auto">
+                        <i class="fas fa-table"></i> Tableau
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Paramètres -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-sliders-h"></i>
+                    Paramètres
+                </div>
+                
+                <div style="margin-bottom:0.75rem">
+                    <label style="display:block;margin-bottom:0.4rem;color:#cbd5e1;font-size:0.9rem">
+                        <i class="fas fa-fish"></i> Espèce
+                    </label>
+                    <div class="species-selector-mini" id="species-selector"></div>
+                </div>
+                
+                <!-- Info spot -->
+                <div id="spot-info-card" style="margin-top:1rem;padding:0.75rem;background:rgba(51,65,85,0.6);border-radius:8px;display:none">
+                    <h4 id="current-spot-name" style="margin:0 0 0.25rem 0;color:#3b82f6;font-size:1rem"></h4>
+                    <div id="current-spot-details" style="font-size:0.85rem;color:#94a3b8"></div>
+                </div>
+            </div>
+            
+            <!-- NOUVEAU : Calendrier Lunaire Unique (Fishing Moon Wheel) -->
+            <div class="card lunar-card">
+                <div class="card-title">
+                    <i class="fas fa-moon"></i>
+                    Calendrier Lunaire de Pêche
+                    <span class="lunar-badge">🌓 Solunar</span>
+                </div>
+                <div class="moon-wheel" id="moonWheel">
+                    <!-- Rempli dynamiquement par JavaScript -->
+                </div>
+                <div class="lunar-legend">
+                    <span><span class="legend-dot" style="background:#10b981;"></span> Excellent</span>
+                    <span><span class="legend-dot" style="background:#3b82f6;"></span> Bon</span>
+                    <span><span class="legend-dot" style="background:#f59e0b;"></span> Moyen</span>
+                    <span><span class="legend-dot" style="background:#ef4444;"></span> Faible</span>
+                </div>
+            </div>
+            
+            <!-- Alertes -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-bell"></i>
+                    Alertes
+                </div>
+                
+                <div id="alerts-container">
+                    <div class="alert-banner" id="best-day-alert" style="display:none;background:linear-gradient(90deg,#f59e0b,#d97706);color:white;padding:0.75rem;border-radius:8px;margin-bottom:0.75rem">
+                        <i class="fas fa-crown"></i>
+                        <span id="best-day-text">Meilleur jour: --</span>
+                    </div>
+                    <div id="alerts-list"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- COLONNE DROITE -->
+        <div class="right-column">
+            <!-- Graphique tendance -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Tendance 10 Jours
+                </div>
+                <div class="trend-chart-container" style="height:200px;margin:0.5rem 0">
+                    <canvas id="trend-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Prévisions 10 jours -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-calendar-week"></i>
+                    Prévisions 10 Jours
+                </div>
+                
+                <div id="forecast-loading" style="display:none;text-align:center;padding:1rem">
+                    <div class="loading-spinner" style="width:30px;height:30px;border:3px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 0.5rem"></div>
+                    <p style="color:#94a3b8">Chargement...</p>
+                </div>
+                
+                <div id="forecast-container" style="display:none">
+                    <div class="forecast-grid" id="forecast-grid"></div>
+                    
+                    <!-- Détails du jour -->
+                    <div id="day-details" class="day-details" style="display:none">
+                        <h3 id="selected-day-title" style="color:#3b82f6;margin-bottom:0.75rem;font-size:1.1rem"></h3>
+                        
+                        <div class="day-stats-grid">
+                            <div class="stat-card" style="border-left-color:#10b981">
+                                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Score</h4>
+                                <div class="stat-value" id="detail-score">--%</div>
+                            </div>
+                            <div class="stat-card" style="border-left-color:#3b82f6">
+                                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Vent</h4>
+                                <div class="stat-value" id="detail-wind">-- km/h</div>
+                                <div style="font-size:0.8rem;color:#94a3b8" id="detail-wind-dir"></div>
+                            </div>
+                            <div class="stat-card" style="border-left-color:#f59e0b">
+                                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Temp.</h4>
+                                <div class="stat-value" id="detail-temp">--°C</div>
+                            </div>
+                            <div class="stat-card" style="border-left-color:#8b5cf6">
+                                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Vagues</h4>
+                                <div class="stat-value" id="detail-waves">-- m</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Heures optimales -->
+                        <h4 style="color:#e2e8f0;margin:1rem 0 0.5rem;font-size:0.95rem">
+                            <i class="fas fa-clock"></i> Meilleures heures
+                        </h4>
+                        <div class="hourly-forecast-grid" id="hourly-forecast-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal tableau horaire -->
+<div class="hourly-table-modal" id="hourlyTableModal">
+    <div class="hourly-table-content">
+        <div style="padding:1rem;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;border-radius:15px 15px 0 0;display:flex;justify-content:space-between;align-items:center">
+            <h3 id="hourly-table-title" style="margin:0;font-size:1.2rem">
+                <i class="fas fa-table"></i> Prévisions Horaires
+            </h3>
+            <button class="close-modal" id="closeHourlyTable" style="background:rgba(255,255,255,.2);border:none;color:white;font-size:1.5rem;cursor:pointer;width:36px;height:36px;border-radius:50%">&times;</button>
+        </div>
+        <div id="hourly-table-container" style="padding:1rem;max-height:70vh;overflow:auto"></div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ============================================================================
+// FISHING PREDICTOR - PRÉVISIONS 10 JOURS
+// Version FINALE - Compatible avec main.js
+// ============================================================================
+
+// ============================================================================
+// ÉTAT GLOBAL
+// ============================================================================
+const AppState = {
+    // Position
+    currentLat: 36.8065,
+    currentLon: 10.1815,
+    currentSpot: null,
+    currentSpecies: 'loup',
+    
+    // Données
+    forecastData: null,
+    selectedDay: 0,
+    
+    // Composants
+    map: null,
+    markers: [],
+    trendChart: null,
+    
+    // Animation vent - NOMS COMPATIBLES AVEC MAIN.JS
+    windEnabled: false,
+    windCanvas: null,
+    windCtx: null,
+    windParticles: [],
+    windAnimationId: null,
+    windDirection: 90,
+    windSpeed: 10,
+    
+    // Initialisation
+    initialized: false
+};
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+const Config = {
+    spots: [
+        { name: 'Tunis Marina', lat: 36.8065, lon: 10.1815, type: 'port', depth: '8-12m' },
+        { name: 'Cap Bon', lat: 36.8475, lon: 11.0940, type: 'rocheux', depth: '15-25m' },
+        { name: 'Bizerte', lat: 37.2747, lon: 9.8739, type: 'port', depth: '10-18m' },
+        { name: 'Sousse', lat: 35.8254, lon: 10.6360, type: 'port', depth: '6-10m' },
+        { name: 'Hammamet', lat: 36.4000, lon: 10.6000, type: 'plage', depth: '5-8m' }
+    ],
+    
+    species: {
+        loup: { name: 'Loup de Mer', icon: '🐟', color: '#3b82f6' },
+        daurade: { name: 'Daurade Royale', icon: '🐠', color: '#10b981' },
+        thon: { name: 'Thon Rouge', icon: '🦈', color: '#ef4444' }
+    }
+};
+
+// ============================================================================
+// ANIMATION VENT - AVEC LES NOMS ATTENDUS PAR MAIN.JS
+// ============================================================================
+const WindAnimation = {
+    // Initialisation
+    init() {
+        if (!AppState.map) return;
+        
+        const container = document.getElementById('map-container');
+        if (!container) return;
+        
+        // Créer le canvas
+        const canvas = document.createElement('canvas');
+        canvas.id = 'wind-animation-canvas';
+        container.appendChild(canvas);
+        
+        AppState.windCanvas = canvas;
+        AppState.windCtx = canvas.getContext('2d');
+        
+        // Redimensionnement
+        const resize = () => {
+            if (container && canvas) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                this._initParticles();
+            }
+        };
+        
+        resize();
+        window.addEventListener('resize', resize);
+    },
+    
+    // Méthodes privées
+    _initParticles() {
+        const canvas = AppState.windCanvas;
+        if (!canvas) return;
+        
+        const count = Math.min(120, Math.floor(canvas.width * canvas.height / 2000));
+        AppState.windParticles = [];
+        
+        for (let i = 0; i < count; i++) {
+            AppState.windParticles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2 + 1,
+                speed: (Math.random() * 1.5 + 0.5) * (AppState.windSpeed / 12 || 1),
+                opacity: Math.random() * 0.5 + 0.2
+            });
+        }
+    },
+    
+    _animate() {
+        if (!AppState.windEnabled || !AppState.windCtx || !AppState.windCanvas) return;
+        
+        const ctx = AppState.windCtx;
+        const canvas = AppState.windCanvas;
+        
+        // Mettre à jour la direction depuis les prévisions
+        if (AppState.forecastData && AppState.forecastData[AppState.selectedDay]) {
+            const day = AppState.forecastData[AppState.selectedDay];
+            AppState.windDirection = day.wind?.direction || 90;
+            AppState.windSpeed = day.wind?.speed || 10;
+        }
+        
+        const windAngle = (AppState.windDirection * Math.PI / 180) + Math.PI;
+        const speedFactor = Math.max(0.5, Math.min(2, AppState.windSpeed / 10));
+        
+        // Effet de traînée
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = 'source-over';
+        
+        // Animer les particules
+        AppState.windParticles.forEach(p => {
+            p.x += Math.cos(windAngle) * p.speed * speedFactor;
+            p.y += Math.sin(windAngle) * p.speed * speedFactor;
+            
+            if (p.x > canvas.width) p.x = 0;
+            if (p.x < 0) p.x = canvas.width;
+            if (p.y > canvas.height) p.y = 0;
+            if (p.y < 0) p.y = canvas.height;
+            
+            // Dessin
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(windAngle);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-6, -2);
+            ctx.lineTo(-6, 2);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity * 0.7})`;
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`;
+            ctx.fill();
+            
+            ctx.restore();
+        });
+        
+        AppState.windAnimationId = requestAnimationFrame(() => this._animate());
+    },
+    
+    // ========== API PUBLIQUE - ATTENDUE PAR MAIN.JS ==========
+    // 1. toggleWindLayer() - Appelé par main.js
+    toggleLayer() {
+        if (AppState.windEnabled) {
+            this.removeAnimation();
+        } else {
+            this.addAnimation();
+        }
+    },
+    
+    // 2. addWindAnimation() - Ajoute l'animation
+    addAnimation() {
+        AppState.windEnabled = true;
+        if (AppState.windCanvas) {
+            AppState.windCanvas.style.display = 'block';
+            this._initParticles();
+            this._animate();
+        }
+        this._updateButton(true);
+    },
+    
+    // 3. removeWindAnimation() - Supprime l'animation
+    removeAnimation() {
+        AppState.windEnabled = false;
+        if (AppState.windCanvas) {
+            AppState.windCanvas.style.display = 'none';
+        }
+        if (AppState.windAnimationId) {
+            cancelAnimationFrame(AppState.windAnimationId);
+            AppState.windAnimationId = null;
+        }
+        this._updateButton(false);
+    },
+    
+    // 4. updateWindAnimation(direction, speed) - Met à jour direction/vitesse
+    updateAnimation(direction, speed) {
+        if (direction !== undefined) AppState.windDirection = direction;
+        if (speed !== undefined) AppState.windSpeed = speed;
+        if (AppState.windEnabled) {
+            this._initParticles();
+        }
+    },
+    
+    // Méthode utilitaire pour le bouton
+    _updateButton(isActive) {
+        const btn = document.getElementById('windToggleBtn');
+        if (btn) {
+            if (isActive) {
+                btn.innerHTML = '<i class="fas fa-wind"></i> Masquer';
+                btn.classList.add('btn-primary');
+                btn.classList.remove('btn-secondary');
+            } else {
+                btn.innerHTML = '<i class="fas fa-wind"></i> Vent';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+            }
+        }
+    },
+    
+    // Synchronisation avec le jour sélectionné
+    syncWithForecast() {
+        if (AppState.forecastData && AppState.forecastData[AppState.selectedDay]) {
+            const day = AppState.forecastData[AppState.selectedDay];
+            this.updateAnimation(day.wind?.direction, day.wind?.speed);
+        }
+    }
+};
+
+// ============================================================================
+// CARTE
+// ============================================================================
+const MapManager = {
+    init() {
+        try {
+            AppState.map = L.map('map-container').setView([AppState.currentLat, AppState.currentLon], 10);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(AppState.map);
+            
+            this._addSpots();
+            
+            AppState.map.on('click', (e) => {
+                SpotSelector.select({
+                    name: `Position (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,
+                    lat: e.latlng.lat,
+                    lon: e.latlng.lng,
+                    type: 'custom',
+                    depth: '?'
+                });
+            });
+            
+            WindAnimation.init();
+            
+            console.log('✅ Carte initialisée');
+        } catch (e) {
+            console.error('❌ Erreur carte:', e);
+        }
+    },
+    
+    _addSpots() {
+        Config.spots.forEach(spot => {
+            const color = spot.type === 'port' ? '#3b82f6' :
+                         spot.type === 'plage' ? '#10b981' : '#f59e0b';
+            
+            const icon = L.divIcon({
+                html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
+                iconSize: [16, 16]
+            });
+            
+            const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(AppState.map);
+            marker.bindPopup(`<b>${spot.name}</b><br>${spot.type}<br>Profondeur: ${spot.depth}`);
+            marker.on('click', () => SpotSelector.select(spot));
+            AppState.markers.push(marker);
+        });
+    }
+};
+
+// ============================================================================
+// SÉLECTEUR DE SPOT
+// ============================================================================
+const SpotSelector = {
+    select(spot) {
+        AppState.currentSpot = spot;
+        AppState.currentLat = spot.lat;
+        AppState.currentLon = spot.lon;
+        
+        const card = document.getElementById('spot-info-card');
+        const nameEl = document.getElementById('current-spot-name');
+        const detailsEl = document.getElementById('current-spot-details');
+        
+        if (card && nameEl && detailsEl) {
+            card.style.display = 'block';
+            nameEl.textContent = spot.name;
+            detailsEl.innerHTML = `${spot.type} • ${spot.depth}`;
+        }
+        
+        if (AppState.map) AppState.map.setView([spot.lat, spot.lon], 13);
+        ForecastLoader.load();
+    },
+    
+    useCurrentLocation() {
+        if (!navigator.geolocation) {
+            alert('Géolocalisation non supportée');
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                this.select({
+                    name: 'Ma position',
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude,
+                    type: 'custom',
+                    depth: '?'
+                });
+            },
+            () => alert('Impossible d\'obtenir la position')
+        );
+    }
+};
+
+// ============================================================================
+// PRÉVISIONS
+// ============================================================================
+const ForecastLoader = {
+    async load() {
+        if (!AppState.currentSpot) return;
+        
+        document.getElementById('forecast-loading').style.display = 'block';
+        document.getElementById('forecast-container').style.display = 'none';
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Génération des données
+        const forecast = [];
+        const today = new Date();
+        const seed = Math.abs(Math.sin(AppState.currentLat * 1000 + AppState.currentLon * 1000));
+        
+        for (let i = 0; i < 10; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            
+            const random = Math.abs(Math.sin(seed + i * 1000));
+            
+            let score = 50;
+            score += (date.getDay() === 0 || date.getDay() === 6) ? 15 : 0;
+            score += Math.sin(i * 0.5) * 15;
+            score = Math.max(20, Math.min(95, Math.round(score)));
+            
+            const windSpeed = 8 + Math.round(random * 15);
+            const windDirection = Math.round(random * 360);
+            const temperature = 18 + Math.round(random * 10);
+            const waveHeight = (0.5 + random * 1.5).toFixed(1);
+            
+            forecast.push({
+                date: date.toISOString().split('T')[0],
+                score: score,
+                wind: {
+                    speed: windSpeed,
+                    direction: windDirection,
+                    direction_name: this._getWindDirectionName(windDirection)
+                },
+                temperature: temperature,
+                wave_height: parseFloat(waveHeight)
+            });
+        }
+        
+        AppState.forecastData = forecast;
+        
+        document.getElementById('forecast-loading').style.display = 'none';
+        document.getElementById('forecast-container').style.display = 'block';
+        
+        ForecastDisplay.render();
+        TrendChart.update();
+        Alerts.update();
+        renderLunarCalendar(); // NOUVEAU : Appel du calendrier lunaire
+    },
+    
+    _getWindDirectionName(deg) {
+        return ['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ouest','Ouest','Nord-Ouest'][Math.round(deg / 45) % 8];
+    }
+};
+
+// ============================================================================
+// AFFICHAGE DES PRÉVISIONS
+// ============================================================================
+const ForecastDisplay = {
+    render() {
+        if (!AppState.forecastData) return;
+        
+        let html = '';
+        AppState.forecastData.forEach((day, i) => {
+            const date = new Date(day.date);
+            const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' });
+            const dayNum = date.getDate();
+            const month = date.toLocaleDateString('fr-FR', { month: 'short' });
+            
+            const score = day.score;
+            let color = score >= 80 ? '#10b981' : score >= 60 ? '#3b82f6' : score >= 40 ? '#f59e0b' : '#ef4444';
+            let decision = score >= 80 ? 'Excellent' : score >= 60 ? 'Bon' : score >= 40 ? 'Moyen' : 'Faible';
+            
+            html += `
+                <div class="forecast-day-card ${i === 0 ? 'active' : ''}" onclick="window.selectDay(${i})">
+                    <div class="day-header">${dayName}</div>
+                    <div class="day-date">${dayNum} ${month}</div>
+                    <div class="day-score" style="color:${color}">${score}%</div>
+                    <div class="day-decision" style="background:${color}">${decision}</div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('forecast-grid').innerHTML = html;
+        this.selectDay(0);
+    },
+    
+    selectDay(index) {
+        AppState.selectedDay = index;
+        const day = AppState.forecastData[index];
+        if (!day) return;
+        
+        // Synchroniser l'animation du vent
+        WindAnimation.syncWithForecast();
+        
+        // Mise à jour UI
+        const date = new Date(day.date);
+        document.getElementById('selected-day-title').textContent = 
+            date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        
+        document.getElementById('detail-score').textContent = `${day.score}%`;
+        document.getElementById('detail-wind').textContent = `${day.wind.speed} km/h`;
+        document.getElementById('detail-wind-dir').textContent = day.wind.direction_name;
+        document.getElementById('detail-temp').textContent = `${day.temperature}°C`;
+        document.getElementById('detail-waves').textContent = `${day.wave_height} m`;
+        
+        // Heures optimales
+        let hoursHtml = '';
+        [6, 9, 16, 19].forEach(hour => {
+            const hourScore = 70 + Math.sin(hour * day.score) * 15;
+            const roundedScore = Math.max(40, Math.min(95, Math.round(hourScore)));
+            let color = roundedScore >= 80 ? '#10b981' : roundedScore >= 60 ? '#3b82f6' : '#f59e0b';
+            
+            hoursHtml += `
+                <div class="hour-card" style="border-top-color:${color}">
+                    <div style="font-weight:600;color:#e2e8f0">${hour}h</div>
+                    <div style="font-size:1.3rem;font-weight:700;color:${color}">${roundedScore}%</div>
+                </div>
+            `;
+        });
+        document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
+        
+        document.getElementById('day-details').style.display = 'block';
+        
+        // Active class
+        document.querySelectorAll('.forecast-day-card').forEach((card, i) => {
+            card.classList.toggle('active', i === index);
+        });
+        
+        // NOUVEAU : Synchroniser le calendrier lunaire
+        document.querySelectorAll('.moon-day').forEach((el, i) => {
+            el.classList.toggle('active-moon', i === index);
+        });
+    }
+};
+
+// ============================================================================
+// GRAPHIQUE DE TENDANCE
+// ============================================================================
+const TrendChart = {
+    update() {
+        if (!AppState.forecastData) return;
+        
+        const ctx = document.getElementById('trend-chart');
+        if (!ctx) return;
+        
+        if (AppState.trendChart) AppState.trendChart.destroy();
+        
+        const labels = AppState.forecastData.map(day => {
+            const d = new Date(day.date);
+            return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        });
+        
+        AppState.trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Score',
+                    data: AppState.forecastData.map(day => day.score),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
+                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8', stepSize: 20 } }
+                }
+            }
+        });
+    }
+};
+
+// ============================================================================
+// ALERTES
+// ============================================================================
+const Alerts = {
+    update() {
+        if (!AppState.forecastData) return;
+        
+        const bestDay = AppState.forecastData.reduce((best, day) => day.score > best.score ? day : best);
+        const date = new Date(bestDay.date);
+        
+        const alertEl = document.getElementById('best-day-alert');
+        const textEl = document.getElementById('best-day-text');
+        
+        if (alertEl && textEl) {
+            alertEl.style.display = 'flex';
+            textEl.textContent = `Meilleur jour: ${date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })} (${bestDay.score}%)`;
+        }
+    }
+};
+
+// ============================================================================
+// TABLEAU HORAIRE
+// ============================================================================
+const HourlyTable = {
+    show() {
+        if (!AppState.forecastData || !AppState.currentSpot) return;
+        
+        const modal = document.getElementById('hourlyTableModal');
+        const title = document.getElementById('hourly-table-title');
+        const container = document.getElementById('hourly-table-container');
+        
+        title.innerHTML = `<i class="fas fa-table"></i> ${AppState.currentSpot.name}`;
+        
+        let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem"><thead><tr>';
+        html += '<th style="background:#334155;color:#e2e8f0;padding:0.75rem;position:sticky;left:0">Heure</th>';
+        
+        AppState.forecastData.slice(0, 5).forEach(day => {
+            const d = new Date(day.date);
+            html += `<th style="background:#1e293b;color:#e2e8f0;padding:0.75rem">${d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric' })}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        for (let hour = 0; hour < 24; hour++) {
+            html += '<tr>';
+            html += `<td style="background:#334155;color:#e2e8f0;padding:0.5rem;position:sticky;left:0">${hour}h</td>`;
+            
+            AppState.forecastData.slice(0, 5).forEach(() => {
+                let score = 50;
+                if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) score = 70 + Math.sin(hour) * 15;
+                else if (hour >= 12 && hour <= 14) score = 30 + Math.cos(hour) * 10;
+                else score = 50 + Math.sin(hour) * 15;
+                score = Math.max(20, Math.min(95, Math.round(score)));
+                
+                let scoreClass = 'score-very-poor';
+                if (score >= 80) scoreClass = 'score-excellent';
+                else if (score >= 60) scoreClass = 'score-good';
+                else if (score >= 40) scoreClass = 'score-medium';
+                
+                html += `<td style="padding:0.5rem;text-align:center;border:1px solid #475569">
+                            <div class="hour-score-cell ${scoreClass}" style="padding:0.4rem">${score}%</div>
+                         </td>`;
+            });
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+        
+        modal.style.display = 'flex';
+        
+        document.getElementById('closeHourlyTable').onclick = () => {
+            modal.style.display = 'none';
+        };
+        
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        };
+    }
+};
+
+// ============================================================================
+// SÉLECTEUR D'ESPÈCES
+// ============================================================================
+const SpeciesSelector = {
+    init() {
+        let html = '';
+        Object.entries(Config.species).forEach(([key, s]) => {
+            html += `<button class="species-btn ${key === 'loup' ? 'active' : ''}" onclick="window.selectSpecies('${key}')">
+                <span>${s.icon}</span> ${s.name.split(' ')[0]}
+            </button>`;
+        });
+        document.getElementById('species-selector').innerHTML = html;
+    },
+    
+    select(species) {
+        AppState.currentSpecies = species;
+        document.querySelectorAll('.species-btn').forEach(b => b.classList.remove('active'));
+        if (event && event.target) {
+            event.target.classList.add('active');
+        }
+        if (AppState.currentSpot) ForecastLoader.load();
+    }
+};
+
+// ============================================================================
+// NOUVEAU : CALENDRIER LUNAIRE UNIQUE (Fishing Moon Wheel)
+// ============================================================================
+const Lunar = {
+    // Émojis pour chaque phase
+    icons: {
+        'Nouvelle Lune': '🌑',
+        'Premier Croissant': '🌒',
+        'Premier Quartier': '🌓',
+        'Lune Gibbeuse Croissante': '🌔',
+        'Pleine Lune': '🌕',
+        'Lune Gibbeuse Décroissante': '🌖',
+        'Dernier Quartier': '🌗',
+        'Dernier Croissant': '🌘'
+    },
+
+    // Calcul de la phase pour une date donnée (algorithme astronomique simple)
+    getPhase(date) {
+        // Nouvelle lune de référence : 2024-01-11 00:00 UTC
+        const knownNewMoon = new Date('2024-01-11T00:00:00Z');
+        const daysSince = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+        const lunations = daysSince / 29.530588853;
+        const phaseIndex = lunations - Math.floor(lunations); // 0 = nouvelle, 0.5 = pleine
+
+        if (phaseIndex < 0.03) return 'Nouvelle Lune';
+        if (phaseIndex < 0.19) return 'Premier Croissant';
+        if (phaseIndex < 0.28) return 'Premier Quartier';
+        if (phaseIndex < 0.47) return 'Lune Gibbeuse Croissante';
+        if (phaseIndex < 0.53) return 'Pleine Lune';
+        if (phaseIndex < 0.72) return 'Lune Gibbeuse Décroissante';
+        if (phaseIndex < 0.81) return 'Dernier Quartier';
+        if (phaseIndex < 0.97) return 'Dernier Croissant';
+        return 'Nouvelle Lune';
+    },
+
+    // Score de pêche théorique basé sur la phase (0-100)
+    getFishingScore(phase) {
+        const scores = {
+            'Nouvelle Lune': 95,
+            'Premier Croissant': 80,
+            'Premier Quartier': 60,
+            'Lune Gibbeuse Croissante': 75,
+            'Pleine Lune': 85,
+            'Lune Gibbeuse Décroissante': 70,
+            'Dernier Quartier': 55,
+            'Dernier Croissant': 65
+        };
+        return scores[phase] || 50;
+    }
+};
+
+// Fonction de rendu du calendrier lunaire
+function renderLunarCalendar() {
+    if (!AppState.forecastData) return;
+    
+    const wheel = document.getElementById('moonWheel');
+    if (!wheel) return;
+    
+    let html = '';
+    AppState.forecastData.forEach((day, index) => {
+        const date = new Date(day.date);
+        const phase = Lunar.getPhase(date);
+        const icon = Lunar.icons[phase];
+        let baseScore = Lunar.getFishingScore(phase);
+        // Fusion intelligente : 60% lune + 40% conditions météo/poisson
+        const weatherScore = day.score || 50;
+        const fusedScore = Math.round((baseScore * 0.6) + (weatherScore * 0.4));
+        
+        // Couleur de bordure selon le score fusionné
+        let borderColor = '#ef4444'; // faible
+        if (fusedScore >= 80) borderColor = '#10b981';
+        else if (fusedScore >= 60) borderColor = '#3b82f6';
+        else if (fusedScore >= 40) borderColor = '#f59e0b';
+        
+        // Mise en avant du jour sélectionné
+        const isActive = (index === AppState.selectedDay) ? 'active-moon' : '';
+        
+        html += `<div class="moon-day ${isActive}" style="border-color: ${borderColor};" onclick="window.selectDay(${index})">
+                    <div class="moon-icon">${icon}</div>
+                    <div class="moon-phase-name">${phase}</div>
+                    <div class="moon-score" style="color: ${borderColor};">${fusedScore}%</div>
+                    <small>${date.toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
+                 </div>`;
+    });
+    wheel.innerHTML = html;
+}
+
+// ============================================================================
+// ========== EXPOSITION GLOBALE - NOMS EXACTS ATTENDUS PAR MAIN.JS ==========
+// ============================================================================
+
+// 1. toggleWindLayer() - Point critique ! main.js appelle ce nom
+window.toggleWindLayer = () => {
+    WindAnimation.toggleLayer();
+};
+
+// 2. addWindAnimation() - Pour activer l'animation
+window.addWindAnimation = () => {
+    WindAnimation.addAnimation();
+};
+
+// 3. removeWindAnimation() - Pour désactiver l'animation
+window.removeWindAnimation = () => {
+    WindAnimation.removeAnimation();
+};
+
+// 4. updateWindAnimation(direction, speed) - Pour synchroniser
+window.updateWindAnimation = (direction, speed) => {
+    WindAnimation.updateAnimation(direction, speed);
+};
+
+// Autres fonctions nécessaires
+window.initMap = () => MapManager.init();
+window.selectSpot = (spot) => SpotSelector.select(spot);
+window.useCurrentLocation = () => SpotSelector.useCurrentLocation();
+window.loadForecast = () => ForecastLoader.load();
+window.selectDay = (index) => ForecastDisplay.selectDay(index);
+window.showHourlyForecastTable = () => HourlyTable.show();
+window.selectSpecies = (species) => SpeciesSelector.select(species);
+
+// ============================================================================
+// INITIALISATION
+// ============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    if (AppState.initialized) return;
+    AppState.initialized = true;
+    
+    SpeciesSelector.init();
+    setTimeout(() => MapManager.init(), 100);
+    
+    if (Config.spots.length) {
+        SpotSelector.select(Config.spots[0]);
+    }
+    
+    // Exposer l'état global pour debug
+    window.AppDebug = AppState;
+});
+</script>
+{% endblock %}

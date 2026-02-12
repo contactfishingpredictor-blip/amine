@@ -1,0 +1,1077 @@
+{% extends "base.html" %}
+
+{% block title %}🐟 Atlas des Poissons de Méditerranée – Fishing Predictor Pro{% endblock %}
+
+{% block extra_css %}
+<!-- Google Fonts pour une typographie élégante -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
+
+<style>
+    /* ===== VARIABLES & RESET ===== */
+    :root {
+        --deep-blue: #0a4b5c;
+        --mediterranean-teal: #1e7e8c;
+        --sand: #f5efe6;
+        --coral: #ff7e5f;
+        --seagrass: #2b7a4b;
+        --glass-bg: rgba(10, 75, 92, 0.2);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --awareness-bg: #0e3b47;  /* plus soutenu */
+        --awareness-accent: #ffd966;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(145deg, #0b3a47 0%, #0a2e38 100%);
+        color: #f0f9ff;
+        line-height: 1.7;
+    }
+
+    h1, h2, h3, h4 {
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    /* ===== HERO CINÉMATIQUE - VERSION RÉDUITE ===== */
+    .med-hero {
+        position: relative;
+        background: linear-gradient(135deg, #0a4b5c 0%, #043341 100%);
+        color: white;
+        padding: 3.5rem 0 4.5rem;   /* réduit de 6rem/8rem */
+        margin-bottom: 2rem;
+        border-radius: 0 0 40px 40px;
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }
+
+    .med-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.08" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        background-size: cover;
+        background-position: bottom;
+        opacity: 0.2;
+        animation: wave 20s infinite linear;
+    }
+
+    @keyframes wave {
+        0% { transform: translateX(0) scaleX(1); }
+        50% { transform: translateX(-2%) scaleX(1.02); }
+        100% { transform: translateX(0) scaleX(1); }
+    }
+
+    .med-hero h1 {
+        font-size: 3.2rem;          /* réduit de 4.2rem */
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+        font-family: 'Playfair Display', serif;
+        background: linear-gradient(135deg, #ffffff, #e0f2fe);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        position: relative;
+        text-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .med-hero .subhead {
+        font-size: 1.25rem;         /* réduit de 1.5rem */
+        font-weight: 300;
+        max-width: 700px;
+        margin: 0 auto;
+        opacity: 0.9;
+        font-style: italic;
+        position: relative;
+    }
+
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2.5rem;
+        margin-top: 2rem;
+        position: relative;
+    }
+
+    .hero-stat {
+        text-align: center;
+    }
+
+    .hero-stat-number {
+        font-size: 2rem;            /* réduit de 2.5rem */
+        font-weight: 800;
+        color: #ffe7b6;
+    }
+
+    .hero-stat-label {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        opacity: 0.8;
+    }
+
+    /* ===== CARTES AMÉLIORÉES ===== */
+    .card {
+        background: rgba(15, 60, 70, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 2rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 20px 35px -8px rgba(0,0,0,0.4);
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        border-color: rgba(255,255,255,0.3);
+        background: rgba(15, 70, 80, 0.7);
+    }
+
+    .card-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #ffe7b6;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 2px solid rgba(255,231,182,0.3);
+        padding-bottom: 1rem;
+    }
+
+    .card-title i {
+        background: var(--coral);
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    /* ===== BANDEAU DE SENSIBILISATION - PLUS VISIBLE ===== */
+    .awareness-bar {
+        background: var(--awareness-bg);
+        border-left: 10px solid var(--awareness-accent);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;        /* plus d'espace */
+        margin-bottom: 2.5rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+        transition: background 0.3s;
+    }
+
+    .awareness-icon {
+        font-size: 3.8rem;          /* icône plus grande */
+        color: var(--awareness-accent);
+        flex-shrink: 0;
+    }
+
+    .awareness-message {
+        font-size: 1.6rem;          /* texte plus grand */
+        font-weight: 600;
+        line-height: 1.4;
+        flex: 1;
+        color: white;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .awareness-message strong {
+        color: var(--awareness-accent);
+    }
+
+    /* ===== GRILLE ESPÈCES (FICHES STATIQUES) ===== */
+    .species-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .species-card {
+        background: rgba(0, 20, 30, 0.7);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .species-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 25px 35px -10px rgba(0,0,0,0.5);
+        border-color: var(--coral);
+    }
+
+    .species-header {
+        padding: 1.5rem;
+        background: linear-gradient(145deg, rgba(255,126,95,0.2), rgba(10,75,92,0.3));
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .species-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.4rem;
+        background: rgba(255,126,95,0.3);
+        color: white;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+    }
+
+    .species-name h3 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .species-name p {
+        margin: 0.2rem 0 0;
+        font-size: 0.9rem;
+        color: #cbd5e1;
+        font-style: italic;
+    }
+
+    .species-body {
+        padding: 1.5rem;
+        flex: 1;
+    }
+
+    .species-detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.8rem;
+        font-size: 0.95rem;
+    }
+
+    .detail-label {
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .detail-value {
+        font-weight: 600;
+        color: #ffe7b6;
+    }
+
+    .species-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 1.2rem;
+    }
+
+    .tag {
+        padding: 0.3rem 1rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .tag-habitat { background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border: 1px solid #34d399; }
+    .tag-season { background: rgba(251, 191, 36, 0.2); color: #fde68a; border: 1px solid #fbbf24; }
+    .tag-iucn { background: rgba(239, 68, 68, 0.2); color: #fecaca; border: 1px solid #f87171; }
+
+    .iucn-status {
+        display: inline-block;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .lc { background: #2b7a4b; color: white; }
+    .nt { background: #b45309; color: white; }
+    .vu { background: #b91c1c; color: white; }
+
+    /* ===== STATISTIQUES ÉCOSYSTÈME ===== */
+    .ecosystem-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .eco-stat-card {
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(8px);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        border-left: 5px solid var(--coral);
+    }
+
+    .eco-stat-number {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #ffe7b6;
+    }
+
+    /* ===== TABLEAU RÉGLEMENTATION ===== */
+    .regulation-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .regulation-table th {
+        background: var(--deep-blue);
+        color: white;
+        padding: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+
+    .regulation-table td {
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .regulation-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* ===== TABLEAU DES TAILLES DE REMISE À L'EAU ===== */
+    .release-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .release-table th {
+        background: #1e4a4f;
+        color: white;
+        padding: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+    }
+
+    .release-table td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .release-note {
+        background: rgba(255,231,182,0.1);
+        border-left: 6px solid #ffe7b6;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1.5rem 0 0.5rem;
+    }
+
+    /* ===== SOURCES / BIBLIOGRAPHIE ===== */
+    .sources-list {
+        background: rgba(0,0,0,0.2);
+        border-radius: 18px;
+        padding: 1.8rem;
+        font-size: 0.9rem;
+        color: #cbd5e1;
+    }
+
+    .sources-list a {
+        color: #ffe7b6;
+        text-decoration: none;
+        border-bottom: 1px dotted;
+    }
+
+    .sources-list a:hover {
+        color: white;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+        animation: fadeInUp 0.8s ease forwards;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+        .med-hero h1 { font-size: 2.8rem; }
+        .ecosystem-stats { grid-template-columns: repeat(2, 1fr); }
+        .awareness-message { font-size: 1.3rem; }
+    }
+
+    @media (max-width: 768px) {
+        .container { padding: 0 1.5rem; }
+        .med-hero h1 { font-size: 2.2rem; }
+        .hero-stats { flex-direction: column; gap: 1.2rem; }
+        .species-grid { grid-template-columns: 1fr; }
+        .awareness-bar { flex-direction: column; text-align: center; gap: 1rem; padding: 1.5rem; }
+        .awareness-message { font-size: 1.2rem; }
+        .regulation-table, .release-table { display: block; overflow-x: auto; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ===== HERO MÉDITERRANÉE - VERSION RÉDUITE ===== -->
+<div class="med-hero">
+    <div class="container" style="text-align: center; position: relative; z-index: 2;">
+        <h1><i class="fas fa-fish"></i> Atlas des Poissons<br>de Méditerranée</h1>
+        <p class="subhead">Un sanctuaire de biodiversité, entre mythes et science</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-number">700+</div>
+                <div class="hero-stat-label">espèces recensées</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-number">20%</div>
+                <div class="hero-stat-label">endémiques</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-number">25%</div>
+                <div class="hero-stat-label">menacées</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- ===== BANDEAU DE SENSIBILISATION (ROTATIF) - PLUS VISIBLE ===== -->
+    <div class="awareness-bar" id="awarenessBanner">
+        <div class="awareness-icon"><i class="fas fa-heart"></i></div>
+        <div class="awareness-message" id="awarenessMessage">🌊 La Méditerranée est notre bien commun, préservons-la ensemble.</div>
+    </div>
+
+    <!-- ===== INTRODUCTION : QU'EST-CE QUE LA MÉDITERRANÉE ? ===== -->
+    <div class="card animate-in">
+        <div class="card-title">
+            <i class="fas fa-water"></i>
+            La Grande Bleue
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+            <div>
+                <p style="font-size: 1.2rem; font-weight: 300; color: #e2e8f0;">Mer semi-fermée, carrefour de civilisations, la Méditerranée abrite une ichtyofaune d’une richesse exceptionnelle.</p>
+                <p>Plus de 700 espèces de poissons évoluent dans ses eaux, dont près de 20% sont endémiques. Ses herbiers de posidonie, ses tombants rocheux et ses larges fonds sableux offrent une mosaïque d’habitats. Pourtant, ce joyau est fragile : pollution plastique, surpêche et réchauffement climatique menacent cet équilibre millénaire.</p>
+                <p style="margin-top: 1.5rem; font-style: italic; color: #ffe7b6;">« La Méditerranée n'est pas seulement une mer, c'est une mémoire. »</p>
+            </div>
+            <div style="background: rgba(0,0,0,0.2); border-radius: 20px; padding: 1.5rem; border-left: 5px solid #ff7e5f;">
+                <h4 style="color: #ffe7b6; margin-top: 0;">🌍 Quelques chiffres</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 0.8rem;"><span style="font-weight: 800;">Superficie :</span> 2,5 millions km²</li>
+                    <li style="margin-bottom: 0.8rem;"><span style="font-weight: 800;">Profondeur max :</span> 5 267 m (fosse de Matapan)</li>
+                    <li style="margin-bottom: 0.8rem;"><span style="font-weight: 800;">Salinité :</span> 37-39 PSU</li>
+                    <li style="margin-bottom: 0.8rem;"><span style="font-weight: 800;">Température :</span> 12-28°C</li>
+                    <li style="margin-bottom: 0.8rem;"><span style="font-weight: 800;">Endémisme :</span> 20% des poissons</li>
+                </ul>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 1rem;">Sources : <a href="#" style="color: #ffe7b6;">UICN-Med 2024</a>, <a href="#" style="color: #ffe7b6;">Plan Bleu 2023</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== GALERIE DES ESPÈCES EMBLÉMATIQUES ===== -->
+    <div class="card animate-in">
+        <div class="card-title">
+            <i class="fas fa-fish"></i>
+            12 espèces emblématiques
+        </div>
+        <p style="margin-bottom: 2rem; color: #cbd5e1;">Des prédateurs aux poissons de roche, découvrez les habitants les plus remarquables de nos côtes.</p>
+
+        <!-- Grille statique – les données sont directement dans le template -->
+        <div class="species-grid">
+            <!-- 1. Loup de mer (Bar) -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #3b82f6;">🐟</div>
+                    <div class="species-name">
+                        <h3>Loup de mer</h3>
+                        <p>Dicentrarchus labrax</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Roches, lagunes, estuaires</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">1 m / 12 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Automne – Hiver</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC - Préoccupation mineure</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Carnassier prisé des pêcheurs. Chasse à vue près des structures. Période de reproduction : janvier-mars.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🏞️ Rocher</span>
+                        <span class="tag tag-habitat">🏖️ Lagune</span>
+                        <span class="tag tag-season">❄️ Hiver</span>
+                        <span class="tag tag-season">🍂 Automne</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 2. Daurade royale -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #10b981;">🐠</div>
+                    <div class="species-name">
+                        <h3>Daurade royale</h3>
+                        <p>Sparus aurata</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Herbiers, fonds sableux</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">70 cm / 6 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Été – Automne</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Hermaphrodite protandre. Se nourrit de mollusques et crustacés. Très méfiante.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🌿 Herbier</span>
+                        <span class="tag tag-habitat">🏖️ Sable</span>
+                        <span class="tag tag-season">☀️ Été</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 3. Mérou brun -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #8b5cf6;">🦈</div>
+                    <div class="species-name">
+                        <h3>Mérou brun</h3>
+                        <p>Epinephelus marginatus</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Grottes, épaves, fonds rocheux</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">1,5 m / 60 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Été</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status vu">VU - Vulnérable</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Espèce protégée. Reproduction en été, changement de sexe avec l'âge. Très territorial.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🪨 Roche</span>
+                        <span class="tag tag-iucn">⚠️ Vulnérable</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 4. Thon rouge -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #ef4444;">🦈</div>
+                    <div class="species-name">
+                        <h3>Thon rouge</h3>
+                        <p>Thunnus thynnus</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Pélagique, migrateur</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">3 m / 600 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Printemps - Été (reproduction)</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status nt">NT - Quasi menacé</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Populations en reconstitution grâce aux quotas. Endothermie partielle.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🌊 Large</span>
+                        <span class="tag tag-season">☀️ Été</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 5. Sar commun -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #06b6d4;">🐟</div>
+                    <div class="species-name">
+                        <h3>Sar commun</h3>
+                        <p>Diplodus sargus</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Rochers, posidonie</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">45 cm / 2 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Printemps – Automne</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Grégaire, se nourrit d'oursins, crustacés et mollusques.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🪨 Roche</span>
+                        <span class="tag tag-season">🌸 Printemps</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 6. Rouget barbet -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #f59e0b;">🐠</div>
+                    <div class="species-name">
+                        <h3>Rouget barbet</h3>
+                        <p>Mullus barbatus</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Fonds sableux et vaseux</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">30 cm / 1 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Printemps - Été</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Fouille le sable avec ses barbillons. Chair très fine.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🏖️ Sable</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 7. Pageot commun -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #f97316;">🐡</div>
+                    <div class="species-name">
+                        <h3>Pageot commun</h3>
+                        <p>Pagellus erythrinus</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Fonds rocheux et détritiques</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">60 cm / 4 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Été</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Carnivore, se pêche à la palangrotte et au lancer.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🪨 Roche</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 8. Espadon -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #64748b;">🦈</div>
+                    <div class="species-name">
+                        <h3>Espadon</h3>
+                        <p>Xiphias gladius</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Pélagique océanique</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">4,5 m / 650 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Été</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status nt">NT</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Grand migrateur, peut atteindre 100 km/h.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🌊 Large</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 9. Bonite à dos rayé -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #3b82f6;">🐟</div>
+                    <div class="species-name">
+                        <h3>Bonite</h3>
+                        <p>Sarda sarda</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Côtier, pélagique</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">90 cm / 11 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Été - Automne</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Poisson de banc, chasse en surface. Très combatif.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🎣 Surface</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 10. Corbeau de mer -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #1e293b;">🐠</div>
+                    <div class="species-name">
+                        <h3>Corbeau de mer</h3>
+                        <p>Sciaena umbra</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Grottes, fonds rocheux</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">70 cm / 4 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Printemps - Été</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status nt">NT</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Émet des sons puissants. Espèce très côtière.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🕳️ Grotte</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 11. Mulet -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #84cc16;">🐟</div>
+                    <div class="species-name">
+                        <h3>Mulet</h3>
+                        <p>Mugil cephalus</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Ports, lagunes, estuaires</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">60 cm / 4 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Toute l'année</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status lc">LC</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Se nourrit de détritus et d'algues. Pêche au pain.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">🏖️ Port</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 12. Sériole couronnée -->
+            <div class="species-card">
+                <div class="species-header">
+                    <div class="species-icon" style="background: #f59e0b;">🦈</div>
+                    <div class="species-name">
+                        <h3>Sériole couronnée</h3>
+                        <p>Seriola dumerili</p>
+                    </div>
+                </div>
+                <div class="species-body">
+                    <div class="species-detail-row">
+                        <span class="detail-label">🏝️ Habitat</span>
+                        <span class="detail-value">Tombants, épaves</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">📏 Taille max</span>
+                        <span class="detail-value">1,9 m / 80 kg</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🗓️ Saison</span>
+                        <span class="detail-value">Été</span>
+                    </div>
+                    <div class="species-detail-row">
+                        <span class="detail-label">🌿 Statut UICN</span>
+                        <span class="iucn-status nt">NT</span>
+                    </div>
+                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 0.8rem;">Prédateur puissant, pêche sportive.</p>
+                    <div class="species-tags">
+                        <span class="tag tag-habitat">⛵ Bateau</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p style="text-align: right; color: #94a3b8; margin-top: 1.5rem; font-size: 0.85rem;">Données UICN (2025) • Tailles maximales références FAO</p>
+    </div>
+
+    <!-- ===== ÉCOSYSTÈME EN DANGER ===== -->
+    <div class="card animate-in">
+        <div class="card-title">
+            <i class="fas fa-exclamation-triangle"></i>
+            Menaces et conservation
+        </div>
+        <div class="ecosystem-stats">
+            <div class="eco-stat-card">
+                <div class="eco-stat-number">34%</div>
+                <div style="color: #cbd5e1;">des populations exploitées hors limites durables</div>
+                <small style="color: #94a3b8;">FAO 2024</small>
+            </div>
+            <div class="eco-stat-card">
+                <div class="eco-stat-number">+1.5°C</div>
+                <div style="color: #cbd5e1;">réchauffement de la surface depuis 1900</div>
+                <small style="color: #94a3b8;">Météo-France</small>
+            </div>
+            <div class="eco-stat-card">
+                <div class="eco-stat-number">229k t</div>
+                <div style="color: #cbd5e1;">plastiques déversés par an</div>
+                <small style="color: #94a3b8;">WWF 2023</small>
+            </div>
+            <div class="eco-stat-card">
+                <div class="eco-stat-number">78</div>
+                <div style="color: #cbd5e1;">espèces de poissons classées menacées</div>
+                <small style="color: #94a3b8;">UICN-Med</small>
+            </div>
+        </div>
+        <div style="background: rgba(239,68,68,0.1); border-left: 6px solid #ef4444; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem;">
+            <h4 style="color: #ffe7b6; margin-top: 0;">🌱 Pêche durable : gestes simples</h4>
+            <ul style="columns: 2; column-gap: 2rem; color: #e2e8f0;">
+                <li style="margin-bottom: 0.6rem;">✅ Respecter les tailles légales</li>
+                <li style="margin-bottom: 0.6rem;">✅ Relâcher les géniteurs</li>
+                <li style="margin-bottom: 0.6rem;">✅ Utiliser des hameçons sans ardillon</li>
+                <li style="margin-bottom: 0.6rem;">✅ Privilégier les zones non protégées</li>
+                <li style="margin-bottom: 0.6rem;">✅ Ramasser ses déchets</li>
+                <li style="margin-bottom: 0.6rem;">✅ Participer aux sciences participatives</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ===== RÉGLEMENTATION : TAILLES MINIMALES DE CAPTURE ===== -->
+    <div class="card animate-in">
+        <div class="card-title">
+            <i class="fas fa-scale-balanced"></i>
+            Tailles minimales de capture (Méditerranée)
+        </div>
+        <table class="regulation-table">
+            <thead>
+                <tr>
+                    <th>Espèce</th>
+                    <th>Tunisie (cm)</th>
+                    <th>UE (cm)</th>
+                    <th>Période de reproduction</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Loup (Bar)</td><td>25</td><td>42</td><td>Janvier – Mars</td></tr>
+                <tr><td>Daurade royale</td><td>20</td><td>23</td><td>Octobre – Décembre</td></tr>
+                <tr><td>Mérou brun</td><td>45</td><td>45 (protégé)</td><td>Juin – Août</td></tr>
+                <tr><td>Thon rouge</td><td>70</td><td>115</td><td>Mai – Juillet</td></tr>
+                <tr><td>Sar commun</td><td>15</td><td>23</td><td>Avril – Juin</td></tr>
+                <tr><td>Pageot</td><td>15</td><td>18</td><td>Mai – Août</td></tr>
+                <tr><td>Rouget barbet</td><td>11</td><td>15</td><td>Mai – Août</td></tr>
+                <tr><td>Corbeau de mer</td><td>20</td><td>25</td><td>Mai – Juillet</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 1.2rem; color: #94a3b8; font-size: 0.85rem;">Sources : <a href="#" style="color: #ffe7b6;">CGPM 2023</a>, <a href="#" style="color: #ffe7b6;">DGPA Tunisie</a>. Se renseigner sur les arrêtés locaux.</p>
+    </div>
+
+    <!-- ===== NOUVEAU : TAILLES DE REMISE À L'EAU (PÊCHE RESPONSABLE) ===== -->
+    <div class="card animate-in">
+        <div class="card-title">
+            <i class="fas fa-hand-holding-heart"></i>
+            Tailles de remise à l’eau – Préserver les géniteurs
+        </div>
+        <p style="color: #cbd5e1; margin-bottom: 1.2rem;">
+            Relâcher les poissons n’ayant pas encore atteint leur <strong>taille de première maturité sexuelle</strong> est un geste citoyen essentiel. Voici les seuils recommandés pour permettre à chaque espèce de se reproduire au moins une fois.
+        </p>
+        <table class="release-table">
+            <thead>
+                <tr>
+                    <th>Espèce</th>
+                    <th>Taille de maturité sexuelle (cm)</th>
+                    <th>Recommandation citoyenne</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Loup (Bar)</td><td>36–42</td><td>Remettre à l’eau tout poisson &lt; 42 cm</td></tr>
+                <tr><td>Daurade royale</td><td>23–30</td><td>Remettre à l’eau tout poisson &lt; 30 cm</td></tr>
+                <tr><td>Mérou brun</td><td>45–60</td><td>Espèce protégée, remise à l’eau obligatoire</td></tr>
+                <tr><td>Thon rouge</td><td>115–130</td><td>Remettre à l’eau les juvéniles &lt; 115 cm</td></tr>
+                <tr><td>Sar commun</td><td>17–20</td><td>Remettre à l’eau tout poisson &lt; 23 cm</td></tr>
+                <tr><td>Pageot commun</td><td>15–18</td><td>Remettre à l’eau tout poisson &lt; 20 cm</td></tr>
+                <tr><td>Rouget barbet</td><td>11–14</td><td>Remettre à l’eau tout poisson &lt; 15 cm</td></tr>
+                <tr><td>Corbeau de mer</td><td>20–25</td><td>Remettre à l’eau tout poisson &lt; 25 cm</td></tr>
+                <tr><td>Sériole couronnée</td><td>70–90</td><td>Remettre à l’eau tout poisson &lt; 90 cm</td></tr>
+                <tr><td>Bonite</td><td>35–45</td><td>Remettre à l’eau tout poisson &lt; 45 cm</td></tr>
+                <tr><td>Espadon</td><td>120–150</td><td>Remettre à l’eau tout poisson &lt; 150 cm</td></tr>
+            </tbody>
+        </table>
+        <div class="release-note">
+            <strong><i class="fas fa-fish"></i> À retenir :</strong> « Une femelle de 40 cm produit 10 fois plus d’œufs qu’une femelle de 30 cm. » Chaque centimètre compte pour la reconstitution des stocks.
+        </div>
+        <p style="margin-top: 1rem; color: #94a3b8; font-size: 0.85rem;">
+            Sources : Ifremer, FAO, UICN-Med, études de maturité sexuelle en Méditerranée.
+        </p>
+    </div>
+
+    <!-- ===== POUR ALLER PLUS LOIN ===== -->
+    <div class="card animate-in">
+        <div class="card-title">
+            <i class="fas fa-book"></i>
+            Bibliographie & sources
+        </div>
+        <div class="sources-list">
+            <p style="font-weight: 600; color: white; margin-top: 0;">📚 Ouvrages et rapports consultés :</p>
+            <ul style="list-style-type: none; padding-left: 0;">
+                <li style="margin-bottom: 0.8rem;">• <strong>UICN France.</strong> (2024). <em>La Liste rouge des espèces menacées en France – Chapitre Poissons de Méditerranée.</em></li>
+                <li style="margin-bottom: 0.8rem;">• <strong>FAO.</strong> (2025). <em>State of Mediterranean and Black Sea Fisheries 2025.</em> Rome.</li>
+                <li style="margin-bottom: 0.8rem;">• <strong>Plan Bleu.</strong> (2023). <em>Pêche et aquaculture durables en Méditerranée.</em></li>
+                <li style="margin-bottom: 0.8rem;">• <strong>Louis, M. & Capapé, C.</strong> (2021). <em>Poissons de mer des côtes tunisiennes.</em> Institut National des Sciences et Technologies de la Mer.</li>
+                <li style="margin-bottom: 0.8rem;">• <strong>Ifremer.</strong> (2024). <em>Campagnes MEDITS, évaluation des stocks démersaux.</em></li>
+            </ul>
+            <p style="margin-top: 1.5rem; font-style: italic;">Les textes et données présentés sont issus de synthèses originales, élaborées à partir de ces sources crédibles et du domaine public scientifique. Toute reproduction est encouragée avec mention de la source.</p>
+            <p style="text-align: right; margin-bottom: 0;">— Équipe Fishing Predictor Pro, 2026 —</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ===== BANDEAU DE SENSIBILISATION ROTATIF - INTERVALLE DE 15 SECONDES =====
+    const messages = [
+        "🌊 La Méditerranée produit 1% de l’eau de mer mondiale mais abrite 10% de sa biodiversité. Protégeons ce trésor.",
+        "🐟 Un poisson sur trois pêché en Méditerranée l’est de manière non durable. Choisissons des tailles raisonnables.",
+        "♻️ Chaque année, 229 000 tonnes de plastique finissent en Méditerranée. Réduisons, réutilisons, ramassons.",
+        "🌡️ La température de la mer augmente de 0.4°C par décennie. Des espèces migrent, l’équilibre change.",
+        "⏳ Il faut 5 à 10 ans à un mérou pour devenir adulte. Relâcher les juvéniles, c’est assurer demain.",
+        "🐚 Les herbiers de posidonie produisent 20 litres d’oxygène par m² chaque jour. Ancrez sur le sable, pas sur l’herbier.",
+        "🎣 Pêcher responsable, c’est aussi utiliser des hameçons sans ardillon et remettre à l’eau les femelles pleines.",
+        "📢 Vous êtes acteur de la science : signalez vos observations sur des programmes comme BioObs ou MedPAN.",
+        "💙 80% des poissons que nous mangeons sont issus de juvéniles. Donnons-leur une chance de grandir.",
+        "🛑 En Méditerranée, 78 espèces de poissons sont menacées. Chaque geste compte pour leur survie."
+    ];
+
+    function changeMessage() {
+        const messageEl = document.getElementById('awarenessMessage');
+        if (!messageEl) return;
+        let currentIndex = Math.floor(Math.random() * messages.length);
+        messageEl.innerHTML = messages[currentIndex];
+    }
+
+    // Change de message toutes les 15 secondes
+    setInterval(changeMessage, 15000);
+    // Message initial aléatoire
+    window.addEventListener('load', function() {
+        changeMessage();
+    });
+
+    // ===== ANIMATION AU SCROLL =====
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+        cards.forEach(card => observer.observe(card));
+    });
+</script>
+{% endblock %}

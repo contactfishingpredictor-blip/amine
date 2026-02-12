@@ -1,0 +1,32 @@
+[
+  {
+    "email": "medaminecharmiti@gmail.com",
+    "preferences": {
+      "excellent_conditions": true,
+      "seasonal_reminders": true,
+      "weekly_tips": false,
+      "favorite_spots": true
+    },
+    "confirmed": true,
+    "confirmation_id": "SUB-2FBFADC187D5",
+    "subscribed_at": "2026-02-02T13:34:23.203917",
+    "last_alert_sent": null,
+    "alert_count": 0,
+    "active": true
+  },
+  {
+    "email": "slim.benmiled@meteo.tn",
+    "preferences": {
+      "excellent_conditions": true,
+      "seasonal_reminders": true,
+      "weekly_tips": false,
+      "favorite_spots": true
+    },
+    "confirmed": true,
+    "confirmation_id": "A4EAAE01F473",
+    "subscribed_at": "2026-01-31T20:20:37.016113",
+    "last_alert_sent": null,
+    "alert_count": 0,
+    "active": true
+  }
+]

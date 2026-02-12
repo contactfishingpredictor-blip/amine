@@ -1,0 +1,207 @@
+[
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "9B48AD0ACF56",
+    "sent": true,
+    "timestamp": "2026-01-29T00:46:28.691463",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-8DCFD6D54284",
+    "sent": true,
+    "timestamp": "2026-01-30T09:31:20.230943",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "slim.benmiled@meteo.tn",
+    "type": "confirmation",
+    "confirmation_id": "A4EAAE01F473",
+    "sent": true,
+    "timestamp": "2026-01-31T20:20:38.141352",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "D9EC19A9ECEB",
+    "sent": true,
+    "timestamp": "2026-01-31T20:48:10.375537",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-877955F3ECA2",
+    "sent": true,
+    "timestamp": "2026-01-31T20:48:21.898950",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-09D7B5FB0064",
+    "sent": true,
+    "timestamp": "2026-01-31T22:00:48.807690",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "SUB-5E9A0B6ABEAE",
+    "sent": false,
+    "status_code": 403,
+    "timestamp": "2026-01-31T23:44:39.933168",
+    "provider": "SendGrid"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "SUB-5E9A0B6ABEAE",
+    "sent": true,
+    "timestamp": "2026-01-31T23:44:41.129454",
+    "server": "SendGrid"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-9335624AA330",
+    "sent": false,
+    "status_code": 403,
+    "timestamp": "2026-01-31T23:44:56.324290",
+    "provider": "SendGrid"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-9335624AA330",
+    "sent": true,
+    "timestamp": "2026-01-31T23:44:57.495952",
+    "server": "SendGrid"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-BF7E8416637F",
+    "sent": false,
+    "status_code": 403,
+    "timestamp": "2026-01-31T23:47:12.359979",
+    "provider": "SendGrid"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-BF7E8416637F",
+    "sent": true,
+    "timestamp": "2026-01-31T23:47:13.461980",
+    "server": "SendGrid"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "SUB-5A2FA5B99CDF",
+    "sent": false,
+    "status_code": 401,
+    "error": "Erreur SendGrid (401): The provided authorization grant is invalid, expired, or revoked",
+    "timestamp": "2026-02-02T13:17:06.378743",
+    "provider": "SendGrid",
+    "from_email": "contactfishingpredictor@gmail.com"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "SUB-5A2FA5B99CDF",
+    "sent": true,
+    "timestamp": "2026-02-02T13:17:07.928499",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-007BE42256E7",
+    "sent": false,
+    "status_code": 401,
+    "error": "Erreur SendGrid (401): The provided authorization grant is invalid, expired, or revoked",
+    "timestamp": "2026-02-02T13:17:14.168351",
+    "provider": "SendGrid",
+    "from_email": "contactfishingpredictor@gmail.com"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-007BE42256E7",
+    "sent": true,
+    "timestamp": "2026-02-02T13:17:15.508820",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-38CB86DB0A2E",
+    "sent": true,
+    "status_code": 202,
+    "error": "",
+    "timestamp": "2026-02-02T13:34:08.148797",
+    "provider": "SendGrid",
+    "from_email": "contactfishingpredictor@gmail.com"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "SUB-2FBFADC187D5",
+    "sent": true,
+    "status_code": 202,
+    "error": "",
+    "timestamp": "2026-02-02T13:34:24.515242",
+    "provider": "SendGrid",
+    "from_email": "contactfishingpredictor@gmail.com"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-BE7975AF568E",
+    "sent": false,
+    "status_code": 401,
+    "error": "Erreur SendGrid (401): The provided authorization grant is invalid, expired, or revoked",
+    "timestamp": "2026-02-03T16:34:49.034287",
+    "provider": "SendGrid",
+    "from_email": "contactfishingpredictor@gmail.com"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-BE7975AF568E",
+    "sent": true,
+    "timestamp": "2026-02-03T16:34:50.851607",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-6F8A9D2B7261",
+    "sent": false,
+    "status_code": 401,
+    "error": "Erreur SendGrid (401): The provided authorization grant is invalid, expired, or revoked",
+    "timestamp": "2026-02-03T18:35:17.437529",
+    "provider": "SendGrid",
+    "from_email": "contactfishingpredictor@gmail.com"
+  },
+  {
+    "to": "medaminecharmiti@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-6F8A9D2B7261",
+    "sent": true,
+    "timestamp": "2026-02-03T18:35:19.053675",
+    "server": "Gmail SMTP"
+  },
+  {
+    "to": "contactfishingpredictor@gmail.com",
+    "type": "confirmation",
+    "confirmation_id": "TEST-1770421512",
+    "sent": true,
+    "timestamp": "2026-02-07T00:45:14.420921",
+    "server": "Gmail SMTP"
+  }
+]

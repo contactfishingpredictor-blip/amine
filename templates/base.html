@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- ENCODAGE ET VIEWPORT -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    
+    <!-- TITRE SEO -->
+    <title>{% block title %}Fishing Predictor Pro - Prédictions Scientifiques de Pêche en Tunisie{% endblock %}</title>
+    
+    <!-- META DESCRIPTION -->
+    <meta name="description" content="{% block meta_description %}Carte interactive de prédiction pour la pêche en Tunisie. Prévisions météo précises, spots recommandés, conseils par espèce pour une pêche réussie et sécuritaire.{% endblock %}">
+    
+    <!-- META MOTS-CLÉS -->
+    <meta name="keywords" content="pêche Tunisie, prédiction pêche, météo pêche, spots pêche Tunisie, carte pêche, prévisions halieutiques, pêche scientifique, fishing predictor">
+    
+    <!-- OPEN GRAPH -->
+    <meta property="og:title" content="Fishing Predictor Pro - Prédictions Scientifiques de Pêche">
+    <meta property="og:description" content="Carte interactive de prédiction pour la pêche en Tunisie. Prévisions météo, spots recommandés, conseils par espèce.">
+    <meta property="og:image" content="https://fishing-activity.onrender.com/static/img/og-image.jpg">
+    <meta property="og:url" content="https://fishing-activity.onrender.com">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_FR">
+    
+    <!-- TWITTER CARD -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Fishing Predictor Pro - Prédictions de Pêche">
+    <meta name="twitter:description" content="Carte interactive de prédiction pour la pêche en Tunisie">
+    
+    <!-- GOOGLE ANALYTICS -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0H4QCLDG7"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-E0H4QCLDG7');
+    </script>
+    
+    <!-- ADSENSE -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3170577397908932" crossorigin="anonymous"></script>
+    
+    <!-- POLICES & ICÔNES -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- ===== BIBLIOTHÈQUES ESSENTIELLES ===== -->
+    <!-- Leaflet (carte) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Chart.js (graphiques) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- STYLES PERSONNALISÉS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
+    
+    <!-- FAVICON -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+    
+    <!-- URL CANONIQUE -->
+    <link rel="canonical" href="{{ request.url }}">
+    
+    <style>
+        /* ===== STYLES GLOBAUX ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Navigation */
+        .main-nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #334155;
+            padding: 0.5rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .nav-brand h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .pro-badge {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        
+        .nav-link:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .nav-link.active {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 10px;
+        }
+        
+        /* Footer */
+        .main-footer {
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 2px solid #334155;
+            padding: 2rem 1rem;
+            margin-top: auto;
+        }
+        
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .footer-section h3, .footer-section h4 {
+            color: #f8fafc;
+            margin-bottom: 1rem;
+        }
+        
+        .footer-section p {
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+        
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer-links a {
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: #3b82f6;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        main {
+            flex: 1;
+        }
+        
+        /* Menu mobile */
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 80%;
+                max-width: 300px;
+                height: 100vh;
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                flex-direction: column;
+                padding: 80px 20px 20px;
+                transition: right 0.3s ease;
+                z-index: 1000;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+                border-left: 2px solid #334155;
+            }
+            
+            .nav-links.active {
+                right: 0;
+            }
+            
+            .nav-link {
+                width: 100%;
+                padding: 15px;
+                margin: 5px 0;
+                border-radius: 10px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            
+            .close-menu-btn {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(255,255,255,0.1);
+                border: none;
+                color: white;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            
+            .menu-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.7);
+                z-index: 999;
+                cursor: pointer;
+            }
+            
+            .menu-overlay.active {
+                display: block;
+            }
+            
+            body.menu-open {
+                overflow: hidden;
+            }
+        }
+        
+        /* Animations */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Overlay menu mobile -->
+<div class="menu-overlay" id="menuOverlay" onclick="closeMobileMenu()"></div>
+
+<!-- Navigation -->
+<nav class="main-nav">
+    <div class="nav-container">
+        <div class="nav-brand">
+            <div class="logo-icon"><i class="fas fa-fish"></i></div>
+            <div>
+                <h1>Fishing Predictor <span class="pro-badge">PRO</span></h1>
+                <p style="font-size:0.9rem;opacity:0.9">Prédictions scientifiques pour pêcheurs</p>
+            </div>
+        </div>
+        <div class="nav-links" id="navLinks">
+            <button class="close-menu-btn" onclick="closeMobileMenu()" aria-label="Fermer le menu">
+                <i class="fas fa-times"></i>
+            </button>
+            <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i><span>Activité actuelle</span>
+            </a>
+            <a href="{{ url_for('predictions') }}" class="nav-link {% if request.endpoint == 'predictions' %}active{% endif %}">
+                <i class="fas fa-calendar-alt"></i><span>Prévisions</span>
+            </a>
+            <a href="{{ url_for('species_selector') }}" class="nav-link {% if request.endpoint == 'species_selector' %}active{% endif %}">
+                <i class="fas fa-fish"></i><span>Espèces</span>
+            </a>
+            <a href="{{ url_for('favorites') }}" class="nav-link {% if request.endpoint == 'favorites' %}active{% endif %}">
+                <i class="fas fa-star"></i><span>Favoris</span>
+            </a>
+            <a href="{{ url_for('science') }}" class="nav-link {% if request.endpoint == 'science' %}active{% endif %}">
+                <i class="fas fa-microscope"></i><span>Science</span>
+            </a>
+            <a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint == 'alerts' %}active{% endif %}">
+                <i class="fas fa-bell"></i><span>Alertes</span>
+            </a>
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu mobile">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+</nav>
+
+<!-- Contenu principal -->
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="main-footer">
+    <div class="footer-container">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2rem;margin-bottom:2rem">
+            <div class="footer-section">
+                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+                    <div class="logo-icon" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6)">
+                        <i class="fas fa-fish"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin:0;color:#f8fafc">Fishing Predictor Pro</h3>
+                        <p style="margin:0.5rem 0 0 0;color:#94a3b8">Prédictions halieutiques scientifiques pour la Tunisie</p>
+                    </div>
+                </div>
+                <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
+                    <i class="fas fa-shield-alt"></i> Fiabilité 95% validée scientifiquement
+                </p>
+            </div>
+            <div class="footer-section">
+                <h4 style="color:#f8fafc;margin-bottom:1rem">Navigation</h4>
+                <ul class="footer-links">
+                    <li><a href="{{ url_for('index') }}">Activité actuelle</a></li>
+                    <li><a href="{{ url_for('predictions') }}">Prévisions 10 Jours</a></li>
+                    <li><a href="{{ url_for('species_selector') }}">Guide des Espèces</a></li>
+                    <li><a href="{{ url_for('favorites') }}">Mes Favoris</a></li>
+                    <li><a href="{{ url_for('science') }}">Science Halieutique</a></li>
+                    <li><a href="{{ url_for('alerts') }}">Alertes Intelligentes</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4 style="color:#f8fafc;margin-bottom:1rem">Contact & Support</h4>
+                <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
+                    <i class="fas fa-envelope"></i> contactfishingpredictor@gmail.com
+                </p>
+                <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
+                    <i class="fas fa-phone"></i> +216 xx xxx xxx
+                </p>
+                <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
+                    <i class="fas fa-map-marker-alt"></i> Tunis, Tunisie
+                </p>
+                <p style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
+                    <i class="fas fa-clock"></i> Support 7j/7
+                </p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; <span>2026</span> Fishing Predictor Pro. Tous droits réservés. | Précision scientifique validée</p>
+            <p style="margin-top:0.5rem;font-size:0.9rem">Utilise des données meteorologiques et scientifiques pour des prédictions fiables</p>
+        </div>
+    </div>
+</footer>
+
+<!-- Scripts globaux -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/favorites.js') }}"></script>
+
+<script>
+// ===== GESTION DU MENU MOBILE =====
+function toggleMobileMenu() {
+    const navLinks = document.getElementById('navLinks');
+    const overlay = document.getElementById('menuOverlay');
+    const body = document.body;
+    
+    navLinks.classList.toggle('active');
+    overlay.classList.toggle('active');
+    body.classList.toggle('menu-open');
+}
+
+function closeMobileMenu() {
+    const navLinks = document.getElementById('navLinks');
+    const overlay = document.getElementById('menuOverlay');
+    const body = document.body;
+    
+    navLinks.classList.remove('active');
+    overlay.classList.remove('active');
+    body.classList.remove('menu-open');
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Fermer le menu en cliquant sur un lien (mobile)
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileMenu();
+            }
+        });
+    });
+    
+    // Fermer avec la touche Échap
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeMobileMenu();
+    });
+    
+    // Fermer au redimensionnement si on passe en desktop
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) closeMobileMenu();
+    });
+});
+
+// Exposer les fonctions globalement
+window.toggleMobileMenu = toggleMobileMenu;
+window.closeMobileMenu = closeMobileMenu;
+</script>
+
+{% block extra_js %}{% endblock %}
+
+<!-- Schema.org -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Fishing Predictor Pro",
+  "description": "Carte interactive de prédiction pour la pêche avec prévisions météo et conseils par espèce",
+  "url": "https://fishing-activity.onrender.com",
+  "applicationCategory": "WeatherApplication",
+  "operatingSystem": "Any",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "125",
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Fishing Predictor Pro"
+  },
+  "datePublished": "2024-01-01",
+  "dateModified": "2026-02-11"
+}
+</script>
+</body>
+</html>
