@@ -1,34 +1,164 @@
-// main.js - Version optimisée mobile AVEC animation vent active
+// main.js - Version complète avec fonctions de sélection de spot pour TOUTES les pages
 console.log("🎣 Fishing Predictor Pro - Module principal initialisé");
 
 // Variables globales
 let currentWeatherData = null;
 let isWeatherInitialized = false;
 let isMobileDevice = false;
+let currentLat = 36.8065;
+let currentLon = 10.1815;
+let map = null;
+let currentMarker = null;
 
-// Détection mobile (informative uniquement)
+// Détection mobile
 function detectMobileDevice() {
     isMobileDevice = (window.innerWidth <= 768) || 
                      ('ontouchstart' in window) || 
                      (navigator.maxTouchPoints > 0) ||
                      (navigator.msMaxTouchPoints > 0);
-    
-    console.log(`📱 Détection mobile: ${isMobileDevice ? 'OUI' : 'NON'} - Animation vent ACTIVE`);
+    console.log(`📱 Détection mobile: ${isMobileDevice ? 'OUI' : 'NON'}`);
     return isMobileDevice;
 }
 
-// Fonction principale pour charger les données météo
-async function loadWeatherData() {
-    console.log("🌤️ Chargement des données météo...");
+// ========== FONCTIONS DE CARTE ET SPOTS ==========
+
+// Calcul de distance précis (Formule de Haversine)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Rayon de la Terre en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Sélection de spot (UNIVERSEL - utilisable sur toutes les pages)
+async function selectSpot(event, lat, lon, name) {
+    try {
+        console.log('🎯 Sélection du spot :', name, lat, lon);
+        
+        // Sauvegarder la position utilisateur AVANT de la changer
+        const userLat = currentLat;
+        const userLon = currentLon;
+        
+        // Calcul précis de la distance
+        const distanceKm = calculateDistance(userLat, userLon, lat, lon);
+        
+        // Mettre à jour la position courante
+        currentLat = lat;
+        currentLon = lon;
+        
+        // Sauvegarder dans localStorage pour persistance entre les pages
+        localStorage.setItem('currentLat', lat);
+        localStorage.setItem('currentLon', lon);
+        localStorage.setItem('currentSpotName', name);
+        localStorage.setItem('currentSpotDistance', distanceKm.toFixed(1));
+        
+        // Centrer la carte si elle existe
+        if (map && typeof map.setView === 'function') {
+            map.setView([lat, lon], 13);
+        }
+        
+        // Mettre à jour l'affichage du spot si les éléments existent
+        updateSpotDisplay(name, lat, lon, distanceKm);
+        
+        // Rafraîchir les données météo pour ce spot
+        loadWeatherData(lat, lon);
+        
+        // Déclencher un événement personnalisé pour informer les autres scripts
+        const spotSelectedEvent = new CustomEvent('spotSelected', {
+            detail: { lat, lon, name, distance: distanceKm }
+        });
+        document.dispatchEvent(spotSelectedEvent);
+        
+        showNotification(`Spot sélectionné : ${name}`, 'success');
+    } catch (error) {
+        console.error('❌ Erreur selectSpot:', error);
+        showNotification('Erreur lors de la sélection', 'error');
+    }
+}
+
+// Mettre à jour l'affichage du spot
+function updateSpotDisplay(name, lat, lon, distanceKm) {
+    // Mettre à jour spot-info si présent
+    const spotInfo = document.getElementById('spot-info');
+    if (spotInfo) {
+        spotInfo.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                <div>
+                    <h3 style="margin:0;color:#3b82f6">${escapeHTML(name)}</h3>
+                    <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
+                        ${lat.toFixed(4)}, ${lon.toFixed(4)}
+                    </div>
+                </div>
+                <div style="background:#1e293b;padding:0.5rem 1rem;border-radius:20px;text-align:center">
+                    <div style="color:#94a3b8;font-size:.8rem">Distance</div>
+                    <div style="font-weight:700;font-size:1.3rem;color:#f8fafc">${distanceKm.toFixed(1)} km</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Mettre à jour distance-info si présent
+    const distanceInfo = document.getElementById('distance-info');
+    if (distanceInfo) {
+        distanceInfo.innerHTML = `
+            <div style="display:flex;align-items:center;gap:.75rem;color:white;padding:.75rem 1rem;background:#0f172a;border-radius:8px;border-left:4px solid #3b82f6">
+                <i class="fas fa-ship" style="color:#3b82f6;font-size:1.2rem"></i>
+                <div>
+                    <span style="font-weight:600">${distanceKm.toFixed(1)} km</span>
+                    <span style="color:#94a3b8;margin-left:0.5rem">du spot sélectionné</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Mettre à jour d'autres éléments potentiels
+    const selectedSpotName = document.getElementById('selected-spot-name');
+    if (selectedSpotName) selectedSpotName.textContent = name;
+    
+    const selectedSpotCoords = document.getElementById('selected-spot-coords');
+    if (selectedSpotCoords) selectedSpotCoords.textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+}
+
+// Échapper le HTML pour éviter les injections XSS
+function escapeHTML(str) {
+    return String(str).replace(/[&<>"]/g, c => ({ 
+        '&':'&amp;', 
+        '<':'&lt;', 
+        '>':'&gt;', 
+        '"':'&quot;' 
+    })[c] || c);
+}
+
+// Restaurer le dernier spot sélectionné depuis localStorage
+function restoreLastSpot() {
+    const savedLat = localStorage.getItem('currentLat');
+    const savedLon = localStorage.getItem('currentLon');
+    const savedName = localStorage.getItem('currentSpotName');
+    const savedDistance = localStorage.getItem('currentSpotDistance');
+    
+    if (savedLat && savedLon) {
+        currentLat = parseFloat(savedLat);
+        currentLon = parseFloat(savedLon);
+        
+        if (savedName) {
+            updateSpotDisplay(savedName, currentLat, currentLon, parseFloat(savedDistance || 0));
+            console.log(`🔄 Spot restauré: ${savedName} (${currentLat}, ${currentLon})`);
+        }
+    }
+}
+
+// ========== FONCTIONS MÉTÉO ==========
+
+// Charger les données météo pour une position donnée
+async function loadWeatherData(lat = currentLat, lon = currentLon) {
+    console.log(`🌤️ Chargement des données météo pour ${lat}, ${lon}...`);
     
     try {
-        // Coordonnées par défaut (Tunis Marina)
-        const lat = 36.8065;
-        const lon = 10.1815;
-        
-        console.log(`📍 Position: ${lat}, ${lon}`);
-        
-        // Appeler l'API météo
         const response = await fetch(`/api/current_weather?lat=${lat}&lon=${lon}`);
         
         if (!response.ok) {
@@ -36,7 +166,6 @@ async function loadWeatherData() {
         }
         
         const data = await response.json();
-        console.log("📊 Données météo reçues:", data);
         
         if (data.status === 'success') {
             currentWeatherData = data.weather;
@@ -54,27 +183,18 @@ async function loadWeatherData() {
         }
     } catch (error) {
         console.error('❌ Erreur lors du chargement de la météo:', error);
-        
-        // Afficher une notification d'erreur
         showNotification('Impossible de charger la météo, données simulées utilisées', 'warning');
         
-        // Utiliser des données simulées en cas d'erreur
         const fallbackWeather = generateFallbackWeather();
         updateWeatherDisplay(fallbackWeather);
         return fallbackWeather;
     }
 }
 
-// Mettre à jour l'affichage de la météo dans le DOM
+// Mettre à jour l'affichage de la météo
 function updateWeatherDisplay(weatherData) {
-    console.log("🎨 Mise à jour de l'affichage météo:", weatherData);
+    if (!weatherData) return;
     
-    if (!weatherData) {
-        console.error("❌ Aucune donnée météo à afficher");
-        return;
-    }
-    
-    // Mettre à jour les éléments du DOM
     const elementsToUpdate = {
         'temperature': `${weatherData.temperature?.toFixed(1) || '--'}°C`,
         'weather-condition': weatherData.condition_fr || weatherData.condition || '--',
@@ -87,44 +207,18 @@ function updateWeatherDisplay(weatherData) {
         'weather-updated': new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})
     };
     
-    // Mettre à jour chaque élément
     Object.entries(elementsToUpdate).forEach(([id, value]) => {
         const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-            console.log(`   ✅ ${id}: ${value.substring(0, 30)}...`);
-        }
+        if (element) element.textContent = value;
     });
     
-    // Mettre à jour l'icône de direction du vent
     const windIconElement = document.getElementById('weather-icon');
     if (windIconElement) {
         windIconElement.textContent = weatherData.wind_direction_icon || '⬆️';
     }
     
-    // Mettre à jour les badges de sécurité du vent
     updateWindSafetyBadges(weatherData);
-    
-    // Stocker en cache pour utilisation ultérieure
     window.weatherDataCache = weatherData;
-    
-    console.log("✅ Affichage météo mis à jour avec succès");
-}
-
-// Obtenir l'icône météo appropriée
-function getWeatherIcon(condition, iconCode) {
-    if (!condition) return '🌤️';
-    
-    const conditionLower = condition.toLowerCase();
-    if (conditionLower.includes('clear') || conditionLower.includes('sunny')) return '☀️';
-    if (conditionLower.includes('cloud')) return '⛅';
-    if (conditionLower.includes('rain')) return '🌧️';
-    if (conditionLower.includes('drizzle')) return '🌦️';
-    if (conditionLower.includes('thunder') || conditionLower.includes('storm')) return '⛈️';
-    if (conditionLower.includes('snow')) return '❄️';
-    if (conditionLower.includes('fog') || conditionLower.includes('mist')) return '🌫️';
-    
-    return '🌤️';
 }
 
 // Mettre à jour les badges de sécurité du vent
@@ -140,7 +234,6 @@ function updateWindSafetyBadges(weatherData) {
         offshoreDanger.style.display = weatherData.wind_offshore ? 'block' : 'none';
     }
     
-    // Mettre à jour les conseils de pêche
     const fishingTips = document.getElementById('wind-fishing-tips');
     if (fishingTips) {
         if (weatherData.wind_offshore) {
@@ -157,15 +250,8 @@ function updateWindSafetyBadges(weatherData) {
 
 // Générer des données météo de secours
 function generateFallbackWeather() {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    // Température basée sur l'heure
-    const baseTemp = 20;
-    const hourVariation = Math.sin(hour * Math.PI / 12) * 5;
-    const temp = baseTemp + hourVariation;
-    
-    // Vent basé sur l'heure
+    const hour = new Date().getHours();
+    const temp = 20 + Math.sin(hour * Math.PI / 12) * 5;
     const wind = 10 + Math.sin(hour * Math.PI / 6) * 5;
     
     return {
@@ -180,73 +266,32 @@ function generateFallbackWeather() {
         pressure: 1015,
         humidity: 65,
         icon: '01d',
-        source: 'modèle local',
         wind_offshore: false,
         wind_onshore: true
     };
 }
 
-// Rafraîchir la météo
-function refreshWeather() {
-    console.log("🔄 Rafraîchissement de la météo...");
-    loadWeatherData();
-    showNotification('Météo actualisée', 'info');
-}
-
 // Initialiser la météo
 function initWeather() {
-    if (isWeatherInitialized) {
-        console.log("⚠️ Météo déjà initialisée");
-        return;
-    }
+    if (isWeatherInitialized) return;
     
-    console.log("🚀 Initialisation du module météo...");
-    
-    // Vérifier si on est sur une page qui nécessite la météo
     const hasWeatherElements = document.getElementById('temperature') || 
                                document.getElementById('weather-condition') ||
                                document.getElementById('wind-speed');
     
-    if (isHomePage() || isPredictionsPage() || hasWeatherElements) {
-        console.log("📄 Page détectée avec éléments météo");
-        
-        // Cacher le conteneur d'erreur au démarrage
-        const errorEl = document.getElementById('weather-error');
-        if (errorEl) errorEl.style.display = 'none';
-        
-        // Charger la météo immédiatement
+    if (hasWeatherElements) {
         loadWeatherData();
-        
-        // Recharger la météo toutes les 5 minutes (identique sur mobile/desktop)
-        setInterval(loadWeatherData, 5 * 60 * 1000);
-        
+        setInterval(() => loadWeatherData(), 5 * 60 * 1000);
         isWeatherInitialized = true;
-        console.log("✅ Module météo initialisé avec succès");
-    } else {
-        console.log("⚠️ Page sans éléments météo détectée");
     }
 }
 
-// Vérifier si on est sur la page d'accueil
-function isHomePage() {
-    const path = window.location.pathname;
-    return path === '/' || path.includes('index') || path === '' || path.endsWith('/');
-}
+// ========== NOTIFICATIONS ==========
 
-// Vérifier si on est sur la page des prévisions
-function isPredictionsPage() {
-    return window.location.pathname.includes('/predictions');
-}
-
-// Afficher une notification
 function showNotification(message, type = 'info') {
-    console.log(`📢 ${type.toUpperCase()}: ${message}`);
-    
     // Supprimer les notifications existantes
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notif => notif.remove());
+    document.querySelectorAll('.notification').forEach(notif => notif.remove());
     
-    // Créer une notification
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     
@@ -257,150 +302,88 @@ function showNotification(message, type = 'info') {
         'info': 'info-circle'
     };
     
-    const icon = icons[type] || 'info-circle';
-    
     notification.innerHTML = `
-        <i class="fas fa-${icon}" style="font-size: 1.2rem"></i>
+        <i class="fas fa-${icons[type] || 'info-circle'}" style="font-size: 1.2rem"></i>
         <span style="flex:1">${message}</span>
         <button class="close-notification" onclick="this.parentElement.remove()">×</button>
     `;
     
     document.body.appendChild(notification);
     
-    // Animation
+    setTimeout(() => notification.classList.add('show'), 10);
     setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    // Supprimer après 5 secondes
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 300);
-        }
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
     }, 5000);
 }
 
-// Vérifier les éléments DOM météo
-function checkWeatherElements() {
-    console.log("🔍 Vérification des éléments météo...");
-    
-    const elements = [
-        'temperature', 'weather-condition', 'wind-speed', 'weather-location-name',
-        'weather-icon', 'wind-direction', 'weather-pressure', 'wind-impact',
-        'wind-fishing-tips', 'weather-updated'
-    ];
-    
-    elements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            console.log(`   ✅ ${id}: présent`);
-        } else {
-            console.log(`   ⚠️ ${id}: absent`);
-        }
-    });
-}
+// ========== ANIMATION VENT ==========
 
-// Fonction pour tester l'API météo
-window.testWeatherAPI = async function() {
-    console.log("🧪 Test manuel de l'API météo...");
-    
-    try {
-        const response = await fetch('/api/current_weather?lat=36.8065&lon=10.1815&refresh=true');
-        const data = await response.json();
-        console.log("📊 Résultat du test:", data);
-        
-        if (data.status === 'success') {
-            showNotification(`✅ Météo chargée! ${data.weather.temperature}°C, ${data.weather.condition_fr}`, 'success');
-            return data.weather;
-        } else {
-            showNotification('❌ Erreur: ' + (data.message || 'Inconnue'), 'error');
-            return null;
-        }
-    } catch (error) {
-        console.error('❌ Erreur test:', error);
-        showNotification('❌ Erreur de connexion: ' + error.message, 'error');
-        return null;
-    }
-};
-
-// Fonction pour activer/désactiver l'animation du vent (ACTIVE SUR MOBILE)
 window.toggleWindAnimation = function() {
     console.log("💨 Toggle animation du vent");
     if (typeof window.toggleWindLayer === 'function') {
         window.toggleWindLayer();
     } else {
-        showNotification('Animation du vent non disponible sur cette page', 'warning');
+        showNotification('Animation du vent disponible sur la page principale', 'info');
     }
 };
 
-// Back to top button
+// ========== BACK TO TOP ==========
+
 function initBackToTop() {
-    const backToTop = document.getElementById('back-to-top');
-    if (!backToTop) {
-        const btn = document.createElement('div');
-        btn.id = 'back-to-top';
-        btn.className = 'back-to-top';
-        btn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-        btn.style.display = 'none';
-        
-        btn.addEventListener('click', function() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        
-        document.body.appendChild(btn);
-        
-        window.addEventListener('scroll', function() {
-            btn.style.display = window.scrollY > 300 ? 'flex' : 'none';
-        });
-    }
+    if (document.getElementById('back-to-top')) return;
+    
+    const btn = document.createElement('div');
+    btn.id = 'back-to-top';
+    btn.className = 'back-to-top';
+    btn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+    btn.style.display = 'none';
+    
+    btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    
+    document.body.appendChild(btn);
+    
+    window.addEventListener('scroll', () => {
+        btn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+    });
 }
 
-// Initialisation
+// ========== INITIALISATION ==========
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("📄 DOM chargé - Initialisation de l'application");
     
-    // Détecter mobile (informative uniquement)
     detectMobileDevice();
-    
-    // Initialiser back to top
     initBackToTop();
+    restoreLastSpot();
+    initWeather();
     
-    // Initialiser la météo après un court délai
-    setTimeout(() => {
-        initWeather();
-        checkWeatherElements();
-    }, 1000);
+    // Écouter les clics sur les boutons de sélection de spot
+    document.addEventListener('click', function(e) {
+        const selectSpotBtn = e.target.closest('[data-select-spot]');
+        if (selectSpotBtn) {
+            const lat = parseFloat(selectSpotBtn.dataset.lat);
+            const lon = parseFloat(selectSpotBtn.dataset.lon);
+            const name = selectSpotBtn.dataset.name || 'Spot';
+            selectSpot(e, lat, lon, name);
+        }
+    });
     
-    // Adapter les popups Leaflet pour mobile (mais garder l'animation vent)
-    if (isMobileDevice) {
-        setTimeout(() => {
-            document.querySelectorAll('.leaflet-popup-close-button').forEach(btn => {
-                btn.style.width = '36px';
-                btn.style.height = '36px';
-                btn.style.fontSize = '22px';
-                btn.style.lineHeight = '36px';
-            });
-        }, 2000);
-    }
-    
-    console.log("✅ Application initialisée - Animation vent DISPONIBLE sur mobile");
+    console.log("✅ Application initialisée - Fonctions de spot disponibles sur toutes les pages");
 });
 
-// Exposer les fonctions globalement
+// ========== EXPOSITION GLOBALE ==========
+
+window.selectSpot = selectSpot;
+window.calculateDistance = calculateDistance;
 window.loadWeatherData = loadWeatherData;
 window.updateWeatherDisplay = updateWeatherDisplay;
 window.initWeather = initWeather;
 window.showNotification = showNotification;
-window.testWeatherAPI = testWeatherAPI;
-window.refreshWeather = refreshWeather;
 window.toggleWindAnimation = toggleWindAnimation;
-window.checkWeatherElements = checkWeatherElements;
-window.detectMobileDevice = detectMobileDevice;
-window.isMobileDevice = false; // Sera mis à jour
+window.escapeHTML = escapeHTML;
+window.currentLat = currentLat;
+window.currentLon = currentLon;
+window.isMobileDevice = isMobileDevice; // ✅ AJOUT : exposition de la variable globale
 
-console.log("✅ Module main.js chargé - Animation vent ACTIVE sur mobile");
+console.log("✅ Module main.js chargé - Fonctions de sélection de spot disponibles GLOBALEMENT");
