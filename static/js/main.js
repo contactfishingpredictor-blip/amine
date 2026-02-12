@@ -1,9 +1,21 @@
-// main.js - Version complètement corrigée avec météo et animation du vent
+// main.js - Version optimisée mobile avec détection et performance
 console.log("🎣 Fishing Predictor Pro - Module principal initialisé");
 
 // Variables globales
 let currentWeatherData = null;
 let isWeatherInitialized = false;
+let isMobileDevice = false;
+
+// Détection mobile
+function detectMobileDevice() {
+    isMobileDevice = (window.innerWidth <= 768) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0) ||
+                     (navigator.msMaxTouchPoints > 0);
+    
+    console.log(`📱 Détection mobile: ${isMobileDevice ? 'OUI' : 'NON'}`);
+    return isMobileDevice;
+}
 
 // Fonction principale pour charger les données météo
 async function loadWeatherData() {
@@ -30,11 +42,6 @@ async function loadWeatherData() {
             currentWeatherData = data.weather;
             console.log("✅ Météo chargée avec succès");
             updateWeatherDisplay(currentWeatherData);
-            
-            // Mettre à jour l'animation du vent si elle est active
-            if (typeof window.updateWindAnimation === 'function' && window.windAnimationActive) {
-                window.updateWindAnimation();
-            }
             
             return currentWeatherData;
         } else {
@@ -80,36 +87,18 @@ function updateWeatherDisplay(weatherData) {
         const element = document.getElementById(id);
         if (element) {
             element.textContent = value;
-            console.log(`   ✅ ${id}: ${value}`);
-        } else {
-            console.log(`   ⚠️  Élément ${id} non trouvé dans le DOM`);
+            console.log(`   ✅ ${id}: ${value.substring(0, 30)}...`);
         }
     });
     
-    // Mettre à jour l'icône météo principale si présente
-    const weatherMainIcon = document.getElementById('weather-main-icon');
-    if (weatherMainIcon) {
-        const weatherIcon = getWeatherIcon(weatherData.condition, weatherData.icon);
-        weatherMainIcon.innerHTML = weatherIcon;
-        console.log(`   ✅ Icône météo principale: ${weatherIcon}`);
-    }
-    
-    // Mettre à jour l'icône de direction du vent (weather-icon)
+    // Mettre à jour l'icône de direction du vent
     const windIconElement = document.getElementById('weather-icon');
     if (windIconElement) {
         windIconElement.textContent = weatherData.wind_direction_icon || '⬆️';
-        console.log(`   ✅ Icône direction vent: ${weatherData.wind_direction_icon || '⬆️'}`);
-    } else {
-        console.log('   ⚠️ Élément weather-icon non trouvé');
     }
     
     // Mettre à jour les badges de sécurité du vent
     updateWindSafetyBadges(weatherData);
-    
-    // Mettre à jour la légende du vent si elle est visible
-    if (typeof window.updateWindLegend === 'function') {
-        window.updateWindLegend();
-    }
     
     // Stocker en cache pour utilisation ultérieure
     window.weatherDataCache = weatherData;
@@ -136,58 +125,28 @@ function getWeatherIcon(condition, iconCode) {
 // Mettre à jour les badges de sécurité du vent
 function updateWindSafetyBadges(weatherData) {
     const windOffshoreAlert = document.getElementById('wind-offshore-alert');
-    const windStrongAlert = document.getElementById('wind-strong-alert');
+    const offshoreDanger = document.getElementById('offshore-danger');
     
     if (windOffshoreAlert) {
         windOffshoreAlert.style.display = weatherData.wind_offshore ? 'block' : 'none';
-        if (weatherData.wind_offshore) {
-            console.log('   ⚠️ Alerte vent offshore activée');
-        }
     }
     
-    if (windStrongAlert) {
-        windStrongAlert.style.display = (weatherData.wind_speed > 25) ? 'block' : 'none';
-        if (weatherData.wind_speed > 25) {
-            console.log('   💨 Alerte vent fort activée');
-        }
-    }
-    
-    // Mettre à jour le badge de sécurité
-    const safetyBadge = document.getElementById('wind-safety-badge');
-    if (safetyBadge) {
-        if (weatherData.wind_offshore) {
-            safetyBadge.textContent = 'Dangereux';
-            safetyBadge.style.background = '#fee2e2';
-            safetyBadge.style.color = '#991b1b';
-        } else if (weatherData.wind_speed < 10) {
-            safetyBadge.textContent = 'Sécuritaire';
-            safetyBadge.style.background = '#d1fae5';
-            safetyBadge.style.color = '#065f46';
-        } else if (weatherData.wind_speed < 20) {
-            safetyBadge.textContent = 'Modéré';
-            safetyBadge.style.background = '#fef3c7';
-            safetyBadge.style.color = '#92400e';
-        } else {
-            safetyBadge.textContent = 'Difficile';
-            safetyBadge.style.background = '#fee2e2';
-            safetyBadge.style.color = '#991b1b';
-        }
-        console.log(`   ✅ Badge sécurité: ${safetyBadge.textContent}`);
+    if (offshoreDanger) {
+        offshoreDanger.style.display = weatherData.wind_offshore ? 'block' : 'none';
     }
     
     // Mettre à jour les conseils de pêche
     const fishingTips = document.getElementById('wind-fishing-tips');
     if (fishingTips) {
         if (weatherData.wind_offshore) {
-            fishingTips.textContent = '⚠️ VENT DE TERRE - ÉVITEZ LA PÊCHE CÔTIÈRE. Risque d\'être emporté au large.';
-        } else if (weatherData.wind_speed > 25) {
-            fishingTips.textContent = 'Vent fort détecté. Conditions difficiles pour la pêche. Privilégiez la pêche au surfcasting.';
-        } else if (weatherData.wind_speed > 15) {
-            fishingTips.textContent = 'Vent modéré. Bonnes conditions pour la pêche, mais soyez prudent.';
+            fishingTips.textContent = '⚠️ VENT OFFSHORE - DANGER DE NOYADE. NE PÊCHEZ PAS.';
+        } else if (weatherData.wind_speed > 30) {
+            fishingTips.textContent = 'VENT TRÈS FORT - Pêche déconseillée, risque de sécurité élevé.';
+        } else if (weatherData.wind_speed > 20) {
+            fishingTips.textContent = 'Vent fort - Conditions difficiles, prudence recommandée.';
         } else {
-            fishingTips.textContent = 'Conditions optimales pour la pêche. Vent faible et favorable.';
+            fishingTips.textContent = weatherData.wind_fishing_impact || 'Conditions normales pour la pêche.';
         }
-        console.log(`   ✅ Conseils pêche: ${fishingTips.textContent.substring(0, 50)}...`);
     }
 }
 
@@ -253,8 +212,9 @@ function initWeather() {
         // Charger la météo immédiatement
         loadWeatherData();
         
-        // Recharger la météo toutes les 5 minutes
-        setInterval(loadWeatherData, 5 * 60 * 1000);
+        // Recharger la météo toutes les 10 minutes (moins fréquent sur mobile)
+        const refreshInterval = isMobileDevice ? 10 * 60 * 1000 : 5 * 60 * 1000;
+        setInterval(loadWeatherData, refreshInterval);
         
         isWeatherInitialized = true;
         console.log("✅ Module météo initialisé avec succès");
@@ -278,44 +238,40 @@ function isPredictionsPage() {
 function showNotification(message, type = 'info') {
     console.log(`📢 ${type.toUpperCase()}: ${message}`);
     
-    // Créer une notification simple
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        background: ${type === 'success' ? '#10b981' : 
-                     type === 'error' ? '#ef4444' : 
-                     type === 'warning' ? '#f59e0b' : '#3b82f6'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 500;
-        max-width: 350px;
-    `;
+    // Supprimer les notifications existantes
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notif => notif.remove());
     
-    const icon = type === 'success' ? 'check-circle' : 
-                 type === 'error' ? 'exclamation-circle' : 
-                 type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+    // Créer une notification
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icons = {
+        'success': 'check-circle',
+        'error': 'exclamation-circle',
+        'warning': 'exclamation-triangle',
+        'info': 'info-circle'
+    };
+    
+    const icon = icons[type] || 'info-circle';
     
     notification.innerHTML = `
         <i class="fas fa-${icon}" style="font-size: 1.2rem"></i>
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()" style="margin-left:15px;background:none;border:none;color:white;cursor:pointer;font-size:1.2rem">×</button>
+        <span style="flex:1">${message}</span>
+        <button class="close-notification" onclick="this.parentElement.remove()">×</button>
     `;
     
     document.body.appendChild(notification);
     
+    // Animation
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
     // Supprimer après 5 secondes
     setTimeout(() => {
         if (notification.parentElement) {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.3s';
+            notification.classList.remove('show');
             setTimeout(() => {
                 if (notification.parentElement) {
                     notification.remove();
@@ -340,12 +296,12 @@ function checkWeatherElements() {
         if (el) {
             console.log(`   ✅ ${id}: présent`);
         } else {
-            console.log(`   ❌ ${id}: absent`);
+            console.log(`   ⚠️ ${id}: absent`);
         }
     });
 }
 
-// Fonction pour tester l'API météo manuellement
+// Fonction pour tester l'API météo
 window.testWeatherAPI = async function() {
     console.log("🧪 Test manuel de l'API météo...");
     
@@ -368,8 +324,13 @@ window.testWeatherAPI = async function() {
     }
 };
 
-// Fonction pour activer/désactiver l'animation du vent
+// Fonction pour activer/désactiver l'animation du vent (désactivée sur mobile par défaut)
 window.toggleWindAnimation = function() {
+    if (isMobileDevice) {
+        showNotification('Animation du vent désactivée sur mobile pour économiser la batterie', 'info');
+        return;
+    }
+    
     console.log("💨 Toggle animation du vent");
     if (typeof window.toggleWindLayer === 'function') {
         window.toggleWindLayer();
@@ -378,53 +339,55 @@ window.toggleWindAnimation = function() {
     }
 };
 
-// Fonction pour vérifier si l'animation du vent est disponible
-function checkWindAnimationAvailability() {
-    console.log("🔧 Vérification disponibilité animation vent...");
-    
-    const functions = [
-        'toggleWindLayer',
-        'addWindAnimation',
-        'removeWindAnimation',
-        'updateWindAnimation'
-    ];
-    
-    functions.forEach(func => {
-        if (typeof window[func] === 'function') {
-            console.log(`   ✅ ${func}(): disponible`);
-        } else {
-            console.log(`   ❌ ${func}(): non disponible`);
-        }
-    });
+// Back to top button
+function initBackToTop() {
+    const backToTop = document.getElementById('back-to-top');
+    if (!backToTop) {
+        const btn = document.createElement('div');
+        btn.id = 'back-to-top';
+        btn.className = 'back-to-top';
+        btn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        btn.style.display = 'none';
+        
+        btn.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        
+        document.body.appendChild(btn);
+        
+        window.addEventListener('scroll', function() {
+            btn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+        });
+    }
 }
 
-// Back to top button
+// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     console.log("📄 DOM chargé - Initialisation de l'application");
     
-    // Back to top button
-    const backToTop = document.createElement('div');
-    backToTop.id = 'back-to-top';
-    backToTop.className = 'back-to-top';
-    backToTop.innerHTML = '<i class="fas fa-arrow-up"></i>';
-    backToTop.style.display = 'none';
+    // Détecter mobile
+    detectMobileDevice();
     
-    backToTop.addEventListener('click', function() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    
-    document.body.appendChild(backToTop);
-    
-    window.addEventListener('scroll', function() {
-        backToTop.style.display = window.scrollY > 300 ? 'flex' : 'none';
-    });
+    // Initialiser back to top
+    initBackToTop();
     
     // Initialiser la météo après un court délai
     setTimeout(() => {
         initWeather();
         checkWeatherElements();
-        checkWindAnimationAvailability();
     }, 1000);
+    
+    // Adapter les popups Leaflet pour mobile
+    if (isMobileDevice) {
+        setTimeout(() => {
+            document.querySelectorAll('.leaflet-popup-close-button').forEach(btn => {
+                btn.style.width = '36px';
+                btn.style.height = '36px';
+                btn.style.fontSize = '22px';
+                btn.style.lineHeight = '36px';
+            });
+        }, 2000);
+    }
     
     console.log("✅ Application initialisée");
 });
@@ -438,5 +401,7 @@ window.testWeatherAPI = testWeatherAPI;
 window.refreshWeather = refreshWeather;
 window.toggleWindAnimation = toggleWindAnimation;
 window.checkWeatherElements = checkWeatherElements;
+window.detectMobileDevice = detectMobileDevice;
+window.isMobileDevice = false; // Sera mis à jour
 
-console.log("✅ Module main.js chargé avec fonctions météo et animation du vent complètes");
+console.log("✅ Module main.js chargé - Version optimisée mobile");
