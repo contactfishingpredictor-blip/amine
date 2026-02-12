@@ -9,3 +9,4 @@ secure-smtplib==0.1.1
 email-validator==2.1.2
 setuptools==75.8.0
 wheel==0.45.1
+netCDF4==1.6.5
