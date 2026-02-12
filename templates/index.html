@@ -458,7 +458,7 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // ====================================================================
-// FISHING DASHBOARD - VERSION FINALE CORRIGÉE
+// FISHING DASHBOARD - VERSION FINALE CORRIGÉE (clic unique sur spot)
 // ====================================================================
 
 const FishingDashboard = (function() {
@@ -889,7 +889,7 @@ const FishingDashboard = (function() {
         }, 1000);
     }
 
-    // ---------- GESTION DES SPOTS ----------
+    // ---------- GESTION DES SPOTS (CORRECTION ICI : clic sur le marqueur) ----------
     function addSpotToMap(spot, isCustom = false) {
         if(!spot || !spot.lat || !spot.lon) return;
         let iconColor = {port:'#3b82f6',plage:'#10b981',rocheux:'#f59e0b',custom:'#ef4444'}[spot.type] || '#6b7280';
@@ -901,6 +901,12 @@ const FishingDashboard = (function() {
         });
         
         const marker = L.marker([spot.lat, spot.lon], {icon}).addTo(map);
+        
+        // --- CORRECTION : Sélection immédiate au clic sur le marqueur ---
+        marker.on('click', function(e) {
+            // L.Util.cancelEvent(e); // Décommentez pour empêcher l'ouverture automatique de la popup
+            FishingDashboard.selectSpot(e, spot.lat, spot.lon, spot.name);
+        });
         
         let popupContent = `
             <div style="min-width:200px;">
