@@ -1479,9 +1479,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setTimeout(() => MapManager.init(), 100);
     
+    // ✅ CORRECTION : Sélection sécurisée du premier spot
     // Si aucun spot n'est sélectionné, prendre le premier spot par défaut
-    if (!AppState.currentSpot && Config.spots.length) {
-        SpotSelector.select(Config.spots[0].lat, Config.spots[0].lon, Config.spots[0].name);
+    if (!AppState.currentSpot && Config.spots && Config.spots.length > 0) {
+        const defaultSpot = Config.spots[0];
+        if (defaultSpot && defaultSpot.lat && defaultSpot.lon) {
+            SpotSelector.select(defaultSpot.lat, defaultSpot.lon, defaultSpot.name);
+        } else {
+            // Fallback sur Tunis Marina
+            SpotSelector.select(36.8065, 10.1815, 'Tunis Marina');
+        }
     }
     
     // Exposer l'état global pour debug
