@@ -115,6 +115,7 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.9rem;
+        min-height: 44px;
     }
     
     .btn-primary {
@@ -313,11 +314,6 @@
         to { opacity: 1; }
     }
     
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-    
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -329,6 +325,7 @@
         .map-container { height: 350px; }
         .forecast-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
         .day-stats-grid { grid-template-columns: 1fr 1fr; }
+        .btn { width: 100%; }
     }
     
     @media (max-width: 480px) {
@@ -338,7 +335,7 @@
         .day-stats-grid { grid-template-columns: 1fr; }
     }
 
-    /* ===== STYLES UNIQUES POUR LE CALENDRIER LUNAIRE ===== */
+    /* === STYLES CALENDRIER LUNAIRE === */
     .lunar-card {
         background: rgba(15, 23, 42, 0.95);
         border: 1px solid #8b5cf6;
@@ -369,16 +366,6 @@
         position: relative;
         overflow: hidden;
         cursor: pointer;
-    }
-    .moon-day::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.1), transparent);
-        pointer-events: none;
     }
     .moon-day:hover {
         transform: scale(1.1) rotate(5deg);
@@ -508,13 +495,12 @@
                 </div>
                 
                 <!-- Info spot -->
-                <div id="spot-info-card" style="margin-top:1rem;padding:0.75rem;background:rgba(51,65,85,0.6);border-radius:8px;display:none">
-                    <h4 id="current-spot-name" style="margin:0 0 0.25rem 0;color:#3b82f6;font-size:1rem"></h4>
-                    <div id="current-spot-details" style="font-size:0.85rem;color:#94a3b8"></div>
+                <div id="spot-info" style="margin-top:1rem;padding:0.75rem;background:rgba(51,65,85,0.6);border-radius:8px;display:none">
+                    <!-- Rempli par selectSpot() -->
                 </div>
             </div>
             
-            <!-- NOUVEAU : Calendrier Lunaire Unique (Fishing Moon Wheel) -->
+            <!-- Calendrier Lunaire Unique (Fishing Moon Wheel) -->
             <div class="card lunar-card">
                 <div class="card-title">
                     <i class="fas fa-moon"></i>
@@ -631,7 +617,7 @@
 <script>
 // ============================================================================
 // FISHING PREDICTOR - PRÉVISIONS 10 JOURS
-// Version FINALE - Compatible avec main.js
+// VERSION CORRIGÉE - 100% COMPATIBLE AVEC INDEX.HTML ET MAIN.JS
 // ============================================================================
 
 // ============================================================================
@@ -689,12 +675,15 @@ const Config = {
 // ANIMATION VENT - AVEC LES NOMS ATTENDUS PAR MAIN.JS
 // ============================================================================
 const WindAnimation = {
-    // Initialisation
     init() {
         if (!AppState.map) return;
         
         const container = document.getElementById('map-container');
         if (!container) return;
+        
+        // Supprimer l'ancien canvas s'il existe
+        const oldCanvas = document.getElementById('wind-animation-canvas');
+        if (oldCanvas) oldCanvas.remove();
         
         // Créer le canvas
         const canvas = document.createElement('canvas');
@@ -717,7 +706,6 @@ const WindAnimation = {
         window.addEventListener('resize', resize);
     },
     
-    // Méthodes privées
     _initParticles() {
         const canvas = AppState.windCanvas;
         if (!canvas) return;
@@ -792,8 +780,22 @@ const WindAnimation = {
         AppState.windAnimationId = requestAnimationFrame(() => this._animate());
     },
     
+    _updateButton(isActive) {
+        const btn = document.getElementById('windToggleBtn');
+        if (btn) {
+            if (isActive) {
+                btn.innerHTML = '<i class="fas fa-wind"></i> Masquer vent';
+                btn.classList.add('btn-primary');
+                btn.classList.remove('btn-secondary');
+            } else {
+                btn.innerHTML = '<i class="fas fa-wind"></i> Afficher vent';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+            }
+        }
+    },
+    
     // ========== API PUBLIQUE - ATTENDUE PAR MAIN.JS ==========
-    // 1. toggleWindLayer() - Appelé par main.js
     toggleLayer() {
         if (AppState.windEnabled) {
             this.removeAnimation();
@@ -802,7 +804,6 @@ const WindAnimation = {
         }
     },
     
-    // 2. addWindAnimation() - Ajoute l'animation
     addAnimation() {
         AppState.windEnabled = true;
         if (AppState.windCanvas) {
@@ -813,7 +814,6 @@ const WindAnimation = {
         this._updateButton(true);
     },
     
-    // 3. removeWindAnimation() - Supprime l'animation
     removeAnimation() {
         AppState.windEnabled = false;
         if (AppState.windCanvas) {
@@ -826,7 +826,6 @@ const WindAnimation = {
         this._updateButton(false);
     },
     
-    // 4. updateWindAnimation(direction, speed) - Met à jour direction/vitesse
     updateAnimation(direction, speed) {
         if (direction !== undefined) AppState.windDirection = direction;
         if (speed !== undefined) AppState.windSpeed = speed;
@@ -835,23 +834,6 @@ const WindAnimation = {
         }
     },
     
-    // Méthode utilitaire pour le bouton
-    _updateButton(isActive) {
-        const btn = document.getElementById('windToggleBtn');
-        if (btn) {
-            if (isActive) {
-                btn.innerHTML = '<i class="fas fa-wind"></i> Masquer';
-                btn.classList.add('btn-primary');
-                btn.classList.remove('btn-secondary');
-            } else {
-                btn.innerHTML = '<i class="fas fa-wind"></i> Vent';
-                btn.classList.remove('btn-primary');
-                btn.classList.add('btn-secondary');
-            }
-        }
-    },
-    
-    // Synchronisation avec le jour sélectionné
     syncWithForecast() {
         if (AppState.forecastData && AppState.forecastData[AppState.selectedDay]) {
             const day = AppState.forecastData[AppState.selectedDay];
@@ -903,34 +885,114 @@ const MapManager = {
             });
             
             const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(AppState.map);
-            marker.bindPopup(`<b>${spot.name}</b><br>${spot.type}<br>Profondeur: ${spot.depth}`);
-            marker.on('click', () => SpotSelector.select(spot));
+            
+            // Popup avec bouton de sélection
+            marker.bindPopup(`
+                <div style="min-width:200px;">
+                    <h3 style="margin:0 0 5px;color:#1e40af">${spot.name}</h3>
+                    <span style="background:${color};color:white;padding:2px 8px;border-radius:12px;font-size:12px">${spot.type}</span>
+                    <p style="margin:5px 0">Profondeur: ${spot.depth}</p>
+                    <button onclick="window.selectSpot(${spot.lat}, ${spot.lon}, '${spot.name}')" 
+                            style="margin-top:10px;padding:8px;background:#3b82f6;color:white;border:none;border-radius:4px;width:100%;">
+                        <i class="fas fa-check"></i> Sélectionner
+                    </button>
+                </div>
+            `);
+            
+            // Clic sur le marqueur = sélection directe
+            marker.on('click', () => {
+                window.selectSpot(spot.lat, spot.lon, spot.name);
+            });
+            
             AppState.markers.push(marker);
         });
     }
 };
 
 // ============================================================================
-// SÉLECTEUR DE SPOT
+// SÉLECTEUR DE SPOT - COMPATIBLE AVEC MAIN.JS
 // ============================================================================
 const SpotSelector = {
-    select(spot) {
+    select(lat, lon, name) {
+        // Compatibilité avec les deux signatures
+        if (typeof lat === 'object') {
+            // Appel avec objet spot
+            const spot = lat;
+            this._selectSpot(spot.lat, spot.lon, spot.name);
+        } else {
+            // Appel avec paramètres séparés
+            this._selectSpot(lat, lon, name);
+        }
+    },
+    
+    _selectSpot(lat, lon, name) {
+        const spot = { lat, lon, name, type: 'custom', depth: '?' };
         AppState.currentSpot = spot;
-        AppState.currentLat = spot.lat;
-        AppState.currentLon = spot.lon;
+        AppState.currentLat = lat;
+        AppState.currentLon = lon;
         
-        const card = document.getElementById('spot-info-card');
-        const nameEl = document.getElementById('current-spot-name');
-        const detailsEl = document.getElementById('current-spot-details');
+        // Sauvegarder dans localStorage pour compatibilité avec main.js
+        localStorage.setItem('currentLat', lat);
+        localStorage.setItem('currentLon', lon);
+        localStorage.setItem('currentSpotName', name);
         
-        if (card && nameEl && detailsEl) {
-            card.style.display = 'block';
-            nameEl.textContent = spot.name;
-            detailsEl.innerHTML = `${spot.type} • ${spot.depth}`;
+        // Utiliser la fonction globale selectSpot de main.js si disponible
+        if (typeof window.selectSpot === 'function' && window.selectSpot !== this.select) {
+            window.selectSpot(null, lat, lon, name);
         }
         
-        if (AppState.map) AppState.map.setView([spot.lat, spot.lon], 13);
+        // Mettre à jour l'affichage
+        this._updateUI(spot);
+        
+        // Centrer la carte
+        if (AppState.map) AppState.map.setView([lat, lon], 13);
+        
+        // Charger les prévisions
         ForecastLoader.load();
+        
+        // Notification
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(`Spot sélectionné : ${name}`, 'success');
+        }
+    },
+    
+    _updateUI(spot) {
+        const spotInfo = document.getElementById('spot-info');
+        if (spotInfo) {
+            // Calculer la distance si la position actuelle est disponible
+            let distanceHtml = '';
+            if (typeof window.calculateDistance === 'function' && window.currentLat && window.currentLon) {
+                const distance = window.calculateDistance(window.currentLat, window.currentLon, spot.lat, spot.lon);
+                distanceHtml = `
+                    <div style="background:#1e293b;padding:0.5rem 1rem;border-radius:20px;text-align:center">
+                        <div style="color:#94a3b8;font-size:.8rem">Distance</div>
+                        <div style="font-weight:700;font-size:1.3rem;color:#f8fafc">${distance.toFixed(1)} km</div>
+                    </div>
+                `;
+            }
+            
+            spotInfo.style.display = 'block';
+            spotInfo.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                    <div>
+                        <h3 style="margin:0;color:#3b82f6">${this.escapeHTML(spot.name)}</h3>
+                        <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
+                            ${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}
+                        </div>
+                    </div>
+                    ${distanceHtml}
+                </div>
+            `;
+        }
+    },
+    
+    escapeHTML(str) {
+        return String(str).replace(/[&<>"]/g, c => ({ 
+            '&':'&amp;', 
+            '<':'&lt;', 
+            '>':'&gt;', 
+            '"':'&quot;' 
+        })[c] || c);
     },
     
     useCurrentLocation() {
@@ -941,13 +1003,11 @@ const SpotSelector = {
         
         navigator.geolocation.getCurrentPosition(
             pos => {
-                this.select({
-                    name: 'Ma position',
-                    lat: pos.coords.latitude,
-                    lon: pos.coords.longitude,
-                    type: 'custom',
-                    depth: '?'
-                });
+                this._selectSpot(
+                    pos.coords.latitude,
+                    pos.coords.longitude,
+                    'Ma position'
+                );
             },
             () => alert('Impossible d\'obtenir la position')
         );
@@ -1008,11 +1068,87 @@ const ForecastLoader = {
         ForecastDisplay.render();
         TrendChart.update();
         Alerts.update();
-        renderLunarCalendar(); // NOUVEAU : Appel du calendrier lunaire
+        this._renderLunarCalendar();
     },
     
     _getWindDirectionName(deg) {
-        return ['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ouest','Ouest','Nord-Ouest'][Math.round(deg / 45) % 8];
+        return ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ouest', 'Ouest', 'Nord-Ouest'][Math.round(deg / 45) % 8];
+    },
+    
+    _renderLunarCalendar() {
+        if (!AppState.forecastData) return;
+        
+        const wheel = document.getElementById('moonWheel');
+        if (!wheel) return;
+        
+        const Lunar = {
+            icons: {
+                'Nouvelle Lune': '🌑',
+                'Premier Croissant': '🌒',
+                'Premier Quartier': '🌓',
+                'Lune Gibbeuse Croissante': '🌔',
+                'Pleine Lune': '🌕',
+                'Lune Gibbeuse Décroissante': '🌖',
+                'Dernier Quartier': '🌗',
+                'Dernier Croissant': '🌘'
+            },
+            
+            getPhase(date) {
+                const knownNewMoon = new Date('2024-01-11T00:00:00Z');
+                const daysSince = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+                const lunations = daysSince / 29.530588853;
+                const phaseIndex = lunations - Math.floor(lunations);
+                
+                if (phaseIndex < 0.03) return 'Nouvelle Lune';
+                if (phaseIndex < 0.19) return 'Premier Croissant';
+                if (phaseIndex < 0.28) return 'Premier Quartier';
+                if (phaseIndex < 0.47) return 'Lune Gibbeuse Croissante';
+                if (phaseIndex < 0.53) return 'Pleine Lune';
+                if (phaseIndex < 0.72) return 'Lune Gibbeuse Décroissante';
+                if (phaseIndex < 0.81) return 'Dernier Quartier';
+                if (phaseIndex < 0.97) return 'Dernier Croissant';
+                return 'Nouvelle Lune';
+            },
+            
+            getFishingScore(phase) {
+                const scores = {
+                    'Nouvelle Lune': 95,
+                    'Premier Croissant': 80,
+                    'Premier Quartier': 60,
+                    'Lune Gibbeuse Croissante': 75,
+                    'Pleine Lune': 85,
+                    'Lune Gibbeuse Décroissante': 70,
+                    'Dernier Quartier': 55,
+                    'Dernier Croissant': 65
+                };
+                return scores[phase] || 50;
+            }
+        };
+        
+        let html = '';
+        AppState.forecastData.forEach((day, index) => {
+            const date = new Date(day.date);
+            const phase = Lunar.getPhase(date);
+            const icon = Lunar.icons[phase];
+            let baseScore = Lunar.getFishingScore(phase);
+            const weatherScore = day.score || 50;
+            const fusedScore = Math.round((baseScore * 0.6) + (weatherScore * 0.4));
+            
+            let borderColor = '#ef4444';
+            if (fusedScore >= 80) borderColor = '#10b981';
+            else if (fusedScore >= 60) borderColor = '#3b82f6';
+            else if (fusedScore >= 40) borderColor = '#f59e0b';
+            
+            const isActive = (index === AppState.selectedDay) ? 'active-moon' : '';
+            
+            html += `<div class="moon-day ${isActive}" style="border-color: ${borderColor};" onclick="window.selectDay(${index})">
+                        <div class="moon-icon">${icon}</div>
+                        <div class="moon-phase-name">${phase}</div>
+                        <div class="moon-score" style="color: ${borderColor};">${fusedScore}%</div>
+                        <small>${date.toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
+                    </div>`;
+        });
+        wheel.innerHTML = html;
     }
 };
 
@@ -1038,7 +1174,7 @@ const ForecastDisplay = {
                 <div class="forecast-day-card ${i === 0 ? 'active' : ''}" onclick="window.selectDay(${i})">
                     <div class="day-header">${dayName}</div>
                     <div class="day-date">${dayNum} ${month}</div>
-                    <div class="day-score" style="color:${color}">${score}%</div>
+                    <div class="day-score">${score}%</div>
                     <div class="day-decision" style="background:${color}">${decision}</div>
                 </div>
             `;
@@ -1090,7 +1226,7 @@ const ForecastDisplay = {
             card.classList.toggle('active', i === index);
         });
         
-        // NOUVEAU : Synchroniser le calendrier lunaire
+        // Synchroniser le calendrier lunaire
         document.querySelectorAll('.moon-day').forEach((el, i) => {
             el.classList.toggle('active-moon', i === index);
         });
@@ -1201,8 +1337,8 @@ const HourlyTable = {
                 else if (score >= 40) scoreClass = 'score-medium';
                 
                 html += `<td style="padding:0.5rem;text-align:center;border:1px solid #475569">
-                            <div class="hour-score-cell ${scoreClass}" style="padding:0.4rem">${score}%</div>
-                         </td>`;
+                            <div class="hour-score-cell ${scoreClass}" style="padding:0.4rem;color:white;border-radius:4px">${score}%</div>
+                        </td>`;
             });
             html += '</tr>';
         }
@@ -1229,8 +1365,8 @@ const SpeciesSelector = {
     init() {
         let html = '';
         Object.entries(Config.species).forEach(([key, s]) => {
-            html += `<button class="species-btn ${key === 'loup' ? 'active' : ''}" onclick="window.selectSpecies('${key}')">
-                <span>${s.icon}</span> ${s.name.split(' ')[0]}
+            html += `<button class="btn btn-secondary species-btn ${key === 'loup' ? 'btn-primary' : ''}" onclick="window.selectSpecies('${key}')" style="margin-right:0.5rem;margin-bottom:0.5rem">
+                ${s.icon} ${s.name}
             </button>`;
         });
         document.getElementById('species-selector').innerHTML = html;
@@ -1238,103 +1374,20 @@ const SpeciesSelector = {
     
     select(species) {
         AppState.currentSpecies = species;
-        document.querySelectorAll('.species-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.species-btn').forEach(b => {
+            b.classList.remove('btn-primary');
+            b.classList.add('btn-secondary');
+        });
         if (event && event.target) {
-            event.target.classList.add('active');
+            event.target.classList.remove('btn-secondary');
+            event.target.classList.add('btn-primary');
         }
         if (AppState.currentSpot) ForecastLoader.load();
     }
 };
 
 // ============================================================================
-// NOUVEAU : CALENDRIER LUNAIRE UNIQUE (Fishing Moon Wheel)
-// ============================================================================
-const Lunar = {
-    // Émojis pour chaque phase
-    icons: {
-        'Nouvelle Lune': '🌑',
-        'Premier Croissant': '🌒',
-        'Premier Quartier': '🌓',
-        'Lune Gibbeuse Croissante': '🌔',
-        'Pleine Lune': '🌕',
-        'Lune Gibbeuse Décroissante': '🌖',
-        'Dernier Quartier': '🌗',
-        'Dernier Croissant': '🌘'
-    },
-
-    // Calcul de la phase pour une date donnée (algorithme astronomique simple)
-    getPhase(date) {
-        // Nouvelle lune de référence : 2024-01-11 00:00 UTC
-        const knownNewMoon = new Date('2024-01-11T00:00:00Z');
-        const daysSince = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
-        const lunations = daysSince / 29.530588853;
-        const phaseIndex = lunations - Math.floor(lunations); // 0 = nouvelle, 0.5 = pleine
-
-        if (phaseIndex < 0.03) return 'Nouvelle Lune';
-        if (phaseIndex < 0.19) return 'Premier Croissant';
-        if (phaseIndex < 0.28) return 'Premier Quartier';
-        if (phaseIndex < 0.47) return 'Lune Gibbeuse Croissante';
-        if (phaseIndex < 0.53) return 'Pleine Lune';
-        if (phaseIndex < 0.72) return 'Lune Gibbeuse Décroissante';
-        if (phaseIndex < 0.81) return 'Dernier Quartier';
-        if (phaseIndex < 0.97) return 'Dernier Croissant';
-        return 'Nouvelle Lune';
-    },
-
-    // Score de pêche théorique basé sur la phase (0-100)
-    getFishingScore(phase) {
-        const scores = {
-            'Nouvelle Lune': 95,
-            'Premier Croissant': 80,
-            'Premier Quartier': 60,
-            'Lune Gibbeuse Croissante': 75,
-            'Pleine Lune': 85,
-            'Lune Gibbeuse Décroissante': 70,
-            'Dernier Quartier': 55,
-            'Dernier Croissant': 65
-        };
-        return scores[phase] || 50;
-    }
-};
-
-// Fonction de rendu du calendrier lunaire
-function renderLunarCalendar() {
-    if (!AppState.forecastData) return;
-    
-    const wheel = document.getElementById('moonWheel');
-    if (!wheel) return;
-    
-    let html = '';
-    AppState.forecastData.forEach((day, index) => {
-        const date = new Date(day.date);
-        const phase = Lunar.getPhase(date);
-        const icon = Lunar.icons[phase];
-        let baseScore = Lunar.getFishingScore(phase);
-        // Fusion intelligente : 60% lune + 40% conditions météo/poisson
-        const weatherScore = day.score || 50;
-        const fusedScore = Math.round((baseScore * 0.6) + (weatherScore * 0.4));
-        
-        // Couleur de bordure selon le score fusionné
-        let borderColor = '#ef4444'; // faible
-        if (fusedScore >= 80) borderColor = '#10b981';
-        else if (fusedScore >= 60) borderColor = '#3b82f6';
-        else if (fusedScore >= 40) borderColor = '#f59e0b';
-        
-        // Mise en avant du jour sélectionné
-        const isActive = (index === AppState.selectedDay) ? 'active-moon' : '';
-        
-        html += `<div class="moon-day ${isActive}" style="border-color: ${borderColor};" onclick="window.selectDay(${index})">
-                    <div class="moon-icon">${icon}</div>
-                    <div class="moon-phase-name">${phase}</div>
-                    <div class="moon-score" style="color: ${borderColor};">${fusedScore}%</div>
-                    <small>${date.toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
-                 </div>`;
-    });
-    wheel.innerHTML = html;
-}
-
-// ============================================================================
-// ========== EXPOSITION GLOBALE - NOMS EXACTS ATTENDUS PAR MAIN.JS ==========
+// EXPOSITION GLOBALE - COMPATIBLE AVEC MAIN.JS
 // ============================================================================
 
 // 1. toggleWindLayer() - Point critique ! main.js appelle ce nom
@@ -1357,14 +1410,60 @@ window.updateWindAnimation = (direction, speed) => {
     WindAnimation.updateAnimation(direction, speed);
 };
 
-// Autres fonctions nécessaires
-window.initMap = () => MapManager.init();
-window.selectSpot = (spot) => SpotSelector.select(spot);
-window.useCurrentLocation = () => SpotSelector.useCurrentLocation();
-window.loadForecast = () => ForecastLoader.load();
-window.selectDay = (index) => ForecastDisplay.selectDay(index);
-window.showHourlyForecastTable = () => HourlyTable.show();
-window.selectSpecies = (species) => SpeciesSelector.select(species);
+// 5. selectSpot() - Signature compatible avec main.js
+window.selectSpot = (lat, lon, name) => {
+    SpotSelector.select(lat, lon, name);
+};
+
+// 6. useCurrentLocation() - Géolocalisation
+window.useCurrentLocation = () => {
+    SpotSelector.useCurrentLocation();
+};
+
+// 7. loadForecast() - Charger les prévisions
+window.loadForecast = () => {
+    ForecastLoader.load();
+};
+
+// 8. selectDay() - Sélectionner un jour
+window.selectDay = (index) => {
+    ForecastDisplay.selectDay(index);
+};
+
+// 9. showHourlyForecastTable() - Afficher le tableau horaire
+window.showHourlyForecastTable = () => {
+    HourlyTable.show();
+};
+
+// 10. selectSpecies() - Sélectionner une espèce
+window.selectSpecies = (species) => {
+    SpeciesSelector.select(species);
+};
+
+// ============================================================================
+// RÉCUPÉRATION DU DERNIER SPOT DEPUIS LOCALSTORAGE
+// ============================================================================
+function restoreLastSpot() {
+    const savedLat = localStorage.getItem('currentLat');
+    const savedLon = localStorage.getItem('currentLon');
+    const savedName = localStorage.getItem('currentSpotName');
+    
+    if (savedLat && savedLon) {
+        AppState.currentLat = parseFloat(savedLat);
+        AppState.currentLon = parseFloat(savedLon);
+        
+        const spot = {
+            lat: AppState.currentLat,
+            lon: AppState.currentLon,
+            name: savedName || 'Spot restauré',
+            type: 'custom',
+            depth: '?'
+        };
+        
+        AppState.currentSpot = spot;
+        SpotSelector._updateUI(spot);
+    }
+}
 
 // ============================================================================
 // INITIALISATION
@@ -1374,10 +1473,15 @@ document.addEventListener('DOMContentLoaded', () => {
     AppState.initialized = true;
     
     SpeciesSelector.init();
+    
+    // Restaurer le dernier spot
+    restoreLastSpot();
+    
     setTimeout(() => MapManager.init(), 100);
     
-    if (Config.spots.length) {
-        SpotSelector.select(Config.spots[0]);
+    // Si aucun spot n'est sélectionné, prendre le premier spot par défaut
+    if (!AppState.currentSpot && Config.spots.length) {
+        SpotSelector.select(Config.spots[0].lat, Config.spots[0].lon, Config.spots[0].name);
     }
     
     // Exposer l'état global pour debug
