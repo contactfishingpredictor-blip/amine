@@ -1,14 +1,28 @@
-// favorites.js - Gestion des favoris améliorée avec toutes les méthodes API
+// favorites.js - Gestion des favoris optimisée mobile
 console.log("⭐ favorites.js chargé - Module de gestion des favoris");
 
-// Variables globales - Utiliser window pour éviter les conflits
+// Variables globales
 if (typeof window.favoritesCache === 'undefined') {
     window.favoritesCache = [];
+}
+
+let isMobileDevice = false;
+
+// Détection mobile
+function detectMobileDevice() {
+    isMobileDevice = (window.innerWidth <= 768) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0) ||
+                     (navigator.msMaxTouchPoints > 0);
+    return isMobileDevice;
 }
 
 // Fonction principale pour sauvegarder un favori
 async function saveToFavorites(name, lat, lon, species, score, notes = '') {
     console.log(`💾 Sauvegarde favori: ${name} (${lat}, ${lon})`);
+    
+    // Détecter mobile
+    detectMobileDevice();
     
     // Si des notes ne sont pas fournies, essayer de récupérer les conditions météo
     if (!notes && window.weatherDataCache) {
@@ -18,8 +32,12 @@ async function saveToFavorites(name, lat, lon, species, score, notes = '') {
         notes = "Ajouté depuis la carte";
     }
     
-    // Demander à l'utilisateur pour les notes optionnelles
-    const userNotes = prompt("Notes (optionnel, laissez vide pour météo actuelle):", notes || "");
+    // Demander à l'utilisateur pour les notes - version mobile friendly
+    const userNotes = prompt("Notes (optionnel):", notes || "");
+    if (userNotes === null) {
+        showNotification('Ajout annulé', 'info');
+        return { success: false, cancelled: true };
+    }
     
     const favoriteData = {
         name: name || `Spot (${lat.toFixed(4)}, ${lon.toFixed(4)})`,
@@ -73,7 +91,8 @@ async function deleteFavorite(favoriteId) {
         return false;
     }
     
-    if (!confirm('Voulez-vous vraiment supprimer ce favori ?')) {
+    // Version mobile-friendly de confirm
+    if (!await confirmDialog('Voulez-vous vraiment supprimer ce favori ?')) {
         return false;
     }
     
@@ -105,6 +124,16 @@ async function deleteFavorite(favoriteId) {
         console.error('❌ Erreur suppression:', error);
         showNotification('Erreur: ' + error.message, 'error');
         return false;
+    }
+}
+
+// Confirm dialog adapté mobile
+async function confirmDialog(message) {
+    if (isMobileDevice) {
+        // Sur mobile, utiliser la boîte de dialogue native
+        return confirm(message);
+    } else {
+        return confirm(message);
     }
 }
 
@@ -231,16 +260,19 @@ function formatDate(dateString) {
 function showNotification(message, type = 'info') {
     console.log(`📢 ${type.toUpperCase()}: ${message}`);
     
-    // Vérifier si une notification existe déjà
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
+    // Vérifier si showNotification existe déjà dans main.js
+    if (typeof window.showNotification === 'function' && window.showNotification !== showNotification) {
+        window.showNotification(message, type);
+        return;
     }
+    
+    // Supprimer les notifications existantes
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notif => notif.remove());
     
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     
-    // Définir les icônes selon le type
     const icons = {
         'success': 'check-circle',
         'error': 'exclamation-circle',
@@ -251,48 +283,22 @@ function showNotification(message, type = 'info') {
     const icon = icons[type] || 'info-circle';
     
     notification.innerHTML = `
-        <i class="fas fa-${icon}"></i>
-        <span>${message}</span>
+        <i class="fas fa-${icon}" style="font-size: 1.2rem"></i>
+        <span style="flex:1">${message}</span>
         <button class="close-notification" onclick="this.parentElement.remove()">×</button>
-    `;
-    
-    // Styles
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 5px 15px rgba(0,0,0,.2);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 10000;
-        background: ${type === 'success' ? '#10b981' : 
-                     type === 'error' ? '#ef4444' : 
-                     type === 'warning' ? '#f59e0b' : '#3b82f6'};
-        color: white;
-        border-left: 5px solid ${type === 'success' ? '#059669' : 
-                               type === 'error' ? '#dc2626' : 
-                               type === 'warning' ? '#d97706' : '#2563eb'};
-        opacity: 0;
-        transform: translateY(-20px);
-        transition: opacity 0.3s, transform 0.3s;
     `;
     
     document.body.appendChild(notification);
     
-    // Animation d'entrée
+    // Animation
     setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateY(0)';
+        notification.classList.add('show');
     }, 10);
     
     // Supprimer après 3 secondes
     setTimeout(() => {
         if (notification.parentElement) {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(20px)';
+            notification.classList.remove('show');
             setTimeout(() => {
                 if (notification.parentElement) {
                     notification.remove();
@@ -391,7 +397,7 @@ async function importFavorites() {
     input.click();
 }
 
-// Fonction pour ajouter le spot actuel aux favoris (depuis la carte)
+// Fonction pour ajouter le spot actuel aux favoris
 async function addCurrentSpotToFavorites() {
     console.log("📍 Ajout du spot actuel aux favoris...");
     
@@ -456,7 +462,7 @@ async function addCurrentSpotToFavorites() {
     }
 }
 
-// Fonction pour tester l'ajout (debug)
+// Fonction pour tester l'ajout
 async function testAddFavorite() {
     console.log("🧪 Test d'ajout de favori...");
     
@@ -481,37 +487,32 @@ async function testAddFavorite() {
     return result;
 }
 
-// Initialisation au chargement
+// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     console.log("✅ Module favorites.js initialisé");
     
-    // Si on est sur la page des favoris, on peut initialiser certaines choses
+    // Détecter mobile
+    detectMobileDevice();
+    
+    // Si on est sur la page des favoris
     if (window.location.pathname.includes('/favorites')) {
         console.log("📄 Page des favoris détectée");
         
-        // Si la fonction loadFavoritesPage n'existe pas, on la crée
-        if (typeof window.loadFavoritesPage === 'undefined') {
-            window.loadFavoritesPage = async function() {
-                console.log("🔄 Chargement de la page des favoris...");
-                const favorites = await loadFavorites();
+        // Fonction de chargement de la page des favoris
+        window.loadFavoritesPage = async function() {
+            console.log("🔄 Chargement de la page des favoris...");
+            const favorites = await loadFavorites();
+            
+            const container = document.getElementById('favorites-container');
+            if (container) {
+                container.innerHTML = '';
                 
-                // Si un conteneur existe, on le met à jour
-                const container = document.getElementById('favorites-container');
-                if (container) {
-                    container.innerHTML = '';
-                    
-                    if (favorites.length === 0) {
-                        const emptyState = document.getElementById('favorites-empty');
-                        if (emptyState) emptyState.style.display = 'block';
-                    } else {
-                        favorites.forEach(fav => {
-                            // Créer et ajouter des cartes
-                            // Cette logique doit être dans favorites.html
-                        });
-                    }
+                if (favorites.length === 0) {
+                    const emptyState = document.getElementById('favorites-empty');
+                    if (emptyState) emptyState.style.display = 'block';
                 }
-            };
-        }
+            }
+        };
     }
 });
 
@@ -528,4 +529,4 @@ window.formatDate = formatDate;
 window.addCurrentSpotToFavorites = addCurrentSpotToFavorites;
 window.testAddFavorite = testAddFavorite;
 
-console.log("✅ Module favorites.js chargé avec toutes les méthodes API");
+console.log("✅ Module favorites.js chargé - Version optimisée mobile");
