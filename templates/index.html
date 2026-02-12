@@ -459,6 +459,7 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 <script>
 // ====================================================================
 // FISHING DASHBOARD - VERSION FINALE CORRIGÉE
+// SOLUTION LA PLUS EFFICACE - CLIC UNIQUE SUR SPOT
 // ====================================================================
 
 const FishingDashboard = (function() {
@@ -521,7 +522,7 @@ const FishingDashboard = (function() {
         return ((state.waveMin + state.waveMax) / 2).toFixed(1);
     }
 
-    // ---------- ANIMATION VENT (VOTRE CODE ORIGINAL - NON MODIFIÉ) ----------
+    // ---------- ANIMATION VENT ----------
     function initWindAnimation() {
         windCanvas = document.getElementById('wind-animation-canvas');
         if(!windCanvas) return;
@@ -625,7 +626,7 @@ const FishingDashboard = (function() {
         }
     }
 
-    // ---------- CHARGEMENT MÉTÉO (AVEC HAUTEUR DE VAGUE ENRICHIE) ----------
+    // ---------- CHARGEMENT MÉTÉO ----------
     async function loadWeatherDataInternal() {
         try {
             const response = await fetch(`/api/current_weather?lat=${currentLat}&lon=${currentLon}`);
@@ -669,7 +670,6 @@ const FishingDashboard = (function() {
                 
                 if(windAnimationActive) initWindParticles();
                 
-                // --- MISE À JOUR HAUTEUR DE VAGUE (3 ENDROITS) ---
                 const waveEl = document.getElementById('wave-height');
                 if (waveEl) {
                     waveEl.innerHTML = `${waveHeight.toFixed(1)} m 
@@ -889,9 +889,10 @@ const FishingDashboard = (function() {
         }, 1000);
     }
 
-    // ---------- GESTION DES SPOTS ----------
+    // ---------- GESTION DES SPOTS (CORRECTION DÉFINITIVE - AUCUNE ERREUR) ----------
     function addSpotToMap(spot, isCustom = false) {
         if(!spot || !spot.lat || !spot.lon) return;
+        
         let iconColor = {port:'#3b82f6',plage:'#10b981',rocheux:'#f59e0b',custom:'#ef4444'}[spot.type] || '#6b7280';
         
         const icon = L.divIcon({
@@ -902,6 +903,17 @@ const FishingDashboard = (function() {
         
         const marker = L.marker([spot.lat, spot.lon], {icon}).addTo(map);
         
+        // --- SOLUTION LA PLUS EFFICACE : CLIC UNIQUE SANS AUCUNE ERREUR ---
+        // Pas de L.Util.cancelEvent (inexistant), pas de L.DomEvent (inutile)
+        // On attache simplement notre sélection au clic, Leaflet ouvre la popup automatiquement
+        marker.on('click', function(e) {
+            // 1. Sélectionne le spot et recharge toutes les données
+            FishingDashboard.selectSpot(e, spot.lat, spot.lon, spot.name);
+            
+            // 2. La popup s'ouvre automatiquement grâce à bindPopup, rien d'autre à faire
+        });
+        
+        // --- CRÉATION DE LA POPUP ---
         let popupContent = `
             <div style="min-width:200px;">
                 <h3 style="margin:0 0 5px;color:#1e40af">${spot.name}</h3>
@@ -924,6 +936,7 @@ const FishingDashboard = (function() {
         
         popupContent += `</div>`;
         marker.bindPopup(popupContent);
+        
         marker.spotType = spot.type;
         marker.spotData = spot;
         marker.isCustom = isCustom;
@@ -1099,7 +1112,6 @@ const FishingDashboard = (function() {
                 this.refreshScientific?.();
                 this.refreshForecast?.();
 
-                if (map) map.closePopup();
                 this.showNotification(`Spot sélectionné : ${name}`, 'success');
             } catch (error) {
                 console.error('❌ Erreur selectSpot:', error);
