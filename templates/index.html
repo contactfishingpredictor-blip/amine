@@ -458,8 +458,10 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // ====================================================================
-// FISHING DASHBOARD - VERSION FINALE CORRIGÉE
-// SOLUTION LA PLUS EFFICACE - CLIC UNIQUE SUR SPOT
+// FISHING DASHBOARD - VERSION FINALE
+// ✅ Clic unique sur spot
+// ✅ Distance précise (calcul côté client)
+// ✅ Interface épurée - AUCUNE estimation
 // ====================================================================
 
 const FishingDashboard = (function() {
@@ -889,7 +891,7 @@ const FishingDashboard = (function() {
         }, 1000);
     }
 
-    // ---------- GESTION DES SPOTS (CORRECTION DÉFINITIVE - AUCUNE ERREUR) ----------
+    // ---------- GESTION DES SPOTS (VERSION FINALE - PARFAITE) ----------
     function addSpotToMap(spot, isCustom = false) {
         if(!spot || !spot.lat || !spot.lon) return;
         
@@ -903,17 +905,12 @@ const FishingDashboard = (function() {
         
         const marker = L.marker([spot.lat, spot.lon], {icon}).addTo(map);
         
-        // --- SOLUTION LA PLUS EFFICACE : CLIC UNIQUE SANS AUCUNE ERREUR ---
-        // Pas de L.Util.cancelEvent (inexistant), pas de L.DomEvent (inutile)
-        // On attache simplement notre sélection au clic, Leaflet ouvre la popup automatiquement
+        // --- CLIC UNIQUE - SÉLECTION INSTANTANÉE ---
         marker.on('click', function(e) {
-            // 1. Sélectionne le spot et recharge toutes les données
             FishingDashboard.selectSpot(e, spot.lat, spot.lon, spot.name);
-            
-            // 2. La popup s'ouvre automatiquement grâce à bindPopup, rien d'autre à faire
         });
         
-        // --- CRÉATION DE LA POPUP ---
+        // --- POPUP ---
         let popupContent = `
             <div style="min-width:200px;">
                 <h3 style="margin:0 0 5px;color:#1e40af">${spot.name}</h3>
@@ -1036,52 +1033,39 @@ const FishingDashboard = (function() {
             }, 5 * 60000);
         },
         
-        toggleWindAnimation(e) {
-            windAnimationActive = !windAnimationActive;
-            const canvas = document.getElementById('wind-animation-canvas');
-            const btn = e?.currentTarget || document.getElementById('windToggleBtn');
-            if(windAnimationActive) {
-                canvas.style.display = 'block';
-                if(btn) {
-                    btn.innerHTML = '<i class="fas fa-wind"></i> Masquer vent';
-                    btn.classList.add('btn-primary');
-                    btn.classList.remove('btn-secondary');
-                }
-                initWindParticles();
-                animateWind();
-                console.log(`🌪️ Animation vent activée - Direction: ${currentWindDirection}°, Vitesse: ${currentWindSpeed} km/h`);
-                console.log(`   📐 Angle animation: ${(currentWindDirection + 90) % 360}°`);
-            } else {
-                canvas.style.display = 'none';
-                if(btn) {
-                    btn.innerHTML = '<i class="fas fa-wind"></i> Afficher vent';
-                    btn.classList.add('btn-secondary');
-                    btn.classList.remove('btn-primary');
-                }
-                if(windAnimationFrame) cancelAnimationFrame(windAnimationFrame);
-            }
+        // ---------- CALCUL DE DISTANCE PRÉCIS (Formule de Haversine) ----------
+        calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Rayon de la Terre en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         },
-        
-        toggleSpotType(event, type) {
-            const isChecked = event?.target?.checked ?? false;
-            if(map) {
-                map.eachLayer(layer => {
-                    if(layer.spotType === type) {
-                        layer.setOpacity(isChecked ? 1 : 0);
-                    }
-                });
-            }
-        },
-        
+
+        // ---------- SÉLECTION DE SPOT - VERSION FINALE ----------
         async selectSpot(event, lat, lon, name) {
             try {
                 console.log('🎯 Sélection du spot :', name, lat, lon);
+                
+                // Sauvegarder la position utilisateur AVANT de la changer
+                const userLat = currentLat;
+                const userLon = currentLon;
+                
+                // Calcul précis de la distance
+                const distanceKm = this.calculateDistance(userLat, userLon, lat, lon);
+                
+                // Mettre à jour le spot sélectionné
                 selectedSpot = { lat, lon, name };
                 currentLat = lat;
                 currentLon = lon;
 
                 if (map) map.setView([lat, lon], 13);
 
+                // AFFICHAGE SIMPLE - UNIQUEMENT LA DISTANCE
                 const spotInfo = document.getElementById('spot-info');
                 if (spotInfo) {
                     spotInfo.innerHTML = `
@@ -1092,21 +1076,21 @@ const FishingDashboard = (function() {
                                     ${lat.toFixed(4)}, ${lon.toFixed(4)}
                                 </div>
                             </div>
-                            <div style="background:#1e293b;padding:.5rem;border-radius:8px">
+                            <div style="background:#1e293b;padding:.5rem 1rem;border-radius:20px;text-align:center">
                                 <div style="color:#94a3b8;font-size:.8rem">Distance</div>
-                                <div style="font-weight:700" id="spot-distance">Calcul...</div>
+                                <div style="font-weight:700;font-size:1.3rem;color:#f8fafc">${distanceKm.toFixed(1)} km</div>
                             </div>
                         </div>
                     `;
                 }
 
-                try {
-                    await this.calculateDistanceToSpot(lat, lon);
-                } catch (e) {
-                    const distEl = document.getElementById('spot-distance');
-                    if (distEl) distEl.textContent = 'Non disponible';
+                // SUPPRIMÉ : temps de trajet, carburant, etc.
+                const distanceInfo = document.getElementById('distance-info');
+                if (distanceInfo) {
+                    distanceInfo.innerHTML = ''; // Vide - pas d'affichage supplémentaire
                 }
 
+                // Rafraîchir les données
                 this.refreshWeather?.();
                 this.refreshPrediction?.();
                 this.refreshScientific?.();
@@ -1123,39 +1107,14 @@ const FishingDashboard = (function() {
             return String(str).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c] || c);
         },
         
+        // ---------- SUPPRESSION DES FONCTIONS DISTANCE INUTILES ----------
+        // La fonction calculateDistanceToSpot n'est plus utilisée
+        // Nous la gardons commentée pour référence
+        /*
         async calculateDistanceToSpot(lat, lon) {
-            try {
-                const r = await fetch(`/api/distance_calculation?lat1=${currentLat}&lon1=${currentLon}&lat2=${lat}&lon2=${lon}`);
-                const d = await r.json();
-                if(d.status === 'success') {
-                    const distanceKm = parseFloat(d.distance_km);
-                    const travelTimeMinutes = Math.round((distanceKm / 30) * 60);
-                    let timeDisplay = travelTimeMinutes >= 60 
-                        ? `${Math.floor(travelTimeMinutes/60)}h${travelTimeMinutes%60 ? travelTimeMinutes%60+'min' : ''}`
-                        : `${travelTimeMinutes} min`;
-                    
-                    const spotDistanceEl = document.getElementById('spot-distance');
-                    if (spotDistanceEl) {
-                        spotDistanceEl.innerHTML = `${distanceKm.toFixed(1)} km<br><span style="font-size:.7rem">${timeDisplay}</span>`;
-                    }
-                    const distanceInfo = document.getElementById('distance-info');
-                    if (distanceInfo) {
-                        distanceInfo.innerHTML = `
-                            <div style="display:flex;align-items:center;gap:.5rem;color:#475569;padding:.5rem;background:#f8fafc;border-radius:6px">
-                                <i class="fas fa-route"></i>
-                                <div><span style="font-weight:600">${distanceKm.toFixed(1)} km</span> • ${timeDisplay}</div>
-                            </div>
-                        `;
-                    }
-                } else throw new Error('Réponse API distance invalide');
-            } catch(e) {
-                console.error('Erreur calcul distance:', e);
-                const spotDistanceEl = document.getElementById('spot-distance');
-                if (spotDistanceEl) spotDistanceEl.textContent = '? km';
-                const distanceInfo = document.getElementById('distance-info');
-                if (distanceInfo) distanceInfo.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;color:#475569;padding:.5rem;background:#f8fafc;border-radius:6px"><i class="fas fa-route"></i><div>Distance non disponible</div></div>`;
-            }
+            // Cette fonction n'est plus utilisée
         },
+        */
         
         deleteCustomSpot(lat, lon, name) {
             if(confirm(`Voulez-vous vraiment supprimer le spot "${name}" ?`)) {
@@ -1227,7 +1186,7 @@ const FishingDashboard = (function() {
         },
         
         calculatePreparationTime() {
-            this.showNotification('⏱️ Préparation: 45 min • Départ dans 10 min', 'info');
+            this.showNotification('⏱️ Préparation: 45 min', 'info');
         },
         
         quickCheck() {
@@ -1293,6 +1252,7 @@ const FishingDashboard = (function() {
             }, 5000);
         },
         
+        // Pour compatibilité avec d'éventuels scripts externes
         addWindAnimation: function() { if(!windAnimationActive) this.toggleWindAnimation(); },
         removeWindAnimation: function() { if(windAnimationActive) this.toggleWindAnimation(); },
         updateWindAnimation: function() { if(windAnimationActive) initWindParticles(); },
