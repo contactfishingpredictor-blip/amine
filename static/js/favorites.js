@@ -1,4 +1,5 @@
 // favorites.js - Gestion des favoris optimisée mobile
+// CORRIGÉ : Suppression de la double déclaration de isMobileDevice
 console.log("⭐ favorites.js chargé - Module de gestion des favoris");
 
 // Variables globales
@@ -6,23 +7,11 @@ if (typeof window.favoritesCache === 'undefined') {
     window.favoritesCache = [];
 }
 
-let isMobileDevice = false;
+// PAS de déclaration locale de isMobileDevice - on utilise window.isMobileDevice
 
-// Détection mobile
-function detectMobileDevice() {
-    isMobileDevice = (window.innerWidth <= 768) || 
-                     ('ontouchstart' in window) || 
-                     (navigator.maxTouchPoints > 0) ||
-                     (navigator.msMaxTouchPoints > 0);
-    return isMobileDevice;
-}
-
-// Fonction principale pour sauvegarder un favori
+// Fonction pour sauvegarder un favori
 async function saveToFavorites(name, lat, lon, species, score, notes = '') {
     console.log(`💾 Sauvegarde favori: ${name} (${lat}, ${lon})`);
-    
-    // Détecter mobile
-    detectMobileDevice();
     
     // Si des notes ne sont pas fournies, essayer de récupérer les conditions météo
     if (!notes && window.weatherDataCache) {
@@ -127,9 +116,12 @@ async function deleteFavorite(favoriteId) {
     }
 }
 
-// Confirm dialog adapté mobile
+// Confirm dialog adapté mobile - utilise window.isMobileDevice
 async function confirmDialog(message) {
-    if (isMobileDevice) {
+    // Utiliser la variable globale de main.js
+    const isMobile = window.isMobileDevice || false;
+    
+    if (isMobile) {
         // Sur mobile, utiliser la boîte de dialogue native
         return confirm(message);
     } else {
@@ -413,10 +405,9 @@ async function addCurrentSpotToFavorites() {
             console.log(`📍 Coordonnées depuis la carte: ${lat}, ${lon}`);
         }
         // Essayer de récupérer depuis localStorage
-        else if (localStorage.getItem('last_location')) {
-            const lastLoc = JSON.parse(localStorage.getItem('last_location'));
-            lat = lastLoc.lat;
-            lon = lastLoc.lon;
+        else if (localStorage.getItem('currentLat') && localStorage.getItem('currentLon')) {
+            lat = parseFloat(localStorage.getItem('currentLat'));
+            lon = parseFloat(localStorage.getItem('currentLon'));
             console.log(`📍 Coordonnées depuis localStorage: ${lat}, ${lon}`);
         }
         // Sinon, utiliser les coordonnées par défaut
@@ -491,29 +482,7 @@ async function testAddFavorite() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("✅ Module favorites.js initialisé");
     
-    // Détecter mobile
-    detectMobileDevice();
-    
-    // Si on est sur la page des favoris
-    if (window.location.pathname.includes('/favorites')) {
-        console.log("📄 Page des favoris détectée");
-        
-        // Fonction de chargement de la page des favoris
-        window.loadFavoritesPage = async function() {
-            console.log("🔄 Chargement de la page des favoris...");
-            const favorites = await loadFavorites();
-            
-            const container = document.getElementById('favorites-container');
-            if (container) {
-                container.innerHTML = '';
-                
-                if (favorites.length === 0) {
-                    const emptyState = document.getElementById('favorites-empty');
-                    if (emptyState) emptyState.style.display = 'block';
-                }
-            }
-        };
-    }
+    // PAS de détection mobile ici - on utilise celle de main.js
 });
 
 // Exposer les fonctions globalement
