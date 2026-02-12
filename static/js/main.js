@@ -1,4 +1,4 @@
-// main.js - Version optimisée mobile avec détection et performance
+// main.js - Version optimisée mobile AVEC animation vent active
 console.log("🎣 Fishing Predictor Pro - Module principal initialisé");
 
 // Variables globales
@@ -6,14 +6,14 @@ let currentWeatherData = null;
 let isWeatherInitialized = false;
 let isMobileDevice = false;
 
-// Détection mobile
+// Détection mobile (informative uniquement)
 function detectMobileDevice() {
     isMobileDevice = (window.innerWidth <= 768) || 
                      ('ontouchstart' in window) || 
                      (navigator.maxTouchPoints > 0) ||
                      (navigator.msMaxTouchPoints > 0);
     
-    console.log(`📱 Détection mobile: ${isMobileDevice ? 'OUI' : 'NON'}`);
+    console.log(`📱 Détection mobile: ${isMobileDevice ? 'OUI' : 'NON'} - Animation vent ACTIVE`);
     return isMobileDevice;
 }
 
@@ -42,6 +42,11 @@ async function loadWeatherData() {
             currentWeatherData = data.weather;
             console.log("✅ Météo chargée avec succès");
             updateWeatherDisplay(currentWeatherData);
+            
+            // Mettre à jour l'animation du vent si elle est active
+            if (typeof window.updateWindAnimation === 'function' && window.windAnimationActive) {
+                window.updateWindAnimation();
+            }
             
             return currentWeatherData;
         } else {
@@ -212,9 +217,8 @@ function initWeather() {
         // Charger la météo immédiatement
         loadWeatherData();
         
-        // Recharger la météo toutes les 10 minutes (moins fréquent sur mobile)
-        const refreshInterval = isMobileDevice ? 10 * 60 * 1000 : 5 * 60 * 1000;
-        setInterval(loadWeatherData, refreshInterval);
+        // Recharger la météo toutes les 5 minutes (identique sur mobile/desktop)
+        setInterval(loadWeatherData, 5 * 60 * 1000);
         
         isWeatherInitialized = true;
         console.log("✅ Module météo initialisé avec succès");
@@ -324,13 +328,8 @@ window.testWeatherAPI = async function() {
     }
 };
 
-// Fonction pour activer/désactiver l'animation du vent (désactivée sur mobile par défaut)
+// Fonction pour activer/désactiver l'animation du vent (ACTIVE SUR MOBILE)
 window.toggleWindAnimation = function() {
-    if (isMobileDevice) {
-        showNotification('Animation du vent désactivée sur mobile pour économiser la batterie', 'info');
-        return;
-    }
-    
     console.log("💨 Toggle animation du vent");
     if (typeof window.toggleWindLayer === 'function') {
         window.toggleWindLayer();
@@ -365,7 +364,7 @@ function initBackToTop() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("📄 DOM chargé - Initialisation de l'application");
     
-    // Détecter mobile
+    // Détecter mobile (informative uniquement)
     detectMobileDevice();
     
     // Initialiser back to top
@@ -377,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
         checkWeatherElements();
     }, 1000);
     
-    // Adapter les popups Leaflet pour mobile
+    // Adapter les popups Leaflet pour mobile (mais garder l'animation vent)
     if (isMobileDevice) {
         setTimeout(() => {
             document.querySelectorAll('.leaflet-popup-close-button').forEach(btn => {
@@ -389,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 2000);
     }
     
-    console.log("✅ Application initialisée");
+    console.log("✅ Application initialisée - Animation vent DISPONIBLE sur mobile");
 });
 
 // Exposer les fonctions globalement
@@ -404,4 +403,4 @@ window.checkWeatherElements = checkWeatherElements;
 window.detectMobileDevice = detectMobileDevice;
 window.isMobileDevice = false; // Sera mis à jour
 
-console.log("✅ Module main.js chargé - Version optimisée mobile");
+console.log("✅ Module main.js chargé - Animation vent ACTIVE sur mobile");
