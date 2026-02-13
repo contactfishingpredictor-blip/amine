@@ -1,0 +1,35 @@
+{
+  "data": {
+    "temperature": 15.82,
+    "feels_like": 15.21,
+    "pressure": 999,
+    "humidity": 67,
+    "wind_speed": 9.251999999999999,
+    "wind_direction": 120,
+    "wind_direction_abbr": "ESE",
+    "wind_direction_name": "Est-Sud-Est",
+    "wind_direction_icon": "↘️",
+    "wind_fishing_impact": "Vent d'est - Peut rendre la mer agitée, prudence",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "condition": "Rain",
+    "condition_description": "légère pluie",
+    "condition_fr": "Pluie",
+    "icon": "10n",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-02-13T07:09:57",
+    "sunset": "2026-02-13T17:56:12",
+    "location": "Dar Sidi M’hamed ech Cherif",
+    "country": "TN",
+    "timestamp": "2026-02-13T20:42:06.614985",
+    "score": 1.0
+  },
+  "timestamp": 1771011726.6170223,
+  "expires_at": 1771054926.6170223,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.91267808298334,
+    "lon": 10.311912478525143
+  }
+}

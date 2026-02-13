@@ -456,7 +456,6 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Fishing Dashboard Object - VERSION FINALE CORRIGÉE
-// ANIMATION VENT 100% ROBUSTE ET FIABLE
 const FishingDashboard = (function() {
     // ========== VARIABLES PRIVÉES ==========
     let map = null;
@@ -486,7 +485,7 @@ const FishingDashboard = (function() {
     
     // ========== FONCTIONS PRIVÉES ==========
     
-    // --- ANIMATION VENT - CORRECTION ROBUSTE ET DÉFINITIVE ---
+    // --- ANIMATION VENT - CORRECTION ROBUSTE ---
     function initWindAnimation() {
         windCanvas = document.getElementById('wind-animation-canvas');
         if(!windCanvas) return;
@@ -526,45 +525,25 @@ const FishingDashboard = (function() {
         
         windCtx.clearRect(0, 0, windCanvas.width, windCanvas.height);
         
-        // ===== FORMULE MATHÉMATIQUE ROBUSTE - VALIDE DANS 100% DES CAS =====
-        // Étape 1: La météo donne la direction D'ORIGINE du vent (0°=Nord, 90°=Est)
-        // Étape 2: On veut la direction VERS laquelle le vent souffle (ajouter 180°)
-        // Étape 3: Le canvas utilise 0°=Est (axe X), donc on décale de -90°
-        // Étape 4: Conversion degrés → radians
-        
-        // FORMULE UNIQUE ET DÉFINITIVE :
-        // windAngle = (direction_météo + 90°) en radians
-        // ✅ Vent N (0°) → 90° → vers le BAS ↓
-        // ✅ Vent E (90°) → 180° → vers la GAUCHE ←
-        // ✅ Vent S (180°) → 270° → vers le HAUT ↑
-        // ✅ Vent O (270°) → 360° (0°) → vers la DROITE →
-        // ✅ Vent NE (45°) → 135° → vers le BAS-GAUCHE ↙
-        // ✅ Vent NO (315°) → 405° (45°) → vers le BAS-DROITE ↘
-        
         let windAngle = ((currentWindDirection + 90) * Math.PI / 180);
         
         windParticles.forEach(p => {
-            // Mouvement basé sur la direction RÉELLE du vent
             p.x += Math.cos(windAngle) * p.speed;
             p.y += Math.sin(windAngle) * p.speed;
             
-            // Vitesse variable selon la force du vent
             const speedFactor = currentWindSpeed / 20;
             p.x += Math.cos(windAngle) * (p.speed * speedFactor);
             p.y += Math.sin(windAngle) * (p.speed * speedFactor);
             
-            // Réapparition
             if(p.x > windCanvas.width + 10) p.x = -10;
             if(p.x < -10) p.x = windCanvas.width + 10;
             if(p.y > windCanvas.height + 10) p.y = -10;
             if(p.y < -10) p.y = windCanvas.height + 10;
             
-            // Dessin - la rotation doit être dans le même repère
             windCtx.save();
             windCtx.translate(p.x, p.y);
             windCtx.rotate(windAngle);
             
-            // Effet de traînée (les particules pointent dans la direction du mouvement)
             windCtx.beginPath();
             windCtx.moveTo(0, 0);
             windCtx.lineTo(-8, -2);
@@ -574,7 +553,6 @@ const FishingDashboard = (function() {
             windCtx.fillStyle = `rgba(59, 130, 246, ${p.opacity * 0.8})`;
             windCtx.fill();
             
-            // Point principal
             windCtx.beginPath();
             windCtx.arc(0, 0, p.size, 0, Math.PI * 2);
             windCtx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`;
@@ -656,7 +634,8 @@ const FishingDashboard = (function() {
                     document.getElementById('weather-pressure').textContent = `${weather.pressure?.toFixed(0) || '--'} hPa`;
                 }
                 
-                checkOffshoreWind(weather.wind_direction_abbr, weather.wind_offshore);
+                // CORRECTION URGENTE - On utilise uniquement la valeur de l'API
+                checkOffshoreWind(weather.wind_offshore);
                 checkStrongWind(weather.wind_speed || 0);
                 
                 if(windAnimationActive) {
@@ -670,7 +649,6 @@ const FishingDashboard = (function() {
                 }
                 
                 console.log(`🌬️ Vent synchronisé: ${currentWindSpeed} km/h, direction: ${currentWindDirection}° (${weather.wind_direction_name})`);
-                console.log(`   📐 Angle animation: ${((currentWindDirection + 90) % 360)}° (${windAnimationActive ? 'actif' : 'inactif'})`);
             }
         } catch(error) {
             console.error('Erreur météo:', error);
@@ -804,13 +782,13 @@ const FishingDashboard = (function() {
         }
     }
     
-    function checkOffshoreWind(direction, isOffshore) {
-        const isOffshoreDetected = isOffshore || (direction && ['E','ENE','ESE'].includes(direction));
+    // CORRECTION URGENTE - On utilise uniquement la valeur booléenne de l'API
+    function checkOffshoreWind(isOffshore) {
         const alertDiv = document.getElementById('wind-offshore-alert');
         const dangerDiv = document.getElementById('offshore-danger');
         const checkOffshore = document.getElementById('check-offshore');
         
-        if(isOffshoreDetected) {
+        if(isOffshore === true) {
             if(alertDiv) {
                 alertDiv.style.display = 'block';
                 alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>VENT OFFSHORE - DANGER DE NOYADE</strong><br>Vent soufflant de la terre vers la mer - ${currentWindSpeed.toFixed(1)} km/h`;
@@ -1013,7 +991,6 @@ const FishingDashboard = (function() {
                 initWindParticles();
                 animateWind();
                 console.log(`🌪️ Animation vent activée - Direction: ${currentWindDirection}°, Vitesse: ${currentWindSpeed} km/h`);
-                console.log(`   📐 Angle animation: ${(currentWindDirection + 90) % 360}°`);
             } else {
                 canvas.style.display = 'none';
                 if(btn) {
@@ -1066,7 +1043,7 @@ const FishingDashboard = (function() {
             this.showNotification(`Spot sélectionné: ${name}`, 'success');
         },
         
-        // CALCUL DISTANCE RÉALISTE
+        // CALCUL DISTANCE
         async calculateDistanceToSpot(lat, lon) {
             try {
                 const r = await fetch(`/api/distance_calculation?lat1=${currentLat}&lon1=${currentLon}&lat2=${lat}&lon2=${lon}`);
@@ -1074,7 +1051,6 @@ const FishingDashboard = (function() {
                 if(d.status === 'success') {
                     const distanceKm = parseFloat(d.distance_km);
                     
-                    // Vitesse réaliste pour route côtière Tunisie: 30 km/h
                     const averageSpeedKmh = 30;
                     const travelTimeMinutes = Math.round((distanceKm / averageSpeedKmh) * 60);
                     
