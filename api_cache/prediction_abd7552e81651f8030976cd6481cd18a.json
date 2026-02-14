@@ -1,43 +1,43 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "a0c77ec21217",
+    "prediction_id": "344473cbc2fb",
     "stable": true,
-    "valid_until": "2026-02-14T11:26:37.340022",
+    "valid_until": "2026-02-14T18:55:15.448489",
     "scores": {
       "final": 83,
-      "environmental": 56,
-      "behavioral": 72,
+      "environmental": 54,
+      "behavioral": 77,
       "bathymetry_factor": 88,
       "weather_factor": 100,
       "components": {
-        "scientific": 56,
+        "scientific": 54,
         "depth": 88,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 13.99,
-      "wind_speed": 7.1,
-      "wind_direction": 221,
-      "wind_direction_abbr": "N",
-      "wind_direction_name": "Nord",
-      "wind_direction_icon": "⬆️",
-      "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+      "temperature": 14.99,
+      "wind_speed": 16.9,
+      "wind_direction": 270,
+      "wind_direction_abbr": "O",
+      "wind_direction_name": "Ouest",
+      "wind_direction_icon": "⬅️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
-      "wind_onshore": true,
+      "wind_onshore": false,
       "pressure": 998,
-      "humidity": 88,
+      "humidity": 63,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
-      "wave_height": 0.5,
-      "updated": "2026-02-14T10:26:37.340022",
+      "wave_height": 1.07,
+      "updated": "2026-02-14T17:55:15.448489",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.14,
+        "value": 5.38,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 14.0°C, Vent: 7.1 km/h"
+        "Météo: Nuageux, 15.0°C, Vent: 16.9 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -96,20 +96,20 @@
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-14T10:26:37.340022",
+      "timestamp": "2026-02-14T17:55:15.448489",
       "data_source": "Expert Tunisie - Tunis - Rade",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "11:26",
+      "next_update_recommended": "18:55",
       "api_usage_info": {
         "openweather_calls_today": 3,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1771061197.3400226,
-  "expires_at": 1771064797.3400226,
+  "timestamp": 1771088115.448489,
+  "expires_at": 1771091715.448489,
   "api_name": "prediction",
   "params": {
     "lat": 36.8065,

@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.74,
+    "feels_like": 14.96,
+    "pressure": 997,
+    "humidity": 61,
+    "wind_speed": 34.74,
+    "wind_direction": 315,
+    "wind_direction_abbr": "NO",
+    "wind_direction_name": "Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.58,
+    "condition": "Rain",
+    "condition_description": "légère pluie",
+    "condition_fr": "Pluie",
+    "icon": "10d",
+    "clouds": 61,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:05:33",
+    "sunset": "2026-02-14T17:55:18",
+    "location": "El Maamoura",
+    "country": "TN",
+    "timestamp": "2026-02-14T14:41:03.096591",
+    "score": 0.7999999999999999
+  },
+  "timestamp": 1771076463.096591,
+  "expires_at": 1771119663.096591,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.43498375462205,
+    "lon": 10.96658648452896
+  }
+}

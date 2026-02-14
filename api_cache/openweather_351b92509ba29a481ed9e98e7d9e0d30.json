@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 17.01,
+    "feels_like": 16.65,
+    "pressure": 997,
+    "humidity": 72,
+    "wind_speed": 5.5440000000000005,
+    "wind_direction": 50,
+    "wind_direction_abbr": "NE",
+    "wind_direction_name": "Nord-Est",
+    "wind_direction_icon": "↗️",
+    "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.2,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03d",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:06:34",
+    "sunset": "2026-02-14T17:57:29",
+    "location": "Hergla",
+    "country": "TN",
+    "timestamp": "2026-02-14T14:37:11.582975",
+    "score": 1.0
+  },
+  "timestamp": 1771076231.5829756,
+  "expires_at": 1771119431.5829756,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.01444924331646,
+    "lon": 10.567766341225202
+  }
+}

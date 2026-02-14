@@ -36,41 +36,52 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 // Sélection de spot (UNIVERSEL - utilisable sur toutes les pages)
-async function selectSpot(event, lat, lon, name) {
+async function selectSpot(lat, lon, name) {
     try {
-        console.log('🎯 Sélection du spot :', name, lat, lon);
+        // Convertir en nombres
+        const latNum = parseFloat(lat);
+        const lonNum = parseFloat(lon);
+        
+        console.log('🎯 Sélection du spot :', name, latNum, lonNum);
+        
+        // Vérification stricte
+        if (isNaN(latNum) || isNaN(lonNum)) {
+            console.error('❌ Coordonnées invalides:', { lat, lon, name });
+            showNotification('Coordonnées du spot invalides', 'error');
+            return;
+        }
         
         // Sauvegarder la position utilisateur AVANT de la changer
         const userLat = currentLat;
         const userLon = currentLon;
         
         // Calcul précis de la distance
-        const distanceKm = calculateDistance(userLat, userLon, lat, lon);
+        const distanceKm = calculateDistance(userLat, userLon, latNum, lonNum);
         
         // Mettre à jour la position courante
-        currentLat = lat;
-        currentLon = lon;
+        currentLat = latNum;
+        currentLon = lonNum;
         
         // Sauvegarder dans localStorage pour persistance entre les pages
-        localStorage.setItem('currentLat', lat);
-        localStorage.setItem('currentLon', lon);
+        localStorage.setItem('currentLat', latNum.toString());
+        localStorage.setItem('currentLon', lonNum.toString());
         localStorage.setItem('currentSpotName', name);
         localStorage.setItem('currentSpotDistance', distanceKm.toFixed(1));
         
         // Centrer la carte si elle existe
         if (map && typeof map.setView === 'function') {
-            map.setView([lat, lon], 13);
+            map.setView([latNum, lonNum], 13);
         }
         
         // Mettre à jour l'affichage du spot si les éléments existent
-        updateSpotDisplay(name, lat, lon, distanceKm);
+        updateSpotDisplay(name, latNum, lonNum, distanceKm);
         
         // Rafraîchir les données météo pour ce spot
-        loadWeatherData(lat, lon);
+        loadWeatherData(latNum, lonNum);
         
         // Déclencher un événement personnalisé pour informer les autres scripts
         const spotSelectedEvent = new CustomEvent('spotSelected', {
-            detail: { lat, lon, name, distance: distanceKm }
+            detail: { lat: latNum, lon: lonNum, name, distance: distanceKm }
         });
         document.dispatchEvent(spotSelectedEvent);
         
@@ -83,6 +94,15 @@ async function selectSpot(event, lat, lon, name) {
 
 // Mettre à jour l'affichage du spot
 function updateSpotDisplay(name, lat, lon, distanceKm) {
+    // S'assurer que lat et lon sont des nombres
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    
+    if (isNaN(latNum) || isNaN(lonNum)) {
+        console.error('❌ updateSpotDisplay: coordonnées invalides', { name, lat, lon });
+        return;
+    }
+    
     // Mettre à jour spot-info si présent
     const spotInfo = document.getElementById('spot-info');
     if (spotInfo) {
@@ -91,7 +111,7 @@ function updateSpotDisplay(name, lat, lon, distanceKm) {
                 <div>
                     <h3 style="margin:0;color:#3b82f6">${escapeHTML(name)}</h3>
                     <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
-                        ${lat.toFixed(4)}, ${lon.toFixed(4)}
+                        ${latNum.toFixed(4)}, ${lonNum.toFixed(4)}
                     </div>
                 </div>
                 <div style="background:#1e293b;padding:0.5rem 1rem;border-radius:20px;text-align:center">
@@ -121,7 +141,7 @@ function updateSpotDisplay(name, lat, lon, distanceKm) {
     if (selectedSpotName) selectedSpotName.textContent = name;
     
     const selectedSpotCoords = document.getElementById('selected-spot-coords');
-    if (selectedSpotCoords) selectedSpotCoords.textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    if (selectedSpotCoords) selectedSpotCoords.textContent = `${latNum.toFixed(4)}, ${lonNum.toFixed(4)}`;
 }
 
 // Échapper le HTML pour éviter les injections XSS
@@ -142,12 +162,19 @@ function restoreLastSpot() {
     const savedDistance = localStorage.getItem('currentSpotDistance');
     
     if (savedLat && savedLon) {
-        currentLat = parseFloat(savedLat);
-        currentLon = parseFloat(savedLon);
+        const latNum = parseFloat(savedLat);
+        const lonNum = parseFloat(savedLon);
         
-        if (savedName) {
-            updateSpotDisplay(savedName, currentLat, currentLon, parseFloat(savedDistance || 0));
-            console.log(`🔄 Spot restauré: ${savedName} (${currentLat}, ${currentLon})`);
+        if (!isNaN(latNum) && !isNaN(lonNum)) {
+            currentLat = latNum;
+            currentLon = lonNum;
+            
+            if (savedName) {
+                updateSpotDisplay(savedName, latNum, lonNum, parseFloat(savedDistance || 0));
+                console.log(`🔄 Spot restauré: ${savedName} (${latNum}, ${lonNum})`);
+            }
+        } else {
+            console.warn('⚠️ Coordonnées invalides dans localStorage');
         }
     }
 }
@@ -156,10 +183,20 @@ function restoreLastSpot() {
 
 // Charger les données météo pour une position donnée
 async function loadWeatherData(lat = currentLat, lon = currentLon) {
-    console.log(`🌤️ Chargement des données météo pour ${lat}, ${lon}...`);
+    // Conversion et validation des coordonnées
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    
+    if (isNaN(latNum) || isNaN(lonNum)) {
+        console.error('❌ loadWeatherData: coordonnées invalides', { lat, lon });
+        showNotification('Coordonnées météo invalides', 'error');
+        return generateFallbackWeather();
+    }
+    
+    console.log(`🌤️ Chargement des données météo pour ${latNum}, ${lonNum}...`);
     
     try {
-        const response = await fetch(`/api/current_weather?lat=${lat}&lon=${lon}`);
+        const response = await fetch(`/api/current_weather?lat=${latNum}&lon=${lonNum}`);
         
         if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
@@ -358,14 +395,14 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreLastSpot();
     initWeather();
     
-    // Écouter les clics sur les boutons de sélection de spot
+    // Écouter les clics sur les boutons de sélection de spot (sans passer l'événement)
     document.addEventListener('click', function(e) {
         const selectSpotBtn = e.target.closest('[data-select-spot]');
         if (selectSpotBtn) {
             const lat = parseFloat(selectSpotBtn.dataset.lat);
             const lon = parseFloat(selectSpotBtn.dataset.lon);
             const name = selectSpotBtn.dataset.name || 'Spot';
-            selectSpot(e, lat, lon, name);
+            selectSpot(lat, lon, name);  // NE PAS passer e
         }
     });
     
@@ -384,6 +421,6 @@ window.toggleWindAnimation = toggleWindAnimation;
 window.escapeHTML = escapeHTML;
 window.currentLat = currentLat;
 window.currentLon = currentLon;
-window.isMobileDevice = isMobileDevice; // ✅ AJOUT : exposition de la variable globale
+window.isMobileDevice = isMobileDevice;
 
 console.log("✅ Module main.js chargé - Fonctions de sélection de spot disponibles GLOBALEMENT");

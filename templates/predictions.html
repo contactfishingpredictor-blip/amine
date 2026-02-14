@@ -3,323 +3,171 @@
 {% block title %}Fishing Predictor Pro - Prévisions 10 Jours{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-    /* === STYLES GLOBAUX === */
     body {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: #f8fafc;
         min-height: 100vh;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    
-    .container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 0 1rem;
-    }
-    
-    /* === HEADER COMPACT === */
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 1rem; }
     .predictions-hero {
         background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        color: white;
-        padding: 1.25rem 0;
-        text-align: center;
-        border-radius: 0 0 16px 16px;
-        margin-bottom: 1.5rem;
-        position: relative;
-        overflow: hidden;
+        color: white; padding: 1.25rem 0; text-align: center;
+        border-radius: 0 0 16px 16px; margin-bottom: 1.5rem;
     }
-    
-    .predictions-hero h1 {
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin-bottom: 0.25rem;
-        background: linear-gradient(90deg, #ffffff, #dbeafe);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        position: relative;
-    }
-    
-    .predictions-hero p {
-        font-size: 0.95rem;
-        opacity: 0.9;
-        max-width: 600px;
-        margin: 0 auto;
-        position: relative;
-    }
-    
-    /* === STRUCTURE 2 COLONNES === */
     .dashboard-grid {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;
     }
-    
-    @media (max-width: 1024px) {
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-    
-    .left-column, .right-column {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-    }
-    
-    /* === CARTES === */
+    @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
+    .left-column, .right-column { display: flex; flex-direction: column; gap: 1.25rem; }
     .card {
         background: rgba(30, 41, 59, 0.9);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        padding: 1.25rem;
-        border: 1px solid #475569;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px); border-radius: 16px; padding: 1.25rem;
+        border: 1px solid #475569; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
-    
     .card-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: #e2e8f0;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding-bottom: 0.5rem;
+        font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: #e2e8f0;
+        display: flex; align-items: center; gap: 0.75rem; padding-bottom: 0.5rem;
         border-bottom: 2px solid #334155;
     }
-    
-    .card-title i {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.1rem;
-    }
-    
-    /* === BOUTONS === */
     .btn {
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        border: none;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-        min-height: 44px;
+        padding: 0.6rem 1.2rem; border-radius: 8px; border: none; font-weight: 500;
+        cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center;
+        gap: 0.5rem; font-size: 0.9rem; min-height: 44px;
     }
-    
-    .btn-primary {
-        background: linear-gradient(90deg, #3b82f6, #2563eb);
-        color: white;
-    }
-    
-    .btn-secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        border: 1px solid #475569;
-    }
-    
-    .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* === CARTE AVEC ANIMATION VENT === */
+    .btn-primary { background: linear-gradient(90deg, #3b82f6, #2563eb); color: white; }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid #475569; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
     .map-container {
-        height: 380px;
-        border-radius: 12px;
-        overflow: hidden;
-        position: relative;
-        border: 2px solid #475569;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        height: 380px; border-radius: 12px; overflow: hidden; position: relative;
+        border: 2px solid #475569; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
-    
     #wind-animation-canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 500;
-        display: none;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 500; display: none;
     }
-    
-    /* === ÉLÉMENTS CACHÉS POUR MAIN.JS === */
-    .weather-elements-hidden {
-        display: none;
-    }
-    
-    /* === GRILLE PRÉVISIONS === */
+    .weather-elements-hidden { display: none; }
     .forecast-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 1rem;
-        margin: 1rem 0;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem; margin: 1rem 0;
     }
-    
     .forecast-day-card {
-        background: rgba(51, 65, 85, 0.6);
-        border-radius: 12px;
-        padding: 1rem;
-        text-align: center;
-        transition: all 0.3s;
-        cursor: pointer;
-        border: 2px solid transparent;
+        background: rgba(51,65,85,0.6); border-radius: 12px; padding: 1rem;
+        text-align: center; transition: all 0.3s; cursor: pointer;
+        border: 2px solid transparent; position: relative;
     }
-    
     .forecast-day-card:hover {
-        transform: translateY(-3px);
-        border-color: #3b82f6;
-        background: rgba(59, 130, 246, 0.1);
+        transform: translateY(-3px); border-color: #3b82f6;
+        background: rgba(59,130,246,0.1);
     }
-    
     .forecast-day-card.active {
-        border-color: #10b981;
-        background: rgba(16, 185, 129, 0.15);
-        box-shadow: 0 5px 20px rgba(16, 185, 129, 0.3);
+        border-color: #10b981; background: rgba(16,185,129,0.15);
+        box-shadow: 0 5px 20px rgba(16,185,129,0.3);
     }
-    
     .day-header {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: #e2e8f0;
+        font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; color: #e2e8f0;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
     }
-    
-    .day-date {
-        font-size: 0.8rem;
-        color: #94a3b8;
-        margin-bottom: 0.5rem;
-    }
-    
+    .day-date { font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.5rem; }
     .day-score {
-        font-size: 2rem;
-        font-weight: 900;
-        margin: 0.5rem 0;
+        font-size: 2rem; font-weight: 900; margin: 0.5rem 0;
         background: linear-gradient(90deg, #10b981, #3b82f6);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        -webkit-background-clip: text; background-clip: text; color: transparent;
         line-height: 1;
     }
-    
     .day-decision {
-        display: inline-block;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.8rem;
-        color: white;
-        margin-top: 0.25rem;
+        display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px;
+        font-weight: 600; font-size: 0.8rem; color: white; margin-top: 0.25rem;
     }
-    
-    /* === DÉTAILS JOUR === */
+    .wind-alert-badge {
+        display: inline-block; margin-left: 5px; font-size: 1.1rem;
+        cursor: help; filter: drop-shadow(0 0 2px #f59e0b);
+    }
     .day-details {
-        background: rgba(30, 41, 59, 0.9);
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-top: 1.5rem;
-        border: 1px solid #475569;
+        background: rgba(30,41,59,0.9); border-radius: 16px; padding: 1.5rem;
+        margin-top: 1.5rem; border: 1px solid #475569;
     }
-    
     .day-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1rem;
-        margin: 1rem 0;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem; margin: 1rem 0;
     }
-    
     .stat-card {
-        background: rgba(51, 65, 85, 0.6);
-        padding: 1rem;
-        border-radius: 12px;
-        border-left: 4px solid;
-        text-align: center;
+        background: rgba(51,65,85,0.6); padding: 1rem; border-radius: 12px;
+        border-left: 4px solid; text-align: center;
     }
-    
-    .stat-value {
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: #f8fafc;
-        margin: 0.25rem 0;
-    }
-    
-    /* === HEURES OPTIMALES === */
+    .stat-value { font-size: 1.3rem; font-weight: 800; color: #f8fafc; margin: 0.25rem 0; }
     .hourly-forecast-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-        gap: 0.75rem;
-        margin: 1rem 0;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 0.75rem; margin: 1rem 0;
     }
-    
     .hour-card {
-        background: rgba(51, 65, 85, 0.6);
-        padding: 0.75rem;
-        border-radius: 10px;
-        text-align: center;
-        border-top: 4px solid;
-        transition: all 0.3s;
+        background: rgba(51,65,85,0.6); padding: 0.75rem; border-radius: 10px;
+        text-align: center; border-top: 4px solid; transition: all 0.3s;
     }
-    
-    /* === TABLEAU HORAIRE === */
+    .wind-rose-grid {
+        display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin: 1rem 0;
+    }
+    .wind-card {
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border-radius: 50%; width: 90px; height: 90px; padding: 0.5rem;
+        box-sizing: border-box; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.05);
+        border: 2px solid transparent; transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .wind-card:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 15px 30px rgba(59,130,246,0.3);
+    }
+    .wind-card .hour {
+        font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.1rem;
+        line-height: 1.2;
+    }
+    .wind-card .speed {
+        font-size: 1rem; font-weight: 800;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        line-height: 1.2; white-space: nowrap;
+    }
+    .wind-card .direction-icon {
+        font-size: 1.3rem; filter: drop-shadow(0 0 5px rgba(59,130,246,0.5));
+        margin: 0; line-height: 1;
+    }
+    .wind-card .direction-name {
+        font-size: 0.6rem; font-weight: 600; color: #cbd5e1;
+        text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;
+    }
+    .wind-card[data-wind-speed="low"] { border-color: #10b981; }
+    .wind-card[data-wind-speed="moderate"] { border-color: #f59e0b; }
+    .wind-card[data-wind-speed="high"] { border-color: #ef4444; }
+    .wind-card[data-wind-speed="very-high"] { border-color: #8b5cf6; }
+    @media (max-width: 480px) {
+        .wind-card { width: 70px; height: 70px; padding: 0.3rem; }
+        .wind-card .hour { font-size: 0.7rem; }
+        .wind-card .speed { font-size: 0.85rem; }
+        .wind-card .direction-icon { font-size: 1.1rem; }
+        .wind-card .direction-name { font-size: 0.5rem; }
+    }
     .hourly-table-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.85);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
-        padding: 1rem;
-        animation: fadeIn 0.3s ease;
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.85); display: none; justify-content: center;
+        align-items: center; z-index: 2000; padding: 1rem; animation: fadeIn 0.3s ease;
     }
-    
     .hourly-table-content {
-        background: rgba(30, 41, 59, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 15px;
-        width: 95%;
-        max-width: 1400px;
-        max-height: 85vh;
-        overflow: auto;
-        position: relative;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        background: rgba(30,41,59,0.95); backdrop-filter: blur(10px);
+        border-radius: 15px; width: 95%; max-width: 1400px; max-height: 85vh;
+        overflow: auto; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         border: 1px solid #475569;
     }
-    
-    /* === CLASSES DE SCORES === */
     .score-excellent { background: #10b981; }
     .score-good { background: #3b82f6; }
     .score-medium { background: #f59e0b; }
     .score-poor { background: #ef4444; }
     .score-very-poor { background: #6b7280; }
-    
-    /* === ANIMATIONS === */
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    /* === RESPONSIVE === */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @media (max-width: 768px) {
         .predictions-hero h1 { font-size: 1.5rem; }
         .map-container { height: 350px; }
@@ -327,108 +175,82 @@
         .day-stats-grid { grid-template-columns: 1fr 1fr; }
         .btn { width: 100%; }
     }
-    
     @media (max-width: 480px) {
         .predictions-hero h1 { font-size: 1.3rem; }
         .map-container { height: 300px; }
         .forecast-grid { grid-template-columns: repeat(2, 1fr); }
         .day-stats-grid { grid-template-columns: 1fr; }
     }
-
-    /* === STYLES CALENDRIER LUNAIRE === */
     .lunar-card {
-        background: rgba(15, 23, 42, 0.95);
-        border: 1px solid #8b5cf6;
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        background: rgba(15,23,42,0.95); border: 1px solid #8b5cf6;
+        box-shadow: 0 0 20px rgba(139,92,246,0.2);
     }
     .lunar-badge {
-        background: #8b5cf6;
-        color: white;
-        font-size: 0.75rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: 30px;
-        margin-left: 0.75rem;
+        background: #8b5cf6; color: white; font-size: 0.75rem;
+        padding: 0.2rem 0.6rem; border-radius: 30px; margin-left: 0.75rem;
     }
     .moon-wheel {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 0.75rem;
-        padding: 0.5rem;
-        position: relative;
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem;
+        padding: 0.5rem; position: relative;
     }
     .moon-day {
-        background: rgba(30, 41, 59, 0.8);
-        border-radius: 50% 50% 30% 30%;
-        padding: 1rem 0.5rem;
-        text-align: center;
-        border: 2px solid;
-        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        position: relative;
-        overflow: hidden;
+        background: rgba(30,41,59,0.8); border-radius: 50% 50% 30% 30%;
+        padding: 1rem 0.5rem; text-align: center; border: 2px solid;
+        transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
         cursor: pointer;
     }
     .moon-day:hover {
-        transform: scale(1.1) rotate(5deg);
-        z-index: 10;
+        transform: scale(1.1) rotate(5deg); z-index: 10;
         box-shadow: 0 0 15px currentColor;
     }
     .moon-icon {
-        font-size: 2.2rem;
-        line-height: 1;
-        margin-bottom: 0.25rem;
-        filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.5));
+        font-size: 2.2rem; line-height: 1; margin-bottom: 0.25rem;
+        filter: drop-shadow(0 0 5px rgba(139,92,246,0.5));
     }
     .moon-phase-name {
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: #cbd5e1;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-size: 0.7rem; font-weight: 600; color: #cbd5e1;
+        text-transform: uppercase; letter-spacing: 0.5px;
     }
     .moon-score {
-        font-size: 1.2rem;
-        font-weight: 900;
-        margin: 0.25rem 0;
+        font-size: 1.2rem; font-weight: 900; margin: 0.25rem 0;
         background: linear-gradient(90deg, #f8fafc, #e2e8f0);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .moon-day small {
-        font-size: 0.65rem;
-        color: #94a3b8;
-        display: block;
-    }
+    .moon-day small { font-size: 0.65rem; color: #94a3b8; display: block; }
     .lunar-legend {
-        display: flex;
-        justify-content: space-around;
-        margin-top: 1rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid #334155;
-        font-size: 0.75rem;
-        color: #94a3b8;
+        display: flex; justify-content: space-around; margin-top: 1rem;
+        padding-top: 0.75rem; border-top: 1px solid #334155;
+        font-size: 0.75rem; color: #94a3b8;
     }
     .legend-dot {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-right: 0.25rem;
+        display: inline-block; width: 10px; height: 10px;
+        border-radius: 50%; margin-right: 0.25rem;
     }
     @keyframes moonPulse {
         0% { transform: scale(1); }
         100% { transform: scale(1.05); }
     }
     .moon-day.active-moon {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.15);
+        border-color: #8b5cf6; background: rgba(139,92,246,0.15);
         animation: moonPulse 1.5s infinite alternate;
+    }
+    .notification {
+        position: fixed; top: 20px; right: 20px; padding: 15px 20px;
+        border-radius: 8px; color: white; font-weight: 500;
+        z-index: 9999; animation: slideIn 0.3s ease; max-width: 350px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+    .notification.success { background: linear-gradient(135deg, #10b981, #059669); }
+    .notification.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .notification.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Header compact -->
 <div class="predictions-hero">
     <div class="container">
         <h1><i class="fas fa-calendar-alt"></i> Prévisions 10 Jours</h1>
@@ -437,79 +259,42 @@
 </div>
 
 <div class="container">
-    <!-- ÉLÉMENTS CACHÉS POUR MAIN.JS -->
     <div class="weather-elements-hidden">
-        <div id="temperature"></div>
-        <div id="weather-condition"></div>
-        <div id="wind-speed"></div>
-        <div id="weather-location-name"></div>
-        <div id="weather-icon"></div>
-        <div id="wind-direction"></div>
-        <div id="weather-pressure"></div>
-        <div id="wind-impact"></div>
-        <div id="wind-fishing-tips"></div>
+        <div id="temperature"></div><div id="weather-condition"></div><div id="wind-speed"></div>
+        <div id="weather-location-name"></div><div id="weather-icon"></div><div id="wind-direction"></div>
+        <div id="weather-pressure"></div><div id="wind-impact"></div><div id="wind-fishing-tips"></div>
         <div id="weather-updated"></div>
     </div>
 
-    <!-- Structure 2 colonnes -->
     <div class="dashboard-grid">
-        <!-- COLONNE GAUCHE -->
         <div class="left-column">
-            <!-- Carte -->
             <div class="card">
                 <div class="card-title">
-                    <i class="fas fa-map"></i>
-                    Carte des Spots
+                    <i class="fas fa-map"></i> Carte des Spots
                     <button class="btn btn-secondary" style="margin-left:auto;padding:0.4rem 0.8rem" onclick="window.useCurrentLocation()">
                         <i class="fas fa-location-dot"></i>
                     </button>
                 </div>
-                
                 <div class="map-container" id="map-container"></div>
-                
                 <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
-                    <button class="btn btn-secondary" onclick="window.loadForecast()">
-                        <i class="fas fa-sync-alt"></i> Actualiser
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.toggleWindLayer()" id="windToggleBtn">
-                        <i class="fas fa-wind"></i> Vent
-                    </button>
-                    <button class="btn btn-primary" onclick="window.showHourlyForecastTable()" style="margin-left:auto">
-                        <i class="fas fa-table"></i> Tableau
-                    </button>
+                    <button class="btn btn-secondary" onclick="window.loadForecast()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+                    <button class="btn btn-secondary" onclick="window.toggleWindLayer()" id="windToggleBtn"><i class="fas fa-wind"></i> Vent</button>
+                    <button class="btn btn-primary" onclick="window.showHourlyForecastTable()" style="margin-left:auto"><i class="fas fa-table"></i> Tableau</button>
                 </div>
             </div>
             
-            <!-- Paramètres -->
             <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-sliders-h"></i>
-                    Paramètres
-                </div>
-                
+                <div class="card-title"><i class="fas fa-sliders-h"></i> Paramètres</div>
                 <div style="margin-bottom:0.75rem">
-                    <label style="display:block;margin-bottom:0.4rem;color:#cbd5e1;font-size:0.9rem">
-                        <i class="fas fa-fish"></i> Espèce
-                    </label>
+                    <label style="display:block;margin-bottom:0.4rem;color:#cbd5e1;font-size:0.9rem"><i class="fas fa-fish"></i> Espèce</label>
                     <div class="species-selector-mini" id="species-selector"></div>
                 </div>
-                
-                <!-- Info spot -->
-                <div id="spot-info" style="margin-top:1rem;padding:0.75rem;background:rgba(51,65,85,0.6);border-radius:8px;display:none">
-                    <!-- Rempli par selectSpot() -->
-                </div>
+                <div id="spot-info" style="margin-top:1rem;padding:0.75rem;background:rgba(51,65,85,0.6);border-radius:8px;display:none"></div>
             </div>
             
-            <!-- Calendrier Lunaire Unique (Fishing Moon Wheel) -->
             <div class="card lunar-card">
-                <div class="card-title">
-                    <i class="fas fa-moon"></i>
-                    Calendrier Lunaire de Pêche
-                    <span class="lunar-badge">🌓 Solunar</span>
-                </div>
-                <div class="moon-wheel" id="moonWheel">
-                    <!-- Rempli dynamiquement par JavaScript -->
-                </div>
+                <div class="card-title"><i class="fas fa-moon"></i> Calendrier Lunaire <span class="lunar-badge">🌓 Solunar</span></div>
+                <div class="moon-wheel" id="moonWheel"></div>
                 <div class="lunar-legend">
                     <span><span class="legend-dot" style="background:#10b981;"></span> Excellent</span>
                     <span><span class="legend-dot" style="background:#3b82f6;"></span> Bon</span>
@@ -518,42 +303,27 @@
                 </div>
             </div>
             
-            <!-- Alertes -->
             <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-bell"></i>
-                    Alertes
-                </div>
-                
+                <div class="card-title"><i class="fas fa-bell"></i> Alertes</div>
                 <div id="alerts-container">
                     <div class="alert-banner" id="best-day-alert" style="display:none;background:linear-gradient(90deg,#f59e0b,#d97706);color:white;padding:0.75rem;border-radius:8px;margin-bottom:0.75rem">
-                        <i class="fas fa-crown"></i>
-                        <span id="best-day-text">Meilleur jour: --</span>
+                        <i class="fas fa-crown"></i> <span id="best-day-text">Meilleur jour: --</span>
                     </div>
                     <div id="alerts-list"></div>
                 </div>
             </div>
         </div>
         
-        <!-- COLONNE DROITE -->
         <div class="right-column">
-            <!-- Graphique tendance -->
             <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-chart-line"></i>
-                    Tendance 10 Jours
-                </div>
+                <div class="card-title"><i class="fas fa-chart-line"></i> Tendance 10 Jours</div>
                 <div class="trend-chart-container" style="height:200px;margin:0.5rem 0">
                     <canvas id="trend-chart"></canvas>
                 </div>
             </div>
             
-            <!-- Prévisions 10 jours -->
             <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-calendar-week"></i>
-                    Prévisions 10 Jours
-                </div>
+                <div class="card-title"><i class="fas fa-calendar-week"></i> Prévisions 10 Jours</div>
                 
                 <div id="forecast-loading" style="display:none;text-align:center;padding:1rem">
                     <div class="loading-spinner" style="width:30px;height:30px;border:3px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 0.5rem"></div>
@@ -563,7 +333,6 @@
                 <div id="forecast-container" style="display:none">
                     <div class="forecast-grid" id="forecast-grid"></div>
                     
-                    <!-- Détails du jour -->
                     <div id="day-details" class="day-details" style="display:none">
                         <h3 id="selected-day-title" style="color:#3b82f6;margin-bottom:0.75rem;font-size:1.1rem"></h3>
                         
@@ -587,11 +356,15 @@
                             </div>
                         </div>
                         
-                        <!-- Heures optimales -->
                         <h4 style="color:#e2e8f0;margin:1rem 0 0.5rem;font-size:0.95rem">
                             <i class="fas fa-clock"></i> Meilleures heures
                         </h4>
                         <div class="hourly-forecast-grid" id="hourly-forecast-grid"></div>
+
+                        <h4 style="color:#e2e8f0;margin:1.5rem 0 0.75rem;font-size:0.95rem">
+                            <i class="fas fa-wind"></i> Vent détaillé (toutes les 3h)
+                        </h4>
+                        <div class="wind-rose-grid" id="hourlyWindGrid"></div>
                     </div>
                 </div>
             </div>
@@ -599,13 +372,10 @@
     </div>
 </div>
 
-<!-- Modal tableau horaire -->
 <div class="hourly-table-modal" id="hourlyTableModal">
     <div class="hourly-table-content">
         <div style="padding:1rem;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;border-radius:15px 15px 0 0;display:flex;justify-content:space-between;align-items:center">
-            <h3 id="hourly-table-title" style="margin:0;font-size:1.2rem">
-                <i class="fas fa-table"></i> Prévisions Horaires
-            </h3>
+            <h3 id="hourly-table-title" style="margin:0;font-size:1.2rem"><i class="fas fa-table"></i> Prévisions Horaires</h3>
             <button class="close-modal" id="closeHourlyTable" style="background:rgba(255,255,255,.2);border:none;color:white;font-size:1.5rem;cursor:pointer;width:36px;height:36px;border-radius:50%">&times;</button>
         </div>
         <div id="hourly-table-container" style="padding:1rem;max-height:70vh;overflow:auto"></div>
@@ -615,46 +385,31 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// ============================================================================
-// FISHING PREDICTOR - PRÉVISIONS 10 JOURS
-// VERSION CORRIGÉE - 100% COMPATIBLE AVEC INDEX.HTML ET MAIN.JS
-// ============================================================================
+// ============================================
+// FISHING PREDICTOR PRO - PRÉVISIONS 10 JOURS
+// Version corrigée - Mars 2026
+// ============================================
 
-// ============================================================================
-// ÉTAT GLOBAL
-// ============================================================================
 const AppState = {
-    // Position
-    currentLat: 36.8065,
-    currentLon: 10.1815,
-    currentSpot: null,
+    currentLat: 36.8065, 
+    currentLon: 10.1815, 
+    currentSpot: null, 
     currentSpecies: 'loup',
-    
-    // Données
-    forecastData: null,
+    forecastData: null, 
     selectedDay: 0,
-    
-    // Composants
-    map: null,
-    markers: [],
+    map: null, 
+    markers: [], 
     trendChart: null,
-    
-    // Animation vent - NOMS COMPATIBLES AVEC MAIN.JS
-    windEnabled: false,
-    windCanvas: null,
-    windCtx: null,
+    windEnabled: false, 
+    windCanvas: null, 
+    windCtx: null, 
     windParticles: [],
-    windAnimationId: null,
-    windDirection: 90,
-    windSpeed: 10,
-    
-    // Initialisation
+    windAnimationId: null, 
+    windDirection: 90, 
+    windSpeed: 10, 
     initialized: false
 };
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
 const Config = {
     spots: [
         { name: 'Tunis Marina', lat: 36.8065, lon: 10.1815, type: 'port', depth: '8-12m' },
@@ -663,7 +418,6 @@ const Config = {
         { name: 'Sousse', lat: 35.8254, lon: 10.6360, type: 'port', depth: '6-10m' },
         { name: 'Hammamet', lat: 36.4000, lon: 10.6000, type: 'plage', depth: '5-8m' }
     ],
-    
     species: {
         loup: { name: 'Loup de Mer', icon: '🐟', color: '#3b82f6' },
         daurade: { name: 'Daurade Royale', icon: '🐠', color: '#10b981' },
@@ -671,29 +425,99 @@ const Config = {
     }
 };
 
-// ============================================================================
-// ANIMATION VENT - AVEC LES NOMS ATTENDUS PAR MAIN.JS
-// ============================================================================
+// ============================================
+// FONCTIONS UTILITAIRES
+// ============================================
+
+/**
+ * Calcule la distance entre deux points GPS (formule de Haversine)
+ * @param {number} lat1 - Latitude point 1
+ * @param {number} lon1 - Longitude point 1
+ * @param {number} lat2 - Latitude point 2
+ * @param {number} lon2 - Longitude point 2
+ * @returns {number} Distance en kilomètres
+ */
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Rayon de la Terre en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+/**
+ * Affiche une notification temporaire
+ * @param {string} message - Message à afficher
+ * @param {string} type - Type de notification (success, error, info)
+ */
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideIn 0.3s reverse';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+function getWindDirectionName(deg) {
+    const directions = ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ouest', 'Ouest', 'Nord-Ouest'];
+    return directions[Math.round(deg / 45) % 8];
+}
+
+function getWindDirectionIcon(deg) {
+    const icons = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+    return icons[Math.round(deg / 45) % 8];
+}
+
+function getWindDirectionAbbr(deg) {
+    const abbreviations = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+    return abbreviations[Math.round(deg / 45) % 8];
+}
+
+function getWindSpeedCategory(speed) {
+    if (speed < 10) return 'low';
+    if (speed < 20) return 'moderate';
+    if (speed < 30) return 'high';
+    return 'very-high';
+}
+
+/**
+ * Calcule la hauteur estimée des vagues en fonction de la vitesse du vent
+ * @param {number} windSpeed - Vitesse du vent en km/h
+ * @returns {number} Hauteur estimée des vagues en mètres
+ */
+function estimateWaveHeight(windSpeed) {
+    if (windSpeed < 10) return 0.2;
+    if (windSpeed < 20) return 0.2 + (windSpeed - 10) * 0.04;
+    if (windSpeed < 30) return 0.6 + (windSpeed - 20) * 0.06;
+    if (windSpeed < 40) return 1.2 + (windSpeed - 30) * 0.08;
+    if (windSpeed < 50) return 2.0 + (windSpeed - 40) * 0.10;
+    if (windSpeed < 60) return 3.0 + (windSpeed - 50) * 0.12;
+    return 4.2 + (windSpeed - 60) * 0.15;
+}
+
+// ============================================
+// GESTION DE L'ANIMATION DU VENT
+// ============================================
+
 const WindAnimation = {
     init() {
         if (!AppState.map) return;
-        
         const container = document.getElementById('map-container');
         if (!container) return;
-        
-        // Supprimer l'ancien canvas s'il existe
         const oldCanvas = document.getElementById('wind-animation-canvas');
         if (oldCanvas) oldCanvas.remove();
-        
-        // Créer le canvas
         const canvas = document.createElement('canvas');
         canvas.id = 'wind-animation-canvas';
         container.appendChild(canvas);
-        
         AppState.windCanvas = canvas;
         AppState.windCtx = canvas.getContext('2d');
-        
-        // Redimensionnement
         const resize = () => {
             if (container && canvas) {
                 canvas.width = container.clientWidth;
@@ -701,7 +525,6 @@ const WindAnimation = {
                 this._initParticles();
             }
         };
-        
         resize();
         window.addEventListener('resize', resize);
     },
@@ -709,13 +532,11 @@ const WindAnimation = {
     _initParticles() {
         const canvas = AppState.windCanvas;
         if (!canvas) return;
-        
         const count = Math.min(120, Math.floor(canvas.width * canvas.height / 2000));
         AppState.windParticles = [];
-        
         for (let i = 0; i < count; i++) {
             AppState.windParticles.push({
-                x: Math.random() * canvas.width,
+                x: Math.random() * canvas.width, 
                 y: Math.random() * canvas.height,
                 size: Math.random() * 2 + 1,
                 speed: (Math.random() * 1.5 + 0.5) * (AppState.windSpeed / 12 || 1),
@@ -726,41 +547,29 @@ const WindAnimation = {
     
     _animate() {
         if (!AppState.windEnabled || !AppState.windCtx || !AppState.windCanvas) return;
-        
         const ctx = AppState.windCtx;
         const canvas = AppState.windCanvas;
-        
-        // Mettre à jour la direction depuis les prévisions
         if (AppState.forecastData && AppState.forecastData[AppState.selectedDay]) {
             const day = AppState.forecastData[AppState.selectedDay];
             AppState.windDirection = day.wind?.direction || 90;
             AppState.windSpeed = day.wind?.speed || 10;
         }
-        
-        const windAngle = (AppState.windDirection * Math.PI / 180) + Math.PI;
+        const windAngle = ((AppState.windDirection + 90) % 360) * Math.PI / 180;
         const speedFactor = Math.max(0.5, Math.min(2, AppState.windSpeed / 10));
-        
-        // Effet de traînée
         ctx.globalCompositeOperation = 'destination-out';
         ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.globalCompositeOperation = 'source-over';
-        
-        // Animer les particules
         AppState.windParticles.forEach(p => {
             p.x += Math.cos(windAngle) * p.speed * speedFactor;
             p.y += Math.sin(windAngle) * p.speed * speedFactor;
-            
             if (p.x > canvas.width) p.x = 0;
             if (p.x < 0) p.x = canvas.width;
             if (p.y > canvas.height) p.y = 0;
             if (p.y < 0) p.y = canvas.height;
-            
-            // Dessin
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(windAngle);
-            
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.lineTo(-6, -2);
@@ -768,15 +577,12 @@ const WindAnimation = {
             ctx.closePath();
             ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity * 0.7})`;
             ctx.fill();
-            
             ctx.beginPath();
             ctx.arc(0, 0, p.size, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`;
             ctx.fill();
-            
             ctx.restore();
         });
-        
         AppState.windAnimationId = requestAnimationFrame(() => this._animate());
     },
     
@@ -795,13 +601,9 @@ const WindAnimation = {
         }
     },
     
-    // ========== API PUBLIQUE - ATTENDUE PAR MAIN.JS ==========
     toggleLayer() {
-        if (AppState.windEnabled) {
-            this.removeAnimation();
-        } else {
-            this.addAnimation();
-        }
+        if (AppState.windEnabled) this.removeAnimation();
+        else this.addAnimation();
     },
     
     addAnimation() {
@@ -816,9 +618,7 @@ const WindAnimation = {
     
     removeAnimation() {
         AppState.windEnabled = false;
-        if (AppState.windCanvas) {
-            AppState.windCanvas.style.display = 'none';
-        }
+        if (AppState.windCanvas) AppState.windCanvas.style.display = 'none';
         if (AppState.windAnimationId) {
             cancelAnimationFrame(AppState.windAnimationId);
             AppState.windAnimationId = null;
@@ -829,9 +629,7 @@ const WindAnimation = {
     updateAnimation(direction, speed) {
         if (direction !== undefined) AppState.windDirection = direction;
         if (speed !== undefined) AppState.windSpeed = speed;
-        if (AppState.windEnabled) {
-            this._initParticles();
-        }
+        if (AppState.windEnabled) this._initParticles();
     },
     
     syncWithForecast() {
@@ -842,51 +640,35 @@ const WindAnimation = {
     }
 };
 
-// ============================================================================
-// CARTE
-// ============================================================================
+// ============================================
+// GESTION DE LA CARTE
+// ============================================
+
 const MapManager = {
     init() {
         try {
             AppState.map = L.map('map-container').setView([AppState.currentLat, AppState.currentLon], 10);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(AppState.map);
-            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(AppState.map);
             this._addSpots();
-            
             AppState.map.on('click', (e) => {
                 SpotSelector.select({
                     name: `Position (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`,
-                    lat: e.latlng.lat,
-                    lon: e.latlng.lng,
-                    type: 'custom',
-                    depth: '?'
+                    lat: e.latlng.lat, lon: e.latlng.lng, type: 'custom', depth: '?'
                 });
             });
-            
             WindAnimation.init();
-            
             console.log('✅ Carte initialisée');
-        } catch (e) {
+        } catch (e) { 
             console.error('❌ Erreur carte:', e);
+            showNotification('Erreur lors de l\'initialisation de la carte', 'error');
         }
     },
     
     _addSpots() {
         Config.spots.forEach(spot => {
-            const color = spot.type === 'port' ? '#3b82f6' :
-                         spot.type === 'plage' ? '#10b981' : '#f59e0b';
-            
-            const icon = L.divIcon({
-                html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
-                iconSize: [16, 16]
-            });
-            
+            const color = spot.type === 'port' ? '#3b82f6' : spot.type === 'plage' ? '#10b981' : '#f59e0b';
+            const icon = L.divIcon({ html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`, iconSize: [16,16] });
             const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(AppState.map);
-            
-            // Popup avec bouton de sélection
             marker.bindPopup(`
                 <div style="min-width:200px;">
                     <h3 style="margin:0 0 5px;color:#1e40af">${spot.name}</h3>
@@ -898,30 +680,22 @@ const MapManager = {
                     </button>
                 </div>
             `);
-            
-            // Clic sur le marqueur = sélection directe
-            marker.on('click', () => {
-                window.selectSpot(spot.lat, spot.lon, spot.name);
-            });
-            
+            marker.on('click', () => { window.selectSpot(spot.lat, spot.lon, spot.name); });
             AppState.markers.push(marker);
         });
     }
 };
 
-// ============================================================================
-// SÉLECTEUR DE SPOT - COMPATIBLE AVEC MAIN.JS
-// ============================================================================
+// ============================================
+// SÉLECTION DES SPOTS
+// ============================================
+
 const SpotSelector = {
-    select(lat, lon, name) {
-        // Compatibilité avec les deux signatures
-        if (typeof lat === 'object') {
-            // Appel avec objet spot
-            const spot = lat;
-            this._selectSpot(spot.lat, spot.lon, spot.name);
+    select(param1, param2, param3) {
+        if (typeof param1 === 'object') {
+            this._selectSpot(param1.lat, param1.lon, param1.name);
         } else {
-            // Appel avec paramètres séparés
-            this._selectSpot(lat, lon, name);
+            this._selectSpot(param1, param2, param3);
         }
     },
     
@@ -930,175 +704,197 @@ const SpotSelector = {
         AppState.currentSpot = spot;
         AppState.currentLat = lat;
         AppState.currentLon = lon;
-        
-        // Sauvegarder dans localStorage pour compatibilité avec main.js
         localStorage.setItem('currentLat', lat);
         localStorage.setItem('currentLon', lon);
         localStorage.setItem('currentSpotName', name);
         
-        // Utiliser la fonction globale selectSpot de main.js si disponible
-        if (typeof window.selectSpot === 'function' && window.selectSpot !== this.select) {
-            window.selectSpot(null, lat, lon, name);
-        }
-        
-        // Mettre à jour l'affichage
         this._updateUI(spot);
-        
-        // Centrer la carte
         if (AppState.map) AppState.map.setView([lat, lon], 13);
-        
-        // Charger les prévisions
         ForecastLoader.load();
-        
-        // Notification
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(`Spot sélectionné : ${name}`, 'success');
-        }
+        showNotification(`Spot sélectionné : ${name}`, 'success');
     },
     
     _updateUI(spot) {
         const spotInfo = document.getElementById('spot-info');
         if (spotInfo) {
-            // Calculer la distance si la position actuelle est disponible
             let distanceHtml = '';
-            if (typeof window.calculateDistance === 'function' && window.currentLat && window.currentLon) {
-                const distance = window.calculateDistance(window.currentLat, window.currentLon, spot.lat, spot.lon);
-                distanceHtml = `
-                    <div style="background:#1e293b;padding:0.5rem 1rem;border-radius:20px;text-align:center">
-                        <div style="color:#94a3b8;font-size:.8rem">Distance</div>
-                        <div style="font-weight:700;font-size:1.3rem;color:#f8fafc">${distance.toFixed(1)} km</div>
-                    </div>
-                `;
-            }
+            const distance = calculateDistance(AppState.currentLat, AppState.currentLon, spot.lat, spot.lon);
+            distanceHtml = `<div style="background:#1e293b;padding:0.5rem 1rem;border-radius:20px;text-align:center">
+                <div style="color:#94a3b8;font-size:.8rem">Distance</div>
+                <div style="font-weight:700;font-size:1.3rem;color:#f8fafc">${distance.toFixed(1)} km</div>
+            </div>`;
             
             spotInfo.style.display = 'block';
             spotInfo.innerHTML = `
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
                     <div>
                         <h3 style="margin:0;color:#3b82f6">${this.escapeHTML(spot.name)}</h3>
-                        <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
-                            ${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}
-                        </div>
+                        <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}</div>
                     </div>
                     ${distanceHtml}
-                </div>
-            `;
+                </div>`;
         }
     },
     
-    escapeHTML(str) {
-        return String(str).replace(/[&<>"]/g, c => ({ 
-            '&':'&amp;', 
-            '<':'&lt;', 
-            '>':'&gt;', 
-            '"':'&quot;' 
-        })[c] || c);
+    escapeHTML(str) { 
+        return String(str).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c] || c); 
     },
     
     useCurrentLocation() {
-        if (!navigator.geolocation) {
-            alert('Géolocalisation non supportée');
-            return;
+        if (!navigator.geolocation) { 
+            alert('Géolocalisation non supportée'); 
+            return; 
         }
-        
         navigator.geolocation.getCurrentPosition(
-            pos => {
-                this._selectSpot(
-                    pos.coords.latitude,
-                    pos.coords.longitude,
-                    'Ma position'
-                );
+            pos => { 
+                this._selectSpot(pos.coords.latitude, pos.coords.longitude, 'Ma position'); 
             },
-            () => alert('Impossible d\'obtenir la position')
+            () => { 
+                alert('Impossible d\'obtenir la position');
+                showNotification('Impossible d\'obtenir votre position', 'error');
+            }
         );
     }
 };
 
-// ============================================================================
-// PRÉVISIONS
-// ============================================================================
+// ============================================
+// CHARGEMENT DES PRÉVISIONS
+// ============================================
+
 const ForecastLoader = {
     async load() {
         if (!AppState.currentSpot) return;
-        
         document.getElementById('forecast-loading').style.display = 'block';
         document.getElementById('forecast-container').style.display = 'none';
-        
+        try {
+            const url = `/api/forecast_10days?lat=${AppState.currentLat}&lon=${AppState.currentLon}&species=${AppState.currentSpecies}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && Array.isArray(data.forecast)) {
+                const forecast = data.forecast.map((day) => {
+                    let hourlyWind = day.hourly_wind || [];
+                    
+                    // Estimer la hauteur des vagues si non fournie
+                    const waveHeight = day.weather?.wave_height || 
+                                      estimateWaveHeight(day.weather?.wind_speed || 0);
+                    
+                    return {
+                        date: day.date, 
+                        score: day.score,
+                        wind: { 
+                            speed: day.weather?.wind_speed || 10, 
+                            direction: day.weather?.wind_direction_deg || 0, 
+                            direction_name: day.weather?.wind_direction || getWindDirectionName(0)
+                        },
+                        temperature: day.weather?.temperature || day.weather?.temp_avg || 20,
+                        wave_height: waveHeight, 
+                        hourlyWind: hourlyWind, 
+                        source: day.data_source || 'real_forecast'
+                    };
+                });
+                AppState.forecastData = forecast;
+                document.getElementById('forecast-loading').style.display = 'none';
+                document.getElementById('forecast-container').style.display = 'block';
+                ForecastDisplay.render();
+                TrendChart.update();
+                Alerts.update();
+                this._renderLunarCalendar();
+                console.log('✅ Prévisions chargées:', data.source || 'API');
+            } else {
+                console.warn('⚠️ Format de données invalide, utilisation du fallback');
+                await this._loadFallbackForecast();
+            }
+        } catch (error) {
+            console.error('❌ Erreur chargement prévisions:', error);
+            showNotification('Erreur de chargement des prévisions', 'error');
+            await this._loadFallbackForecast();
+        }
+    },
+    
+    async _loadFallbackForecast() {
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Génération des données
-        const forecast = [];
         const today = new Date();
         const seed = Math.abs(Math.sin(AppState.currentLat * 1000 + AppState.currentLon * 1000));
+        const forecast = [];
         
         for (let i = 0; i < 10; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
-            
             const random = Math.abs(Math.sin(seed + i * 1000));
-            
-            let score = 50;
-            score += (date.getDay() === 0 || date.getDay() === 6) ? 15 : 0;
-            score += Math.sin(i * 0.5) * 15;
+            let score = 50 + ((date.getDay() === 0 || date.getDay() === 6) ? 15 : 0) + Math.sin(i * 0.5) * 15;
             score = Math.max(20, Math.min(95, Math.round(score)));
-            
             const windSpeed = 8 + Math.round(random * 15);
             const windDirection = Math.round(random * 360);
             const temperature = 18 + Math.round(random * 10);
-            const waveHeight = (0.5 + random * 1.5).toFixed(1);
+            const waveHeight = estimateWaveHeight(windSpeed);
+            
+            const hours = [0,3,6,9,12,15,18,21];
+            const hourlyWind = hours.map(h => {
+                const speedVariation = 0.8 + 0.4 * Math.sin(h * Math.PI / 12);
+                let speed = Math.round(windSpeed * speedVariation * 10) / 10;
+                let dirVariation = 15 * Math.sin(h / 3);
+                let direction = (windDirection + dirVariation + 360) % 360;
+                return {
+                    time: `${h.toString().padStart(2,'0')}h`,
+                    speed_kmh: speed,
+                    direction_deg: direction,
+                    direction_name: getWindDirectionName(direction),
+                    direction_abbr: getWindDirectionAbbr(direction),
+                    direction_icon: getWindDirectionIcon(direction)
+                };
+            });
             
             forecast.push({
-                date: date.toISOString().split('T')[0],
+                date: date.toISOString().split('T')[0], 
                 score: score,
-                wind: {
-                    speed: windSpeed,
-                    direction: windDirection,
-                    direction_name: this._getWindDirectionName(windDirection)
+                wind: { 
+                    speed: windSpeed, 
+                    direction: windDirection, 
+                    direction_name: getWindDirectionName(windDirection) 
                 },
-                temperature: temperature,
-                wave_height: parseFloat(waveHeight)
+                temperature: temperature, 
+                wave_height: waveHeight, 
+                hourlyWind: hourlyWind
             });
         }
         
         AppState.forecastData = forecast;
-        
         document.getElementById('forecast-loading').style.display = 'none';
         document.getElementById('forecast-container').style.display = 'block';
-        
         ForecastDisplay.render();
         TrendChart.update();
         Alerts.update();
         this._renderLunarCalendar();
-    },
-    
-    _getWindDirectionName(deg) {
-        return ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ouest', 'Ouest', 'Nord-Ouest'][Math.round(deg / 45) % 8];
+        showNotification('Utilisation des données de simulation', 'info');
     },
     
     _renderLunarCalendar() {
         if (!AppState.forecastData) return;
-        
         const wheel = document.getElementById('moonWheel');
         if (!wheel) return;
         
         const Lunar = {
-            icons: {
-                'Nouvelle Lune': '🌑',
-                'Premier Croissant': '🌒',
-                'Premier Quartier': '🌓',
-                'Lune Gibbeuse Croissante': '🌔',
-                'Pleine Lune': '🌕',
-                'Lune Gibbeuse Décroissante': '🌖',
-                'Dernier Quartier': '🌗',
-                'Dernier Croissant': '🌘'
+            icons: { 
+                'Nouvelle Lune':'🌑',
+                'Premier Croissant':'🌒',
+                'Premier Quartier':'🌓',
+                'Lune Gibbeuse Croissante':'🌔',
+                'Pleine Lune':'🌕',
+                'Lune Gibbeuse Décroissante':'🌖',
+                'Dernier Quartier':'🌗',
+                'Dernier Croissant':'🌘' 
             },
-            
             getPhase(date) {
                 const knownNewMoon = new Date('2024-01-11T00:00:00Z');
-                const daysSince = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+                const daysSince = (date - knownNewMoon) / (1000*60*60*24);
                 const lunations = daysSince / 29.530588853;
                 const phaseIndex = lunations - Math.floor(lunations);
-                
                 if (phaseIndex < 0.03) return 'Nouvelle Lune';
                 if (phaseIndex < 0.19) return 'Premier Croissant';
                 if (phaseIndex < 0.28) return 'Premier Quartier';
@@ -1109,17 +905,16 @@ const ForecastLoader = {
                 if (phaseIndex < 0.97) return 'Dernier Croissant';
                 return 'Nouvelle Lune';
             },
-            
             getFishingScore(phase) {
-                const scores = {
-                    'Nouvelle Lune': 95,
-                    'Premier Croissant': 80,
-                    'Premier Quartier': 60,
-                    'Lune Gibbeuse Croissante': 75,
-                    'Pleine Lune': 85,
-                    'Lune Gibbeuse Décroissante': 70,
-                    'Dernier Quartier': 55,
-                    'Dernier Croissant': 65
+                const scores = { 
+                    'Nouvelle Lune':95,
+                    'Premier Croissant':80,
+                    'Premier Quartier':60,
+                    'Lune Gibbeuse Croissante':75,
+                    'Pleine Lune':85,
+                    'Lune Gibbeuse Décroissante':70,
+                    'Dernier Quartier':55,
+                    'Dernier Croissant':65 
                 };
                 return scores[phase] || 50;
             }
@@ -1133,53 +928,49 @@ const ForecastLoader = {
             let baseScore = Lunar.getFishingScore(phase);
             const weatherScore = day.score || 50;
             const fusedScore = Math.round((baseScore * 0.6) + (weatherScore * 0.4));
-            
             let borderColor = '#ef4444';
             if (fusedScore >= 80) borderColor = '#10b981';
             else if (fusedScore >= 60) borderColor = '#3b82f6';
             else if (fusedScore >= 40) borderColor = '#f59e0b';
-            
             const isActive = (index === AppState.selectedDay) ? 'active-moon' : '';
-            
             html += `<div class="moon-day ${isActive}" style="border-color: ${borderColor};" onclick="window.selectDay(${index})">
-                        <div class="moon-icon">${icon}</div>
-                        <div class="moon-phase-name">${phase}</div>
-                        <div class="moon-score" style="color: ${borderColor};">${fusedScore}%</div>
-                        <small>${date.toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
-                    </div>`;
+                <div class="moon-icon">${icon}</div>
+                <div class="moon-phase-name">${phase}</div>
+                <div class="moon-score" style="color: ${borderColor};">${fusedScore}%</div>
+                <small>${date.toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
+            </div>`;
         });
         wheel.innerHTML = html;
     }
 };
 
-// ============================================================================
+// ============================================
 // AFFICHAGE DES PRÉVISIONS
-// ============================================================================
+// ============================================
+
 const ForecastDisplay = {
     render() {
         if (!AppState.forecastData) return;
-        
         let html = '';
         AppState.forecastData.forEach((day, i) => {
             const date = new Date(day.date);
             const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' });
             const dayNum = date.getDate();
             const month = date.toLocaleDateString('fr-FR', { month: 'short' });
-            
             const score = day.score;
             let color = score >= 80 ? '#10b981' : score >= 60 ? '#3b82f6' : score >= 40 ? '#f59e0b' : '#ef4444';
             let decision = score >= 80 ? 'Excellent' : score >= 60 ? 'Bon' : score >= 40 ? 'Moyen' : 'Faible';
-            
-            html += `
-                <div class="forecast-day-card ${i === 0 ? 'active' : ''}" onclick="window.selectDay(${i})">
-                    <div class="day-header">${dayName}</div>
-                    <div class="day-date">${dayNum} ${month}</div>
-                    <div class="day-score">${score}%</div>
-                    <div class="day-decision" style="background:${color}">${decision}</div>
-                </div>
-            `;
+            let windAlertBadge = '';
+            if (i < 3 && day.wind.speed > 30) {
+                windAlertBadge = `<span class="wind-alert-badge" title="Vent fort prévu : ${day.wind.speed} km/h">⚠️</span>`;
+            }
+            html += `<div class="forecast-day-card ${i === 0 ? 'active' : ''}" onclick="window.selectDay(${i})">
+                <div class="day-header">${dayName} ${windAlertBadge}</div>
+                <div class="day-date">${dayNum} ${month}</div>
+                <div class="day-score">${score}%</div>
+                <div class="day-decision" style="background:${color}">${decision}</div>
+            </div>`;
         });
-        
         document.getElementById('forecast-grid').innerHTML = html;
         this.selectDay(0);
     },
@@ -1189,105 +980,117 @@ const ForecastDisplay = {
         const day = AppState.forecastData[index];
         if (!day) return;
         
-        // Synchroniser l'animation du vent
         WindAnimation.syncWithForecast();
-        
-        // Mise à jour UI
         const date = new Date(day.date);
-        document.getElementById('selected-day-title').textContent = 
-            date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-        
+        document.getElementById('selected-day-title').textContent = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
         document.getElementById('detail-score').textContent = `${day.score}%`;
         document.getElementById('detail-wind').textContent = `${day.wind.speed} km/h`;
         document.getElementById('detail-wind-dir').textContent = day.wind.direction_name;
         document.getElementById('detail-temp').textContent = `${day.temperature}°C`;
         document.getElementById('detail-waves').textContent = `${day.wave_height} m`;
         
-        // Heures optimales
         let hoursHtml = '';
-        [6, 9, 16, 19].forEach(hour => {
+        [6,9,16,19].forEach(hour => {
             const hourScore = 70 + Math.sin(hour * day.score) * 15;
             const roundedScore = Math.max(40, Math.min(95, Math.round(hourScore)));
             let color = roundedScore >= 80 ? '#10b981' : roundedScore >= 60 ? '#3b82f6' : '#f59e0b';
-            
-            hoursHtml += `
-                <div class="hour-card" style="border-top-color:${color}">
-                    <div style="font-weight:600;color:#e2e8f0">${hour}h</div>
-                    <div style="font-size:1.3rem;font-weight:700;color:${color}">${roundedScore}%</div>
-                </div>
-            `;
+            hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
+                <div style="font-weight:600;color:#e2e8f0">${hour}h</div>
+                <div style="font-size:1.3rem;font-weight:700;color:${color}">${roundedScore}%</div>
+            </div>`;
         });
         document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
         
+        const windGrid = document.getElementById('hourlyWindGrid');
+        if (day.hourlyWind && day.hourlyWind.length) {
+            let windHtml = '';
+            day.hourlyWind.forEach(item => {
+                const speedCat = getWindSpeedCategory(item.speed_kmh);
+                windHtml += `<div class="wind-card" data-wind-speed="${speedCat}">
+                    <div class="hour">${item.time}</div>
+                    <div class="speed">${item.speed_kmh} km/h</div>
+                    <div class="direction-icon">${item.direction_icon}</div>
+                    <div class="direction-name" title="${item.direction_name}">${item.direction_abbr}</div>
+                </div>`;
+            });
+            windGrid.innerHTML = windHtml;
+            windGrid.style.display = 'flex';
+        } else {
+            windGrid.style.display = 'none';
+        }
+        
         document.getElementById('day-details').style.display = 'block';
-        
-        // Active class
-        document.querySelectorAll('.forecast-day-card').forEach((card, i) => {
-            card.classList.toggle('active', i === index);
+        document.querySelectorAll('.forecast-day-card').forEach((card, i) => { 
+            card.classList.toggle('active', i === index); 
         });
-        
-        // Synchroniser le calendrier lunaire
-        document.querySelectorAll('.moon-day').forEach((el, i) => {
-            el.classList.toggle('active-moon', i === index);
+        document.querySelectorAll('.moon-day').forEach((el, i) => { 
+            el.classList.toggle('active-moon', i === index); 
         });
     }
 };
 
-// ============================================================================
+// ============================================
 // GRAPHIQUE DE TENDANCE
-// ============================================================================
+// ============================================
+
 const TrendChart = {
     update() {
         if (!AppState.forecastData) return;
-        
         const ctx = document.getElementById('trend-chart');
         if (!ctx) return;
-        
         if (AppState.trendChart) AppState.trendChart.destroy();
         
-        const labels = AppState.forecastData.map(day => {
-            const d = new Date(day.date);
-            return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        const labels = AppState.forecastData.map(day => { 
+            const d = new Date(day.date); 
+            return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }); 
         });
         
         AppState.trendChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Score',
-                    data: AppState.forecastData.map(day => day.score),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59,130,246,0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 3
-                }]
+            data: { 
+                labels: labels, 
+                datasets: [{ 
+                    label: 'Score', 
+                    data: AppState.forecastData.map(day => day.score), 
+                    borderColor: '#3b82f6', 
+                    backgroundColor: 'rgba(59,130,246,0.1)', 
+                    borderWidth: 2, 
+                    fill: true, 
+                    tension: 0.4, 
+                    pointRadius: 3 
+                }] 
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
-                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8', stepSize: 20 } }
-                }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { 
+                    x: { 
+                        grid: { color: 'rgba(255,255,255,0.1)' }, 
+                        ticks: { color: '#94a3b8' } 
+                    }, 
+                    y: { 
+                        beginAtZero: true, 
+                        max: 100, 
+                        grid: { color: 'rgba(255,255,255,0.1)' }, 
+                        ticks: { color: '#94a3b8', stepSize: 20 } 
+                    } 
+                } 
             }
         });
     }
 };
 
-// ============================================================================
-// ALERTES
-// ============================================================================
+// ============================================
+// GESTION DES ALERTES
+// ============================================
+
 const Alerts = {
     update() {
         if (!AppState.forecastData) return;
         
         const bestDay = AppState.forecastData.reduce((best, day) => day.score > best.score ? day : best);
         const date = new Date(bestDay.date);
-        
         const alertEl = document.getElementById('best-day-alert');
         const textEl = document.getElementById('best-day-text');
         
@@ -1295,16 +1098,43 @@ const Alerts = {
             alertEl.style.display = 'flex';
             textEl.textContent = `Meilleur jour: ${date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })} (${bestDay.score}%)`;
         }
+        
+        const alertsList = document.getElementById('alerts-list');
+        const oldWindAlert = document.getElementById('wind-alert');
+        if (oldWindAlert) oldWindAlert.remove();
+        
+        const nextThree = AppState.forecastData.slice(0, 3);
+        const strongWindDays = nextThree.filter(day => day.wind.speed > 30);
+        
+        if (strongWindDays.length > 0) {
+            const windAlert = document.createElement('div');
+            windAlert.id = 'wind-alert';
+            windAlert.className = 'alert-banner';
+            windAlert.style.background = 'linear-gradient(90deg,#f59e0b,#d97706)';
+            windAlert.style.color = 'white';
+            windAlert.style.padding = '0.75rem';
+            windAlert.style.borderRadius = '8px';
+            windAlert.style.marginBottom = '0.75rem';
+            
+            let message = '<i class="fas fa-wind"></i> ⚠️ Vent fort dans les 3 jours : ';
+            message += strongWindDays.map(day => {
+                const d = new Date(day.date);
+                return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) + ' ' + day.wind.speed + 'km/h';
+            }).join(', ');
+            
+            windAlert.innerHTML = message;
+            alertsList.prepend(windAlert);
+        }
     }
 };
 
-// ============================================================================
-// TABLEAU HORAIRE
-// ============================================================================
+// ============================================
+// TABLEAU DES PRÉVISIONS HORAIRES
+// ============================================
+
 const HourlyTable = {
     show() {
         if (!AppState.forecastData || !AppState.currentSpot) return;
-        
         const modal = document.getElementById('hourlyTableModal');
         const title = document.getElementById('hourly-table-title');
         const container = document.getElementById('hourly-table-container');
@@ -1314,185 +1144,157 @@ const HourlyTable = {
         let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem"><thead><tr>';
         html += '<th style="background:#334155;color:#e2e8f0;padding:0.75rem;position:sticky;left:0">Heure</th>';
         
-        AppState.forecastData.slice(0, 5).forEach(day => {
-            const d = new Date(day.date);
-            html += `<th style="background:#1e293b;color:#e2e8f0;padding:0.75rem">${d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric' })}</th>`;
+        AppState.forecastData.slice(0,5).forEach(day => { 
+            const d = new Date(day.date); 
+            html += `<th style="background:#1e293b;color:#e2e8f0;padding:0.75rem">${d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric' })}</th>`; 
         });
+        
         html += '</tr></thead><tbody>';
         
         for (let hour = 0; hour < 24; hour++) {
             html += '<tr>';
             html += `<td style="background:#334155;color:#e2e8f0;padding:0.5rem;position:sticky;left:0">${hour}h</td>`;
             
-            AppState.forecastData.slice(0, 5).forEach(() => {
+            AppState.forecastData.slice(0,5).forEach((day, dayIndex) => {
                 let score = 50;
-                if ((hour >= 6 && hour <= 9) || (hour >= 16 && hour <= 19)) score = 70 + Math.sin(hour) * 15;
-                else if (hour >= 12 && hour <= 14) score = 30 + Math.cos(hour) * 10;
-                else score = 50 + Math.sin(hour) * 15;
-                score = Math.max(20, Math.min(95, Math.round(score)));
+                const hourScore = day.hourlyWind?.find(w => parseInt(w.time) === hour)?.score;
                 
+                if (hourScore) {
+                    score = hourScore;
+                } else {
+                    // Calcul basé sur les heures optimales de la prédiction
+                    const isMorningPeak = (hour >= 5 && hour <= 9);
+                    const isEveningPeak = (hour >= 16 && hour <= 19);
+                    const isMidDay = (hour >= 12 && hour <= 14);
+                    
+                    if (isMorningPeak || isEveningPeak) {
+                        score = Math.min(95, day.score + 15);
+                    } else if (isMidDay) {
+                        score = Math.max(20, day.score - 20);
+                    } else {
+                        score = day.score - 5 + Math.sin(hour * 0.5) * 5;
+                    }
+                }
+                
+                score = Math.max(20, Math.min(95, Math.round(score)));
                 let scoreClass = 'score-very-poor';
                 if (score >= 80) scoreClass = 'score-excellent';
                 else if (score >= 60) scoreClass = 'score-good';
                 else if (score >= 40) scoreClass = 'score-medium';
                 
                 html += `<td style="padding:0.5rem;text-align:center;border:1px solid #475569">
-                            <div class="hour-score-cell ${scoreClass}" style="padding:0.4rem;color:white;border-radius:4px">${score}%</div>
-                        </td>`;
+                    <div class="hour-score-cell ${scoreClass}" style="padding:0.4rem;color:white;border-radius:4px">${score}%</div>
+                </td>`;
             });
             html += '</tr>';
         }
         
         html += '</tbody></table></div>';
         container.innerHTML = html;
-        
         modal.style.display = 'flex';
         
-        document.getElementById('closeHourlyTable').onclick = () => {
-            modal.style.display = 'none';
+        document.getElementById('closeHourlyTable').onclick = () => { 
+            modal.style.display = 'none'; 
         };
         
-        modal.onclick = (e) => {
-            if (e.target === modal) modal.style.display = 'none';
+        modal.onclick = (e) => { 
+            if (e.target === modal) modal.style.display = 'none'; 
         };
     }
 };
 
-// ============================================================================
-// SÉLECTEUR D'ESPÈCES
-// ============================================================================
+// ============================================
+// SÉLECTION DES ESPÈCES
+// ============================================
+
 const SpeciesSelector = {
     init() {
         let html = '';
         Object.entries(Config.species).forEach(([key, s]) => {
-            html += `<button class="btn btn-secondary species-btn ${key === 'loup' ? 'btn-primary' : ''}" onclick="window.selectSpecies('${key}')" style="margin-right:0.5rem;margin-bottom:0.5rem">
-                ${s.icon} ${s.name}
-            </button>`;
+            html += `<button class="btn btn-secondary species-btn ${key === 'loup' ? 'btn-primary' : ''}" onclick="window.selectSpecies('${key}')" style="margin-right:0.5rem;margin-bottom:0.5rem">${s.icon} ${s.name}</button>`;
         });
         document.getElementById('species-selector').innerHTML = html;
     },
     
-    select(species) {
+    select(species, event) {
         AppState.currentSpecies = species;
-        document.querySelectorAll('.species-btn').forEach(b => {
-            b.classList.remove('btn-primary');
-            b.classList.add('btn-secondary');
+        document.querySelectorAll('.species-btn').forEach(b => { 
+            b.classList.remove('btn-primary'); 
+            b.classList.add('btn-secondary'); 
         });
-        if (event && event.target) {
-            event.target.classList.remove('btn-secondary');
-            event.target.classList.add('btn-primary');
+        if (event && event.target) { 
+            event.target.classList.remove('btn-secondary'); 
+            event.target.classList.add('btn-primary'); 
         }
         if (AppState.currentSpot) ForecastLoader.load();
     }
 };
 
-// ============================================================================
-// EXPOSITION GLOBALE - COMPATIBLE AVEC MAIN.JS
-// ============================================================================
+// ============================================
+// RESTAURATION DU DERNIER SPOT
+// ============================================
 
-// 1. toggleWindLayer() - Point critique ! main.js appelle ce nom
-window.toggleWindLayer = () => {
-    WindAnimation.toggleLayer();
-};
-
-// 2. addWindAnimation() - Pour activer l'animation
-window.addWindAnimation = () => {
-    WindAnimation.addAnimation();
-};
-
-// 3. removeWindAnimation() - Pour désactiver l'animation
-window.removeWindAnimation = () => {
-    WindAnimation.removeAnimation();
-};
-
-// 4. updateWindAnimation(direction, speed) - Pour synchroniser
-window.updateWindAnimation = (direction, speed) => {
-    WindAnimation.updateAnimation(direction, speed);
-};
-
-// 5. selectSpot() - Signature compatible avec main.js
-window.selectSpot = (lat, lon, name) => {
-    SpotSelector.select(lat, lon, name);
-};
-
-// 6. useCurrentLocation() - Géolocalisation
-window.useCurrentLocation = () => {
-    SpotSelector.useCurrentLocation();
-};
-
-// 7. loadForecast() - Charger les prévisions
-window.loadForecast = () => {
-    ForecastLoader.load();
-};
-
-// 8. selectDay() - Sélectionner un jour
-window.selectDay = (index) => {
-    ForecastDisplay.selectDay(index);
-};
-
-// 9. showHourlyForecastTable() - Afficher le tableau horaire
-window.showHourlyForecastTable = () => {
-    HourlyTable.show();
-};
-
-// 10. selectSpecies() - Sélectionner une espèce
-window.selectSpecies = (species) => {
-    SpeciesSelector.select(species);
-};
-
-// ============================================================================
-// RÉCUPÉRATION DU DERNIER SPOT DEPUIS LOCALSTORAGE
-// ============================================================================
 function restoreLastSpot() {
     const savedLat = localStorage.getItem('currentLat');
     const savedLon = localStorage.getItem('currentLon');
     const savedName = localStorage.getItem('currentSpotName');
-    
     if (savedLat && savedLon) {
         AppState.currentLat = parseFloat(savedLat);
         AppState.currentLon = parseFloat(savedLon);
-        
-        const spot = {
-            lat: AppState.currentLat,
-            lon: AppState.currentLon,
-            name: savedName || 'Spot restauré',
-            type: 'custom',
-            depth: '?'
+        const spot = { 
+            lat: AppState.currentLat, 
+            lon: AppState.currentLon, 
+            name: savedName || 'Spot restauré', 
+            type: 'custom', 
+            depth: '?' 
         };
-        
         AppState.currentSpot = spot;
         SpotSelector._updateUI(spot);
     }
 }
 
-// ============================================================================
+// ============================================
+// EXPOSITION DES FONCTIONS GLOBALES
+// ============================================
+
+window.calculateDistance = calculateDistance;
+window.showNotification = showNotification;
+window.toggleWindLayer = () => { WindAnimation.toggleLayer(); };
+window.addWindAnimation = () => { WindAnimation.addAnimation(); };
+window.removeWindAnimation = () => { WindAnimation.removeAnimation(); };
+window.updateWindAnimation = (direction, speed) => { WindAnimation.updateAnimation(direction, speed); };
+window.selectSpot = (param1, param2, param3) => { SpotSelector.select(param1, param2, param3); };
+window.useCurrentLocation = () => { SpotSelector.useCurrentLocation(); };
+window.loadForecast = () => { ForecastLoader.load(); };
+window.selectDay = (index) => { ForecastDisplay.selectDay(index); };
+window.showHourlyForecastTable = () => { HourlyTable.show(); };
+window.selectSpecies = (species, event) => { SpeciesSelector.select(species, event); };
+
+// ============================================
 // INITIALISATION
-// ============================================================================
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
     if (AppState.initialized) return;
     AppState.initialized = true;
     
     SpeciesSelector.init();
-    
-    // Restaurer le dernier spot
     restoreLastSpot();
     
     setTimeout(() => MapManager.init(), 100);
     
-    // ✅ CORRECTION : Sélection sécurisée du premier spot
-    // Si aucun spot n'est sélectionné, prendre le premier spot par défaut
     if (!AppState.currentSpot && Config.spots && Config.spots.length > 0) {
         const defaultSpot = Config.spots[0];
         if (defaultSpot && defaultSpot.lat && defaultSpot.lon) {
             SpotSelector.select(defaultSpot.lat, defaultSpot.lon, defaultSpot.name);
         } else {
-            // Fallback sur Tunis Marina
             SpotSelector.select(36.8065, 10.1815, 'Tunis Marina');
         }
     }
     
-    // Exposer l'état global pour debug
+    // Debug
     window.AppDebug = AppState;
+    console.log('✅ Application initialisée');
 });
 </script>
 {% endblock %}

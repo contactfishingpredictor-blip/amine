@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 13.47,
+    "feels_like": 12.8,
+    "pressure": 997,
+    "humidity": 74,
+    "wind_speed": 51.66,
+    "wind_direction": 263,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 3.2,
+    "condition": "Clouds",
+    "condition_description": "nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "04d",
+    "clouds": 65,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:10:03",
+    "sunset": "2026-02-14T17:57:23",
+    "location": "Al Matlīn",
+    "country": "TN",
+    "timestamp": "2026-02-14T16:38:15.499718",
+    "score": 0.7999999999999998
+  },
+  "timestamp": 1771083495.4997187,
+  "expires_at": 1771126695.4997187,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.295359264056614,
+    "lon": 10.145375106353017
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.77,
+    "feels_like": 13.95,
+    "pressure": 997,
+    "humidity": 63,
+    "wind_speed": 29.628000000000004,
+    "wind_direction": 290,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.18,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03d",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:09:27",
+    "sunset": "2026-02-14T17:57:58",
+    "location": "Aryanah",
+    "country": "TN",
+    "timestamp": "2026-02-14T14:40:38.359974",
+    "score": 0.9999999999999999
+  },
+  "timestamp": 1771076438.3599741,
+  "expires_at": 1771119638.3599741,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.87863192813522,
+    "lon": 10.146391933326477
+  }
+}

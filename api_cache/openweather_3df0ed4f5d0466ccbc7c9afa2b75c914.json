@@ -1,10 +1,10 @@
 {
   "data": {
-    "temperature": 13.99,
-    "feels_like": 13.46,
-    "pressure": 996,
-    "humidity": 77,
-    "wind_speed": 40.752,
+    "temperature": 17.02,
+    "feels_like": 16.21,
+    "pressure": 997,
+    "humidity": 55,
+    "wind_speed": 25.92,
     "wind_direction": 270,
     "wind_direction_abbr": "O",
     "wind_direction_name": "Ouest",
@@ -12,25 +12,25 @@
     "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
     "wind_offshore": false,
     "wind_onshore": true,
-    "wave_height": 2.08,
+    "wave_height": 0.96,
     "condition": "Rain",
     "condition_description": "légère pluie",
     "condition_fr": "Pluie",
     "icon": "10d",
     "clouds": 40,
     "visibility": 10.0,
-    "sunrise": "2026-02-14T07:11:07",
-    "sunset": "2026-02-14T17:58:31",
-    "location": "Bizerte",
+    "sunrise": "2026-02-14T07:09:05",
+    "sunset": "2026-02-14T17:57:34",
+    "location": "Sukrah",
     "country": "TN",
-    "timestamp": "2026-02-14T14:34:03.838132",
-    "score": 0.6999999999999998
+    "timestamp": "2026-02-14T15:40:56.222741",
+    "score": 0.9999999999999999
   },
-  "timestamp": 1771076043.8381321,
-  "expires_at": 1771119243.8381321,
+  "timestamp": 1771080056.222741,
+  "expires_at": 1771123256.222741,
   "api_name": "openweather",
   "params": {
-    "lat": 37.2747,
-    "lon": 9.8739
+    "lat": 36.88741951354194,
+    "lon": 10.24469612815005
   }
 }

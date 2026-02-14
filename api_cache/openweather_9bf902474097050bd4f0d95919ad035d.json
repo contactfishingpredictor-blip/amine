@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.02,
+    "feels_like": 14.43,
+    "pressure": 998,
+    "humidity": 71,
+    "wind_speed": 40.032,
+    "wind_direction": 267,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 2.0,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03n",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:08:17",
+    "sunset": "2026-02-14T17:56:39",
+    "location": "Sidi Bou Said",
+    "country": "TN",
+    "timestamp": "2026-02-14T18:06:41.765679",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1771088801.7656794,
+  "expires_at": 1771132001.7656794,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.93156169720981,
+    "lon": 10.458536003701273
+  }
+}

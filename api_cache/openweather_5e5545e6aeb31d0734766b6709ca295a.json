@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.93,
+    "feels_like": 14.96,
+    "pressure": 997,
+    "humidity": 53,
+    "wind_speed": 28.980000000000004,
+    "wind_direction": 314,
+    "wind_direction_abbr": "NO",
+    "wind_direction_name": "Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.14,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03d",
+    "clouds": 26,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:06:43",
+    "sunset": "2026-02-14T17:56:34",
+    "location": "Hammamet",
+    "country": "TN",
+    "timestamp": "2026-02-14T14:37:00.760935",
+    "score": 1.0
+  },
+  "timestamp": 1771076220.760936,
+  "expires_at": 1771119420.760936,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.40149951855807,
+    "lon": 10.663570945233605
+  }
+}

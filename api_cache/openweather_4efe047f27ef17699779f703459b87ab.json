@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 13.53,
+    "feels_like": 12.84,
+    "pressure": 998,
+    "humidity": 73,
+    "wind_speed": 39.852000000000004,
+    "wind_direction": 271,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.99,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03n",
+    "clouds": 30,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:07:28",
+    "sunset": "2026-02-14T17:55:52",
+    "location": "Korbous",
+    "country": "TN",
+    "timestamp": "2026-02-14T18:05:01.532748",
+    "score": 0.7999999999999998
+  },
+  "timestamp": 1771088701.5327482,
+  "expires_at": 1771131901.5327482,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.92011678894564,
+    "lon": 10.657945872751997
+  }
+}

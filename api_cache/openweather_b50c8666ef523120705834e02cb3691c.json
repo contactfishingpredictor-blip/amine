@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.73,
+    "feels_like": 14.9,
+    "pressure": 998,
+    "humidity": 59,
+    "wind_speed": 27.791999999999998,
+    "wind_direction": 260,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 1.07,
+    "condition": "Rain",
+    "condition_description": "légère pluie",
+    "condition_fr": "Pluie",
+    "icon": "10d",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:09:27",
+    "sunset": "2026-02-14T17:58:07",
+    "location": "Le Bardo",
+    "country": "TN",
+    "timestamp": "2026-02-14T16:38:11.712560",
+    "score": 0.9999999999999999
+  },
+  "timestamp": 1771083491.7125604,
+  "expires_at": 1771126691.7125604,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.82217893160136,
+    "lon": 10.127939938890487
+  }
+}
