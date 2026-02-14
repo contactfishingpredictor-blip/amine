@@ -1,49 +1,49 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "a0c77ec21217",
+    "prediction_id": "82d7b76f05e4",
     "stable": true,
-    "valid_until": "2026-02-14T11:26:37.340022",
+    "valid_until": "2026-02-14T12:01:17.009848",
     "scores": {
-      "final": 83,
+      "final": 86,
       "environmental": 56,
-      "behavioral": 72,
-      "bathymetry_factor": 88,
+      "behavioral": 69,
+      "bathymetry_factor": 100,
       "weather_factor": 100,
       "components": {
         "scientific": 56,
-        "depth": 88,
+        "depth": 100,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 13.99,
-      "wind_speed": 7.1,
-      "wind_direction": 221,
-      "wind_direction_abbr": "N",
-      "wind_direction_name": "Nord",
-      "wind_direction_icon": "⬆️",
-      "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+      "temperature": 13.53,
+      "wind_speed": 5.9,
+      "wind_direction": 194,
+      "wind_direction_abbr": "OSO",
+      "wind_direction_name": "Ouest-Sud-Ouest",
+      "wind_direction_icon": "↙️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
-      "wind_onshore": true,
+      "wind_onshore": false,
       "pressure": 998,
-      "humidity": 88,
-      "condition": "Clouds",
-      "condition_fr": "Nuageux",
-      "wave_height": 0.5,
-      "updated": "2026-02-14T10:26:37.340022",
+      "humidity": 63,
+      "condition": "Rain",
+      "condition_fr": "Pluie",
+      "wave_height": 0.45,
+      "updated": "2026-02-14T11:01:17.009848",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.14,
+        "value": 5.18,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.61,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 14.0°C, Vent: 7.1 km/h"
+        "Météo: Pluie, 13.5°C, Vent: 5.9 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,47 +73,47 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 25,
-      "source": "Expert Tunisie - Tunis - Rade",
+      "depth": 12,
+      "source": "Expert Tunisie - Hammamet - Centre",
       "accuracy": "excellente",
       "confidence": 0.99,
-      "seabed_type": "mixed",
-      "seabed_description": "Mixte",
-      "optimal_for_species": false,
-      "zone": "ولاية تونس",
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": true,
+      "zone": "ولاية نابل",
       "recommended_fishing": [
-        "Profondeur: 25m (sous-optimale)",
-        "Type de fond: Mixte",
+        "Profondeur: 12m (optimale)",
+        "Type de fond: Sableux",
         "Précision: excellente"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
+      "lat": 36.4,
+      "lon": 10.6,
+      "name": "الحمامات, الحمامات الشرقية, معتمدية الحمامات, ولاية نابل, 8050, تونس",
       "type": "city",
-      "region": "ولاية تونس"
+      "region": "ولاية نابل"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-14T10:26:37.340022",
-      "data_source": "Expert Tunisie - Tunis - Rade",
+      "timestamp": "2026-02-14T11:01:17.010851",
+      "data_source": "Expert Tunisie - Hammamet - Centre",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "11:26",
+      "next_update_recommended": "12:01",
       "api_usage_info": {
-        "openweather_calls_today": 3,
+        "openweather_calls_today": 1,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1771061197.3400226,
-  "expires_at": 1771064797.3400226,
+  "timestamp": 1771063277.0108511,
+  "expires_at": 1771066877.0108511,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 36.4,
+    "lon": 10.6,
     "species": "loup"
   }
 }

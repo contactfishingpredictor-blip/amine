@@ -1,0 +1,119 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "db6fc4c2e89e",
+    "stable": true,
+    "valid_until": "2026-02-14T12:10:57.568834",
+    "scores": {
+      "final": 65,
+      "environmental": 47,
+      "behavioral": 69,
+      "bathymetry_factor": 50,
+      "weather_factor": 80,
+      "components": {
+        "scientific": 47,
+        "depth": 50,
+        "regional": 100,
+        "weather": 80
+      }
+    },
+    "weather": {
+      "temperature": 12.62,
+      "wind_speed": 10.1,
+      "wind_direction": 297,
+      "wind_direction_abbr": "O",
+      "wind_direction_name": "Ouest",
+      "wind_direction_icon": "⬅️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+      "wind_offshore": false,
+      "wind_onshore": false,
+      "pressure": 998,
+      "humidity": 75,
+      "condition": "Rain",
+      "condition_fr": "Pluie",
+      "wave_height": 1.71,
+      "updated": "2026-02-14T11:10:57.568834",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.29,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 0.43,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "suboptimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.192,
+        "speed_knots": 0.373,
+        "direction": "SO-NE",
+        "tide_height": 0.46,
+        "tide_phase": "montante",
+        "fishing_impact": "favorable"
+      }
+    },
+    "recommendations": {
+      "tips": [
+        "Opportunité: MOYENNE",
+        "Heures optimales: 6h, 19h, 7h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Pluie, 12.6°C, Vent: 10.1 km/h"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "success": true,
+      "depth": 50,
+      "source": "Expert Tunisie - Bizerte - Large",
+      "accuracy": "excellente",
+      "confidence": 0.99,
+      "seabed_type": "rock",
+      "seabed_description": "Rocheux",
+      "optimal_for_species": false,
+      "zone": "ولاية بنزرت",
+      "recommended_fishing": [
+        "Profondeur: 50m (sous-optimale)",
+        "Type de fond: Rocheux",
+        "Précision: excellente"
+      ]
+    },
+    "location": {
+      "lat": 37.2747,
+      "lon": 9.8739,
+      "name": "المؤتمر, معتمدية بنزرت الشمالية, ولاية بنزرت, تونس",
+      "type": "administrative",
+      "region": "ولاية بنزرت"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-02-14T11:10:57.568834",
+      "data_source": "Expert Tunisie - Bizerte - Large",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "12:10",
+      "api_usage_info": {
+        "openweather_calls_today": 1,
+        "using_cache": false
+      }
+    }
+  },
+  "timestamp": 1771063857.570851,
+  "expires_at": 1771067457.570851,
+  "api_name": "prediction",
+  "params": {
+    "lat": 37.2747,
+    "lon": 9.8739,
+    "species": "loup"
+  }
+}

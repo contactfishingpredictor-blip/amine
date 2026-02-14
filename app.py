@@ -251,19 +251,38 @@ def get_openweather_data_with_limits(lat: float, lon: float):
             wind_deg = data['wind'].get('deg', 0)
             wind_direction = get_wind_direction_name(wind_deg)
             wind_impact = get_wind_fishing_impact(wind_deg, lat, lon)
+            
+            # Calcul avancé de la hauteur des vagues
+            wind_speed_kmh = data['wind']['speed'] * 3.6
+            if wind_speed_kmh < 10:
+                wave_height = 0.2
+            elif wind_speed_kmh < 20:
+                wave_height = 0.2 + (wind_speed_kmh - 10) * 0.04
+            elif wind_speed_kmh < 30:
+                wave_height = 0.6 + (wind_speed_kmh - 20) * 0.06
+            elif wind_speed_kmh < 40:
+                wave_height = 1.2 + (wind_speed_kmh - 30) * 0.08
+            elif wind_speed_kmh < 50:
+                wave_height = 2.0 + (wind_speed_kmh - 40) * 0.10
+            elif wind_speed_kmh < 60:
+                wave_height = 3.0 + (wind_speed_kmh - 50) * 0.12
+            else:
+                wave_height = 4.2 + (wind_speed_kmh - 60) * 0.15
+            
             weather_info = {
                 'temperature':data['main']['temp'],
                 'feels_like':data['main']['feels_like'],
                 'pressure':data['main']['pressure'],
                 'humidity':data['main']['humidity'],
-                'wind_speed':data['wind']['speed']*3.6,
+                'wind_speed':wind_speed_kmh,
                 'wind_direction':wind_deg,
                 'wind_direction_abbr':wind_direction['abbreviation'],
                 'wind_direction_name':wind_direction['name'],
                 'wind_direction_icon':wind_direction['icon'],
                 'wind_fishing_impact':wind_impact,
-                'wind_offshore': False,  # FORCÉ À FALSE
+                'wind_offshore': False,
                 'wind_onshore':is_wind_onshore(lat, lon, wind_deg),
+                'wave_height': round(wave_height, 2),
                 'condition':data['weather'][0]['main'],
                 'condition_description':data['weather'][0]['description'],
                 'condition_fr':WEATHER_CONDITIONS_FR.get(data['weather'][0]['main'], data['weather'][0]['main']),
@@ -275,7 +294,7 @@ def get_openweather_data_with_limits(lat: float, lon: float):
                 'location':data['name'],
                 'country':data['sys']['country'],
                 'timestamp':datetime.now().isoformat(),
-                'score':calculate_weather_score({'temperature':data['main']['temp'],'wind_speed':data['wind']['speed']*3.6,'pressure':data['main']['pressure'],'condition':data['weather'][0]['main'],'wind_direction':wind_deg})
+                'score':calculate_weather_score({'temperature':data['main']['temp'],'wind_speed':wind_speed_kmh,'pressure':data['main']['pressure'],'condition':data['weather'][0]['main'],'wind_direction':wind_deg})
             }
             save_to_cache('openweather', {'lat': lat, 'lon': lon}, weather_info, 12)
             return {'success': True, 'weather': weather_info, 'source': 'api'}
@@ -361,7 +380,23 @@ def generate_consistent_weather(lat: float, lon: float):
     condition_index = (stable_hash // 1000) % 4
     conditions = ['Clear', 'Clouds', 'Partly Cloudy', 'Mostly Sunny']
     conditions_fr = ['Ciel dégagé', 'Nuageux', 'Partiellement nuageux', 'Très ensoleillé']
-    wave_height = min(1.5, max(0.2, wind / 25))
+    
+    # Calcul avancé de la hauteur des vagues
+    if wind < 10:
+        wave_height = 0.2
+    elif wind < 20:
+        wave_height = 0.2 + (wind - 10) * 0.04
+    elif wind < 30:
+        wave_height = 0.6 + (wind - 20) * 0.06
+    elif wind < 40:
+        wave_height = 1.2 + (wind - 30) * 0.08
+    elif wind < 50:
+        wave_height = 2.0 + (wind - 40) * 0.10
+    elif wind < 60:
+        wave_height = 3.0 + (wind - 50) * 0.12
+    else:
+        wave_height = 4.2 + (wind - 60) * 0.15
+    
     wind_direction = stable_hash % 360
     wind_direction_info = get_wind_direction_name(wind_direction)
     wind_impact = get_wind_fishing_impact(wind_direction, lat, lon)
@@ -376,8 +411,9 @@ def generate_consistent_weather(lat: float, lon: float):
         'wind_direction_name':wind_direction_info['name'],
         'wind_direction_icon':wind_direction_info['icon'],
         'wind_fishing_impact':wind_impact,
-        'wind_offshore': False,  # FORCÉ À FALSE
+        'wind_offshore': False,
         'wind_onshore':is_wind_onshore(lat,lon,wind_direction),
+        'wave_height': round(wave_height, 1),
         'condition':conditions[condition_index],
         'condition_description':conditions[condition_index].lower(),
         'condition_fr':conditions_fr[condition_index],
@@ -390,7 +426,6 @@ def generate_consistent_weather(lat: float, lon: float):
         'country':'TN',
         'timestamp':now.isoformat(),
         'score':0.7+(stable_hash%100)/500,
-        'wave_height':round(wave_height,1),
         'turbidity':1.0+condition_index*0.2,
         'source':'modèle cohérent',
         'stable_id':stable_key
@@ -896,7 +931,7 @@ def api_tunisian_prediction():
                 'wind_direction_name':real_weather.get('wind_direction_name','Nord'),
                 'wind_direction_icon':real_weather.get('wind_direction_icon','⬆️'),
                 'wind_fishing_impact':real_weather.get('wind_fishing_impact','neutre'),
-                'wind_offshore': False,  # FORCÉ À FALSE
+                'wind_offshore': False,
                 'wind_onshore':real_weather.get('wind_onshore',False),
                 'pressure':predictor_weather['pressure'],
                 'humidity':predictor_weather.get('humidity',60),
@@ -1438,7 +1473,7 @@ def api_wind_forecast():
                 'speed': weather['weather'].get('wind_speed', 10),
                 'direction': weather['weather'].get('wind_direction', 0),
                 'direction_name': weather['weather'].get('wind_direction_name', 'Nord'),
-                'is_offshore': False,  # FORCÉ À FALSE
+                'is_offshore': False,
                 'is_onshore': weather['weather'].get('wind_onshore', False),
                 'impact': weather['weather'].get('wind_fishing_impact', 'Neutre')
             }
@@ -1479,7 +1514,7 @@ def api_quick_check():
         
         score = int(round(prediction['activity_score'] * 100))
         wind_speed = weather['weather'].get('wind_speed', 10) if weather['success'] else 10
-        is_offshore = False  # FORCÉ À FALSE
+        is_offshore = False
         current_hour = datetime.now().hour
         is_daytime = 6 <= current_hour <= 19
         

@@ -485,6 +485,31 @@ const FishingDashboard = (function() {
     
     // ========== FONCTIONS PRIVÉES ==========
     
+    // --- FONCTION DE CALCUL DE LA HAUTEUR DES VAGUES ---
+    function calculateWaveHeight(windSpeedKmh) {
+        if (windSpeedKmh === undefined || windSpeedKmh === null) return 0.2;
+        
+        if (windSpeedKmh < 10) return 0.2;
+        else if (windSpeedKmh < 20) return 0.2 + (windSpeedKmh - 10) * 0.04;
+        else if (windSpeedKmh < 30) return 0.6 + (windSpeedKmh - 20) * 0.06;
+        else if (windSpeedKmh < 40) return 1.2 + (windSpeedKmh - 30) * 0.08;
+        else if (windSpeedKmh < 50) return 2.0 + (windSpeedKmh - 40) * 0.10;
+        else if (windSpeedKmh < 60) return 3.0 + (windSpeedKmh - 50) * 0.12;
+        else return 4.2 + (windSpeedKmh - 60) * 0.15;
+    }
+    
+    // --- FONCTION DE MISE À JOUR DE LA HAUTEUR DES VAGUES ---
+    function updateWaveHeight(value, source) {
+        let waveValue = value;
+        if (typeof waveValue === 'number') {
+            waveValue = waveValue.toFixed(1);
+        }
+        console.log(`🌊 Vague mise à jour: ${waveValue}m (source: ${source})`);
+        document.getElementById('wave-height').textContent = waveValue + ' m';
+        document.getElementById('check-waves').textContent = waveValue + ' m';
+        document.getElementById('detail-wave-height').textContent = waveValue + ' m';
+    }
+    
     // --- ANIMATION VENT - CORRECTION ROBUSTE ---
     function initWindAnimation() {
         windCanvas = document.getElementById('wind-animation-canvas');
@@ -600,6 +625,8 @@ const FishingDashboard = (function() {
             const response = await fetch(`/api/current_weather?lat=${currentLat}&lon=${currentLon}`);
             const data = await response.json();
             
+            console.log('📦 Données météo reçues:', data);
+            
             if(data.status === 'success') {
                 const weather = data.weather;
                 
@@ -612,6 +639,18 @@ const FishingDashboard = (function() {
                 document.getElementById('pressure').textContent = `${weather.pressure?.toFixed(0) || '--'} hPa`;
                 document.getElementById('weather-condition').textContent = weather.condition_fr || '--';
                 document.getElementById('cloud-cover').textContent = `Nuages: ${weather.clouds || '--'}%`;
+                
+                // Mise à jour de la hauteur des vagues
+                let waveValue = 0.2;
+                if (weather.wave_height !== undefined && weather.wave_height !== null) {
+                    waveValue = weather.wave_height;
+                    updateWaveHeight(waveValue, 'API directe');
+                } else if (weather.wind_speed) {
+                    waveValue = calculateWaveHeight(weather.wind_speed);
+                    updateWaveHeight(waveValue, 'calculé depuis vent');
+                } else {
+                    updateWaveHeight(waveValue, 'valeur par défaut');
+                }
                 
                 if(document.getElementById('weather-location-name')) {
                     document.getElementById('weather-location-name').textContent = weather.location || '--';
@@ -695,6 +734,18 @@ const FishingDashboard = (function() {
                     document.getElementById('detail-depth').textContent = `${data.bathymetry.depth || '--'} m`;
                     document.getElementById('detail-depth-optimal').textContent = data.bathymetry.optimal_for_species ? '✅ Optimale' : '⚠️ Sous-optimale';
                     document.getElementById('detail-seabed').textContent = data.bathymetry.seabed_description || '--';
+                }
+                
+                // Mise à jour de la hauteur des vagues depuis la prédiction
+                if (data.weather) {
+                    let waveValue = 0.2;
+                    if (data.weather.wave_height !== undefined && data.weather.wave_height !== null) {
+                        waveValue = data.weather.wave_height;
+                        updateWaveHeight(waveValue, 'prédiction API');
+                    } else if (data.weather.wind_speed) {
+                        waveValue = calculateWaveHeight(data.weather.wind_speed);
+                        updateWaveHeight(waveValue, 'prédiction calculée');
+                    }
                 }
                 
                 if(data.weather) {

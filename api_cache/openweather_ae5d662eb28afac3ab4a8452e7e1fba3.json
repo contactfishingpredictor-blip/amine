@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 13.53,
+    "feels_like": 12.58,
+    "pressure": 998,
+    "humidity": 63,
+    "wind_speed": 16.272,
+    "wind_direction": 239,
+    "wind_direction_abbr": "OSO",
+    "wind_direction_name": "Ouest-Sud-Ouest",
+    "wind_direction_icon": "↙️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.45,
+    "condition": "Rain",
+    "condition_description": "légère pluie",
+    "condition_fr": "Pluie",
+    "icon": "10d",
+    "clouds": 100,
+    "visibility": 10.0,
+    "sunrise": "2026-02-14T07:06:58",
+    "sunset": "2026-02-14T17:56:49",
+    "location": "Hammamet",
+    "country": "TN",
+    "timestamp": "2026-02-14T11:01:16.077822",
+    "score": 0.9999999999999999
+  },
+  "timestamp": 1771063276.0778222,
+  "expires_at": 1771106476.0778222,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.4,
+    "lon": 10.6
+  }
+}
