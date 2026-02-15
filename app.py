@@ -1642,7 +1642,7 @@ def test_meteo_simple(): return render_template('test_meteo_simple.html')
 @app.route('/test_mobile_simple')
 def test_mobile_simple(): return render_template('test_mobile_simple.html')
 
-# ===== ROUTES SITEMAP ET ROBOTS (CORRIGÉES) =====
+# ===== ROUTES SITEMAP ET ROBOTS =====
 @app.route('/robots.txt')
 def robots():
     """Fichier robots.txt ULTRA-SIMPLE pour débloquer Google"""
@@ -1657,6 +1657,17 @@ Sitemap: https://fishing-activity.onrender.com/sitemap.xml
     response.headers['Pragma'] = 'no-cache'; response.headers['Expires'] = '0'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
+
+@app.route('/ads.txt')
+def serve_ads_txt():
+    """Sert le fichier ads.txt pour Google AdSense"""
+    try:
+        # Le fichier est à la racine du projet
+        return send_from_directory('.', 'ads.txt')
+    except Exception as e:
+        print(f"⚠️ Erreur lors du chargement de ads.txt: {e}")
+        # Fallback : retourne le contenu directement
+        return "google.com, pub-3170577397908932, DIRECT, f08c47fec0942fa0", 200, {'Content-Type': 'text/plain'}
 
 @app.route('/test-google-access')
 def test_google_access():
