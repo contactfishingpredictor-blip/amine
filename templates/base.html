@@ -36,7 +36,7 @@
         gtag('config', 'G-E0H4QCLDG7');
     </script>
     
-    <!-- ADSENSE -->
+    <!-- GOOGLE ADSENSE -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3170577397908932" crossorigin="anonymous"></script>
     
     <!-- POLICES & ICÔNES -->
@@ -308,6 +308,24 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        /* Publicités */
+        .ad-container {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        
+        .ad-label {
+            color: #64748b;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -358,6 +376,9 @@
 
 <!-- Contenu principal -->
 <main>
+    <!-- Emplacement pour publicités (optionnel) -->
+    {% block ad_content %}{% endblock %}
+    
     {% block content %}{% endblock %}
 </main>
 
