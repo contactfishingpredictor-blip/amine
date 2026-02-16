@@ -3,41 +3,41 @@
     "status": "success",
     "prediction_id": "32e489c713bf",
     "stable": true,
-    "valid_until": "2026-02-16T20:57:50.355896",
+    "valid_until": "2026-02-16T23:34:18.464496",
     "scores": {
-      "final": 88,
+      "final": 74,
       "environmental": 49,
-      "behavioral": 89,
-      "bathymetry_factor": 100,
+      "behavioral": 76,
+      "bathymetry_factor": 50,
       "weather_factor": 100,
       "components": {
         "scientific": 49,
-        "depth": 100,
+        "depth": 50,
         "regional": 100,
         "weather": 100
       }
     },
     "weather": {
       "temperature": 15.03,
-      "wind_speed": 38.3,
-      "wind_direction": 275,
+      "wind_speed": 41.0,
+      "wind_direction": 280,
       "wind_direction_abbr": "O",
       "wind_direction_name": "Ouest",
       "wind_direction_icon": "⬅️",
       "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
       "wind_onshore": false,
-      "pressure": 1014,
+      "pressure": 1013,
       "humidity": 82,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
-      "wave_height": 2.26,
-      "updated": "2026-02-16T19:57:50.355896",
+      "wave_height": 1.91,
+      "updated": "2026-02-16T22:34:18.464496",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.58,
+        "value": 5.5,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 15.0°C, Vent: 38.3 km/h"
+        "Météo: Nuageux, 15.0°C, Vent: 41.0 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,18 +73,18 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 3.0,
-      "source": "GEBCO 2025",
-      "accuracy": "moyenne",
-      "confidence": 0.7,
-      "seabed_type": "sand",
-      "seabed_description": "Sableux",
-      "optimal_for_species": true,
+      "depth": 70.3,
+      "source": "Modèle bathymétrique Tunisie",
+      "accuracy": "bonne",
+      "confidence": 0.75,
+      "seabed_type": "mud",
+      "seabed_description": "Vaseux",
+      "optimal_for_species": false,
       "zone": "Zone côtière",
       "recommended_fishing": [
-        "Profondeur: 3.0m (optimale)",
-        "Type de fond: Sableux",
-        "Précision: moyenne"
+        "Profondeur: 70.3m (sous-optimale)",
+        "Type de fond: Vaseux",
+        "Précision: bonne"
       ]
     },
     "location": {
@@ -96,20 +96,20 @@
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-16T19:57:50.355896",
-      "data_source": "GEBCO 2025",
+      "timestamp": "2026-02-16T22:34:18.465642",
+      "data_source": "Modèle bathymétrique Tunisie",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "20:57",
+      "next_update_recommended": "23:34",
       "api_usage_info": {
         "openweather_calls_today": 2,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1771268270.3558962,
-  "expires_at": 1771271870.3558962,
+  "timestamp": 1771277658.465642,
+  "expires_at": 1771281258.465642,
   "api_name": "prediction",
   "params": {
     "lat": 37.32896611865291,

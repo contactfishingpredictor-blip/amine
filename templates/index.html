@@ -335,11 +335,11 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                         </div>
                     </div>
                     <div style="text-align:center;padding:.75rem;background:#1e293b;border-radius:8px">
-                        <div style="color:#94a3b8;font-size:.8rem">Prochaine fenêtre</div>
+                        <div style="color:#94a3b8;font-size:.8rem">Meilleur moment</div>
                         <div style="font-size:1.5rem;font-weight:700;margin-top:.25rem" id="next-window-start">--:--</div>
-                        <div style="font-size:.9rem;color:#3b82f6" id="next-window-end">jusqu'à --:--</div>
+                        <div style="font-size:.9rem;color:#3b82f6" id="next-window-end"></div>
                         <div style="font-size:.75rem;color:#94a3b8;margin-top:.25rem">
-                            <span id="window-duration">--</span> min • <span id="window-quality">--</span>
+                            <span id="window-quality">--</span>
                         </div>
                     </div>
                 </div>
@@ -907,7 +907,7 @@ const FishingDashboard = (function() {
         }
     }
     
-    // --- GRAPHIQUE ACTIVITÉ 24H ---
+    // --- GRAPHIQUE ACTIVITÉ 24h (VERSION CORRIGÉE) ---
     async function load24hForecastInternal(lat = null, lon = null) {
         const targetLat = lat !== null ? lat : userLat;
         const targetLon = lon !== null ? lon : userLon;
@@ -937,66 +937,109 @@ const FishingDashboard = (function() {
                     }
                 }
                 
-                // --- Afficher la prochaine fenêtre ---
-                const nextPeriod = data.next_period;
-                const bestHour = data.best_hour || '--h';
-                
-                const nextWindowStart = document.getElementById('next-window-start');
-                const nextWindowEnd = document.getElementById('next-window-end');
-                const windowDuration = document.getElementById('window-duration');
-                const windowQuality = document.getElementById('window-quality');
-                const bestPeriodEl = document.getElementById('best-period');
-                
-                if(nextPeriod && nextWindowStart && nextWindowEnd && windowDuration && windowQuality) {
-                    // Une vraie période a été trouvée
-                    nextWindowStart.textContent = nextPeriod.start || '--:--';
-                    nextWindowEnd.textContent = `jusqu'à ${nextPeriod.end || '--:--'}`;
-                    
-                    // Calculer la durée en minutes
-                    let durationMinutes = nextPeriod.duration_minutes || (nextPeriod.duration_hours * 60) || 60;
-                    windowDuration.textContent = Math.round(durationMinutes);
-                    
-                    // Qualité avec emoji
-                    let qualityText = nextPeriod.quality || 'moyenne';
-                    let qualityEmoji = qualityText === 'excellente' ? '🔥' : 
-                                      qualityText === 'bonne' ? '👍' : '👌';
-                    windowQuality.textContent = qualityText + ' ' + qualityEmoji;
-                    
-                    // Mettre à jour aussi l'ancien champ "Meilleur" si présent
-                    if(bestPeriodEl) bestPeriodEl.textContent = bestHour;
-                } else if (bestPeriodEl && nextWindowStart && nextWindowEnd && windowDuration && windowQuality) {
-                    // PAS de période trouvée - utiliser la meilleure heure
-                    console.log('⚠️ Aucune période trouvée, utilisation de la meilleure heure:', bestHour);
-                    
-                    // Extraire l'heure du format "19h"
-                    let displayHour = bestHour.replace('h', ':00');
-                    
-                    nextWindowStart.textContent = displayHour;
-                    nextWindowEnd.textContent = 'pic unique (1h)';
-                    windowDuration.textContent = '60';
-                    windowQuality.textContent = 'moyenne 👌';
-                    
-                    // Mettre à jour l'ancien champ
-                    bestPeriodEl.textContent = bestHour;
+                // --- CORRECTION : Synchroniser le score affiché avec l'API 24h ---
+                if (data.current_score) {
+                    document.getElementById('prediction-score').textContent = data.current_score + '%';
+                    document.getElementById('header-prediction-score').textContent = data.current_score + '%';
+                    document.getElementById('check-score').textContent = data.current_score + '%';
                 }
                 
-                // Afficher la liste des périodes (optionnel)
-                if(data.best_periods && data.best_periods.length > 0) {
-                    // Supprimer l'ancienne liste
+                // --- MEILLEURE HEURE (sous le pictogramme) ---
+                const bestPeriodEl = document.getElementById('best-period');
+                if (bestPeriodEl && data.best_hour) {
+                    let displayText = data.best_hour;
+                    let emoji = '';
+                    
+                    if (data.best_hour.includes('maintenant')) {
+                        emoji = ' 🔥';
+                    } else if (data.best_score >= 80) {
+                        emoji = ' 🔥';
+                    } else if (data.best_score >= 60) {
+                        emoji = ' 👍';
+                    } else {
+                        emoji = ' 👌';
+                    }
+                    
+                    bestPeriodEl.innerHTML = `${displayText}${emoji} <span style="font-size:0.7rem; color:#94a3b8">${data.best_score}%</span>`;
+                }
+                
+                // --- PROCHAINE FENÊTRE ---
+                const nextWindowStart = document.getElementById('next-window-start');
+                const nextWindowEnd = document.getElementById('next-window-end');
+                const windowQuality = document.getElementById('window-quality');
+                
+                if (nextWindowStart && data.best_time) {
+                    nextWindowStart.textContent = data.best_time;
+                    
+                    if (data.best_hour.includes('maintenant')) {
+                        nextWindowEnd.innerHTML = '<span style="color:#10b981; font-weight:bold;">🔥 PÊCHEZ MAINTENANT !</span>';
+                    } else {
+                        // Calculer le compte à rebours
+                        const now = new Date();
+                        const [hour, minute] = data.best_time.split(':').map(Number);
+                        const bestTime = new Date(now);
+                        bestTime.setHours(hour, minute, 0);
+                        
+                        if (bestTime < now) {
+                            bestTime.setDate(bestTime.getDate() + 1);
+                        }
+                        
+                        const diffMs = bestTime - now;
+                        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        
+                        if (diffHrs > 0) {
+                            nextWindowEnd.textContent = `dans ${diffHrs}h${diffMins > 0 ? diffMins : ''}`;
+                        } else {
+                            nextWindowEnd.textContent = `dans ${diffMins} min`;
+                        }
+                    }
+                    
+                    // Qualité avec emoji
+                    let quality = 'moyenne';
+                    let emoji = '👌';
+                    if (data.best_score >= 80) {
+                        quality = 'excellente';
+                        emoji = '🔥';
+                    } else if (data.best_score >= 60) {
+                        quality = 'bonne';
+                        emoji = '👍';
+                    }
+                    
+                    windowQuality.innerHTML = `${quality} ${emoji} <span style="font-size:0.7rem; color:#94a3b8">${data.best_score}%</span>`;
+                }
+                
+                // Afficher une note si présente
+                if (data.note) {
+                    const oldNote = document.getElementById('forecast-note');
+                    if (oldNote) oldNote.remove();
+                    
+                    const noteEl = document.createElement('div');
+                    noteEl.id = 'forecast-note';
+                    noteEl.style.cssText = 'margin-top:0.5rem; padding:0.75rem; background:#10b981; color:white; border-radius:6px; text-align:center; font-weight:bold; animation:pulse 2s infinite;';
+                    noteEl.innerHTML = '🔥 ' + data.note + ' 🔥';
+                    
+                    const chartContainer = document.querySelector('.chart-container');
+                    if (chartContainer) {
+                        chartContainer.parentNode.insertBefore(noteEl, chartContainer.nextSibling);
+                    }
+                }
+                
+                // Afficher les meilleurs créneaux (optionnel)
+                if(data.best_windows && data.best_windows.length > 0) {
                     const oldList = document.getElementById('periods-list');
                     if(oldList) oldList.remove();
                     
                     let periodsHtml = '<div id="periods-list" style="margin-top:1rem;padding:.5rem;background:#1e293b;border-radius:6px">';
-                    periodsHtml += '<div style="color:#94a3b8;font-size:.8rem;margin-bottom:.5rem">📋 Prochaines fenêtres :</div>';
+                    periodsHtml += '<div style="color:#94a3b8;font-size:.8rem;margin-bottom:.5rem">📋 Meilleurs créneaux :</div>';
                     
-                    data.best_periods.slice(0, 3).forEach(p => {
-                        let qualityEmoji = p.quality === 'excellente' ? '🔥' : 
-                                          p.quality === 'bonne' ? '👍' : '👌';
+                    data.best_windows.slice(0, 3).forEach(p => {
+                        let qualityEmoji = p.avg_score >= 80 ? '🔥' : p.avg_score >= 60 ? '👍' : '👌';
                         periodsHtml += `
                             <div style="display:flex;justify-content:space-between;font-size:.9rem;padding:.25rem 0;border-bottom:1px solid #334155">
                                 <span>${p.start} → ${p.end}</span>
-                                <span style="color:${p.quality === 'excellente' ? '#10b981' : '#f59e0b'}">
-                                    ${qualityEmoji} ${p.duration_hours}h
+                                <span style="color:${p.avg_score >= 80 ? '#10b981' : '#f59e0b'}">
+                                    ${qualityEmoji} ${p.avg_score}%
                                 </span>
                             </div>
                         `;
@@ -1004,7 +1047,6 @@ const FishingDashboard = (function() {
                     
                     periodsHtml += '</div>';
                     
-                    // Ajouter au DOM
                     const chartContainer = document.querySelector('.chart-container');
                     if(chartContainer) {
                         const periodsDiv = document.createElement('div');
@@ -1079,6 +1121,7 @@ const FishingDashboard = (function() {
                 loadWeatherDataInternal();
                 updatePredictionInternal();
                 updateScientificDataInternal();
+                load24hForecastInternal();
                 startValidityCountdown(30);
             }
         }, 1000);

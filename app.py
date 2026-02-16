@@ -792,6 +792,196 @@ def api_tunisian_prediction():
         print(f"❌ Erreur prédiction: {e}")
         return jsonify({'status':'error','message':str(e),'fallback':{'scores':{'final':65},'recommendations':{'tips':['Utilisez notre modèle scientifique pour des prédictions précises']}}})
 
+@app.route('/api/24h_forecast')
+def api_24h_forecast():
+    """Prévisions sur 24h basées sur les vraies données scientifiques"""
+    try:
+        lat = float(request.args.get('lat', 36.8065))
+        lon = float(request.args.get('lon', 10.1815))
+        species = request.args.get('species', 'loup')
+        
+        current_time = datetime.now()
+        current_hour = current_time.hour
+        
+        # Récupérer la météo ACTUELLE
+        weather_result = get_cached_weather(lat, lon)
+        if not weather_result['success']:
+            weather_result = generate_consistent_weather(lat, lon)
+        
+        # --- SCORE ACTUEL : Utiliser EXACTEMENT le même calcul que /api/tunisian_prediction ---
+        # 1. Récupérer les mêmes données marines
+        marine_data = get_marine_data_multi_source(lat, lon)
+        
+        # 2. Construire le même objet weather pour le prédicteur
+        if weather_result['success']:
+            real_weather = weather_result['weather']
+            predictor_weather = {
+                'temperature': real_weather['temperature'],
+                'wind_speed': marine_data.get('wind_speed_kmh', real_weather['wind_speed'])/3.6,
+                'wind_direction': marine_data.get('wind_direction_deg', real_weather['wind_direction']),
+                'pressure': real_weather['pressure'],
+                'wave_height': real_weather.get('wave_height', 0.5),
+                'turbidity': real_weather.get('turbidity', 1.0),
+                'humidity': real_weather['humidity'],
+                'condition': real_weather['condition'],
+                'water_temperature': marine_data['water_temperature'],
+                'salinity': marine_data['salinity'],
+                'current_speed': marine_data['current_speed']
+            }
+        else:
+            fallback_weather = generate_consistent_weather(lat, lon)['weather']
+            predictor_weather = {
+                'temperature': fallback_weather['temperature'],
+                'wind_speed': marine_data.get('wind_speed_kmh', fallback_weather['wind_speed'])/3.6,
+                'wind_direction': marine_data.get('wind_direction_deg', fallback_weather['wind_direction']),
+                'pressure': fallback_weather['pressure'],
+                'wave_height': fallback_weather['wave_height'],
+                'turbidity': fallback_weather['turbidity'],
+                'humidity': fallback_weather['humidity'],
+                'condition': fallback_weather['condition'],
+                'water_temperature': marine_data['water_temperature'],
+                'salinity': marine_data['salinity'],
+                'current_speed': marine_data['current_speed']
+            }
+        
+        # 3. Ajouter oxygène et chlorophylle
+        oxygen_level = predictor.calculate_dissolved_oxygen(
+            marine_data['water_temperature'], 
+            marine_data['salinity'], 
+            predictor_weather['pressure']
+        )
+        chlorophyll_level = marine_data.get('chlorophyll', 
+            predictor.estimate_chlorophyll(datetime.now().month, lat, lon))
+        predictor_weather.update({'oxygen': oxygen_level, 'chlorophyll': chlorophyll_level})
+        
+        # 4. Obtenir la prédiction pour l'heure actuelle
+        current_prediction = predictor.predict_daily_activity(
+            lat, lon, current_time, species, predictor_weather
+        )
+        
+        # 5. Calculer le score final EXACTEMENT comme dans /api/tunisian_prediction
+        depth = get_real_bathymetry(lat, lon).get('depth', 10)
+        depth_factor = calculate_depth_factor(depth, species)
+        weather_score = calculate_weather_score(predictor_weather)
+        activity_score_percent = current_prediction['score']
+        
+        current_score = round(
+            activity_score_percent * 0.35 + 
+            depth_factor * 25 + 
+            weather_score * 40
+        )
+        current_score = max(0, min(100, current_score))
+        # --- FIN DU CALCUL IDENTIQUE ---
+        
+        # Collecter les scores pour les 24 prochaines heures (version simplifiée pour la performance)
+        hourly_data = []
+        for hour_offset in range(24):
+            forecast_time = current_time + timedelta(hours=hour_offset)
+            hour = forecast_time.hour
+            
+            # Pour les prévisions futures, on utilise une version simplifiée
+            # (sinon ce serait trop lent)
+            simple_prediction = predictor.predict_daily_activity(
+                lat, lon, forecast_time, species, weather_result['weather']
+            )
+            
+            score = int(round(simple_prediction['activity_score']))
+            
+            hourly_data.append({
+                'hour': hour,
+                'time': forecast_time.strftime('%H:%M'),
+                'score': score,
+                'timestamp': forecast_time.timestamp()
+            })
+        
+        # Extraire les listes
+        hours = [f"{d['hour']}h" for d in hourly_data]
+        scores = [d['score'] for d in hourly_data]
+        
+        # Trouver la meilleure heure future
+        best_future_score = max(scores)
+        best_indices = [i for i, s in enumerate(scores) if s == best_future_score]
+        best_idx = best_indices[0]
+        best_hour = hours[best_idx]
+        best_time = hourly_data[best_idx]['time']
+        best_hour_number = hourly_data[best_idx]['hour']
+        
+        # Comparer avec le score actuel (calculé avec la méthode complète)
+        if current_score >= best_future_score:
+            best_score = current_score
+            best_hour = f"{current_hour}h (maintenant)"
+            best_time = current_time.strftime('%H:%M')
+            best_hour_number = current_hour
+            note = "🔥 Le meilleur moment est MAINTENANT !"
+        else:
+            best_score = best_future_score
+            note = None
+        
+        # Calculer la tendance
+        if len(scores) >= 4:
+            if scores[3] > scores[0] + 5:
+                trend = 'rising'
+            elif scores[3] < scores[0] - 5:
+                trend = 'falling'
+            else:
+                trend = 'stable'
+        else:
+            trend = 'stable'
+        
+        # Meilleurs créneaux
+        best_windows = []
+        window_size = 3
+        for i in range(len(hourly_data) - window_size + 1):
+            window_scores = scores[i:i+window_size]
+            avg_score = sum(window_scores) / window_size
+            best_windows.append({
+                'start': hourly_data[i]['time'],
+                'end': hourly_data[i+window_size-1]['time'],
+                'avg_score': round(avg_score, 1),
+                'peak': max(window_scores),
+                'start_hour': hourly_data[i]['hour'],
+                'end_hour': hourly_data[i+window_size-1]['hour']
+            })
+        
+        best_windows.sort(key=lambda x: x['avg_score'], reverse=True)
+        
+        response = {
+            'status': 'success',
+            'hours': hours,
+            'scores': scores,
+            'current_hour': current_hour,
+            'current_score': current_score,  # Maintenant identique à /api/tunisian_prediction
+            'best_hour': best_hour,
+            'best_time': best_time,
+            'best_hour_number': best_hour_number,
+            'best_score': best_score,
+            'best_windows': best_windows[:3],
+            'trend': trend,
+            'note': note,
+            'metadata': {
+                'location': {'lat': lat, 'lon': lon},
+                'species': species,
+                'data_source': weather_result['weather'].get('source', 'scientific'),
+                'timestamp': datetime.now().isoformat()
+            }
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        print(f"❌ Erreur prévisions 24h: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'hours': [f"{h}h" for h in range(24)],
+            'scores': [0]*24,
+            'current_score': 0,
+            'best_hour': '--',
+            'best_time': '--:--',
+            'best_score': 0
+        })
 @app.route('/api/location_search')
 def api_location_search():
     """Recherche de localisations par nom"""
@@ -1333,195 +1523,7 @@ def api_quick_check():
             'decision': 'unknown'
         })
 
-@app.route('/api/24h_forecast')
-def api_24h_forecast():
-    """Prévisions sur 24h basées sur les vraies données scientifiques"""
-    try:
-        lat = float(request.args.get('lat', 36.8065))
-        lon = float(request.args.get('lon', 10.1815))
-        species = request.args.get('species', 'loup')
-        
-        hours = []
-        scores = []
-        best_periods = []
-        hourly_data = []
-        
-        current_hour = datetime.now().hour
-        current_time = datetime.now()
-        
-        # Seuils de qualité
-        EXCELLENT_THRESHOLD = 85
-        GOOD_THRESHOLD = 70
-        
-        # Récupérer la météo pour toutes les prédictions
-        weather_result = get_cached_weather(lat, lon)
-        if not weather_result['success']:
-            weather_result = generate_consistent_weather(lat, lon)
-        
-        # Collecter les prédictions pour chaque heure
-        for hour_offset in range(24):
-            forecast_time = current_time + timedelta(hours=hour_offset)
-            hour = forecast_time.hour
-            
-            # Utiliser le VRAI prédicteur scientifique
-            prediction = predictor.predict_daily_activity(
-                lat, lon, forecast_time, species, weather_result['weather']
-            )
-            
-            # Récupérer le score réel (déjà en pourcentage 0-100)
-            base_score = prediction['activity_score']
-            
-            # Appliquer une pénalité vent si nécessaire (optionnel)
-            wind_speed = weather_result['weather'].get('wind_speed', 10)
-            wind_penalty = 1.0
-            
-            if wind_speed > 40:
-                wind_penalty = 0.3
-            elif wind_speed > 30:
-                wind_penalty = 0.5
-            elif wind_speed > 20:
-                wind_penalty = 0.7
-            elif wind_speed > 15:
-                wind_penalty = 0.9
-            
-            score = int(round(base_score * wind_penalty))
-            score = max(10, min(98, score))
-            
-            hours.append(f"{hour}h")
-            scores.append(score)
-            
-            hourly_data.append({
-                'hour': hour,
-                'time': forecast_time.strftime('%H:%M'),
-                'score': score,
-                'timestamp': forecast_time.timestamp()
-            })
-        
-        # Trouver la meilleure heure (celle avec le score max)
-        best_idx = scores.index(max(scores))
-        best_hour = hours[best_idx]
-        best_score = max(scores)
-        
-        # Détecter les périodes de bonne pêche (score >= GOOD_THRESHOLD)
-        i = 0
-        while i < len(hourly_data):
-            if hourly_data[i]['score'] >= GOOD_THRESHOLD:
-                start_idx = i
-                start_time = hourly_data[i]['time']
-                start_score = hourly_data[i]['score']
-                
-                # Chercher la fin de la période
-                while i < len(hourly_data) and hourly_data[i]['score'] >= GOOD_THRESHOLD:
-                    i += 1
-                
-                end_idx = i - 1
-                end_time = hourly_data[end_idx]['time']
-                
-                # Calculer la durée en heures et minutes
-                start_parts = start_time.split(':')
-                end_parts = end_time.split(':')
-                start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
-                end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
-                
-                # Gérer le cas où la période traverse minuit
-                if end_minutes < start_minutes:
-                    end_minutes += 24 * 60
-                
-                duration_minutes = end_minutes - start_minutes + 60  # +60 pour inclure la dernière heure
-                duration_hours = duration_minutes / 60
-                
-                # Trouver le pic dans cette période
-                peak_score = max(h['score'] for h in hourly_data[start_idx:end_idx+1])
-                
-                # Qualifier la période
-                if peak_score >= EXCELLENT_THRESHOLD:
-                    quality = "excellente"
-                elif peak_score >= GOOD_THRESHOLD:
-                    quality = "bonne"
-                else:
-                    quality = "moyenne"
-                
-                best_periods.append({
-                    'start': start_time,
-                    'end': end_time,
-                    'duration_hours': round(duration_hours, 1),
-                    'duration_minutes': duration_minutes,
-                    'peak_score': peak_score,
-                    'quality': quality,
-                    'start_hour': hourly_data[start_idx]['hour'],
-                    'end_hour': hourly_data[end_idx]['hour']
-                })
-            else:
-                i += 1
-        
-        # Trier les périodes par heure de début
-        best_periods.sort(key=lambda x: x['start_hour'])
-        
-        # Trouver la prochaine période
-        next_period = None
-        for period in best_periods:
-            if period['start_hour'] > current_hour:
-                next_period = period
-                break
-        
-        # Si pas de période aujourd'hui mais qu'il y a des périodes, prendre la première demain
-        if not next_period and best_periods:
-            next_period = best_periods[0].copy()
-            next_period['start'] = f"Demain {next_period['start']}"
-            next_period['end'] = f"Demain {next_period['end']}"
-            next_period['is_tomorrow'] = True
-        
-        # Calculer la tendance
-        if len(scores) >= 4:
-            if scores[3] > scores[0] + 5:
-                trend = 'rising'
-            elif scores[3] < scores[0] - 5:
-                trend = 'falling'
-            else:
-                trend = 'stable'
-        else:
-            trend = 'stable'
-        
-        # Construire la réponse
-        response_data = {
-            'status': 'success',
-            'hours': hours,
-            'scores': scores,
-            'current_hour': current_hour,
-            'best_periods': best_periods,
-            'next_period': next_period,
-            'trend': trend,
-            'best_hour': best_hour,
-            'best_score': best_score,
-            'metadata': {
-                'location': {'lat': lat, 'lon': lon},
-                'species': species,
-                'timestamp': datetime.now().isoformat(),
-                'data_source': weather_result['weather'].get('source', 'scientific'),
-                'periods_found': len(best_periods)
-            }
-        }
-        
-        return jsonify(response_data)
-        
-    except Exception as e:
-        print(f"❌ Erreur prévisions 24h: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # Fallback minimal en cas d'erreur
-        return jsonify({
-            'status': 'error',
-            'message': str(e),
-            'hours': [f"{h}h" for h in range(24)],
-            'scores': [50] * 24,
-            'current_hour': datetime.now().hour,
-            'best_periods': [],
-            'next_period': None,
-            'trend': 'stable',
-            'best_hour': f"{datetime.now().hour}h",
-            'best_score': 50
-        })@app.route('/api/save_spot', methods=['POST'])
+@app.route('/api/save_spot', methods=['POST'])
 def api_save_spot():
     """Sauvegarder un spot personnalisé - VERSION CORRIGÉE"""
     try:
@@ -1770,7 +1772,7 @@ def test_meteo_simple(): return render_template('test_meteo_simple.html')
 @app.route('/test_mobile_simple')
 def test_mobile_simple(): return render_template('test_mobile_simple.html')
 
-# ===== ROUTES SITEMAP ET ROBOTS =====
+# ===== ROUTES SITEMAP ET ROBOTS (CORRIGÉES) =====
 @app.route('/robots.txt')
 def robots():
     """Fichier robots.txt ULTRA-SIMPLE pour débloquer Google"""
@@ -1785,17 +1787,6 @@ Sitemap: https://fishing-activity.onrender.com/sitemap.xml
     response.headers['Pragma'] = 'no-cache'; response.headers['Expires'] = '0'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
-
-@app.route('/ads.txt')
-def serve_ads_txt():
-    """Sert le fichier ads.txt pour Google AdSense"""
-    try:
-        # Le fichier est à la racine du projet
-        return send_from_directory('.', 'ads.txt')
-    except Exception as e:
-        print(f"⚠️ Erreur lors du chargement de ads.txt: {e}")
-        # Fallback : retourne le contenu directement
-        return "google.com, pub-3170577397908932, DIRECT, f08c47fec0942fa0", 200, {'Content-Type': 'text/plain'}
 
 @app.route('/test-google-access')
 def test_google_access():

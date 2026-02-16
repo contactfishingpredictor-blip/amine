@@ -3,41 +3,41 @@
     "status": "success",
     "prediction_id": "6edea015ee8e",
     "stable": true,
-    "valid_until": "2026-02-16T21:05:05.589680",
+    "valid_until": "2026-02-16T23:34:07.002151",
     "scores": {
-      "final": 81,
-      "environmental": 62,
-      "behavioral": 87,
-      "bathymetry_factor": 67,
+      "final": 75,
+      "environmental": 55,
+      "behavioral": 76,
+      "bathymetry_factor": 57,
       "weather_factor": 100,
       "components": {
-        "scientific": 62,
-        "depth": 67,
+        "scientific": 55,
+        "depth": 57,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
       "temperature": 15.02,
-      "wind_speed": 18.0,
-      "wind_direction": 273,
-      "wind_direction_abbr": "SO",
-      "wind_direction_name": "Sud-Ouest",
-      "wind_direction_icon": "↙️",
-      "wind_fishing_impact": "Vent de sud/sud-est - Apporte eaux chaudes, bon pour certaines espèces",
+      "wind_speed": 17.3,
+      "wind_direction": 270,
+      "wind_direction_abbr": "O",
+      "wind_direction_name": "Ouest",
+      "wind_direction_icon": "⬅️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
-      "wind_onshore": false,
-      "pressure": 1015,
+      "wind_onshore": true,
+      "pressure": 1014,
       "humidity": 77,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
-      "wave_height": 0.39,
-      "updated": "2026-02-16T20:05:05.589680",
+      "wave_height": 1.76,
+      "updated": "2026-02-16T22:34:07.002151",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.46,
+        "value": 5.4,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 15.0°C, Vent: 18.0 km/h"
+        "Météo: Nuageux, 15.0°C, Vent: 17.3 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,18 +73,18 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 1.0,
-      "source": "GEBCO 2025",
-      "accuracy": "moyenne",
-      "confidence": 0.7,
-      "seabed_type": "sand",
-      "seabed_description": "Sableux",
+      "depth": 37.4,
+      "source": "Modèle côtier Tunisie",
+      "accuracy": "bonne",
+      "confidence": 0.8,
+      "seabed_type": "mixed",
+      "seabed_description": "Mixte",
       "optimal_for_species": false,
       "zone": "ولاية بن عروس",
       "recommended_fishing": [
-        "Profondeur: 1.0m (sous-optimale)",
-        "Type de fond: Sableux",
-        "Précision: moyenne"
+        "Profondeur: 37.4m (sous-optimale)",
+        "Type de fond: Mixte",
+        "Précision: bonne"
       ]
     },
     "location": {
@@ -96,20 +96,20 @@
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-16T20:05:05.589680",
-      "data_source": "GEBCO 2025",
+      "timestamp": "2026-02-16T22:34:07.002151",
+      "data_source": "Modèle côtier Tunisie",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "21:05",
+      "next_update_recommended": "23:34",
       "api_usage_info": {
         "openweather_calls_today": 1,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1771268705.5896807,
-  "expires_at": 1771272305.5896807,
+  "timestamp": 1771277647.0081115,
+  "expires_at": 1771281247.0081115,
   "api_name": "prediction",
   "params": {
     "lat": 36.77637499288148,
