@@ -3,15 +3,15 @@
     "status": "success",
     "prediction_id": "f9e7a2af49cc",
     "stable": true,
-    "valid_until": "2026-02-16T22:43:32.406989",
+    "valid_until": "2026-02-17T00:09:57.294659",
     "scores": {
-      "final": 85,
-      "environmental": 59,
-      "behavioral": 81,
+      "final": 84,
+      "environmental": 57,
+      "behavioral": 73,
       "bathymetry_factor": 88,
       "weather_factor": 100,
       "components": {
-        "scientific": 59,
+        "scientific": 57,
         "depth": 88,
         "regional": 70,
         "weather": 100
@@ -19,25 +19,25 @@
     },
     "weather": {
       "temperature": 14.99,
-      "wind_speed": 17.1,
-      "wind_direction": 277,
+      "wind_speed": 10.8,
+      "wind_direction": 266,
       "wind_direction_abbr": "O",
       "wind_direction_name": "Ouest",
       "wind_direction_icon": "⬅️",
       "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
       "wind_onshore": true,
-      "pressure": 1015,
-      "humidity": 77,
+      "pressure": 1014,
+      "humidity": 72,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
-      "wave_height": 0.96,
-      "updated": "2026-02-16T21:43:32.406989",
+      "wave_height": 1.32,
+      "updated": "2026-02-16T23:09:57.294659",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.43,
+        "value": 5.35,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 15.0°C, Vent: 17.1 km/h"
+        "Météo: Nuageux, 15.0°C, Vent: 10.8 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -96,20 +96,20 @@
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-16T21:43:32.406989",
+      "timestamp": "2026-02-16T23:09:57.294659",
       "data_source": "Expert Tunisie - Tunis - Rade",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "22:43",
+      "next_update_recommended": "00:09",
       "api_usage_info": {
-        "openweather_calls_today": 4,
+        "openweather_calls_today": 5,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1771274612.4069896,
-  "expires_at": 1771278212.4069896,
+  "timestamp": 1771279797.2946599,
+  "expires_at": 1771283397.2946599,
   "api_name": "prediction",
   "params": {
     "lat": 36.8065,

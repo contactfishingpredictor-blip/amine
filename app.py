@@ -1,4 +1,4 @@
-"""Fishing Predictor Pro - Application Flask principale (Version corrigée avec pénalité vent)"""
+"""Fishing Predictor Pro - Application Flask principale (Version scientifique corrigée)"""
 import os, json, logging, time, math, hashlib, random, concurrent.futures
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, redirect
@@ -1961,7 +1961,7 @@ def get_openmeteo_10day_forecast(lat: float, lon: float) -> dict:
         return {'success': False}
 
 def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: str) -> dict:
-    """Transforme prévisions réelles pour la pêche avec pénalité vent"""
+    """Transforme prévisions réelles pour la pêche avec pénalité vent et fiabilité"""
     daily = forecast_data.get('daily', {})
     hourly = forecast_data.get('hourly', {})
     days = len(daily.get('time', []))
@@ -2069,10 +2069,39 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
         
         print(f"📊 Jour {i+1}: vent={wind_speed}km/h, base={base_score}%, penalty={wind_penalty:.2f}, final={final_score}% - {alert}")
         
+        # Définir la confiance selon l'échéance
+        day_num = i + 1
+        if day_num == 1:
+            confidence = 0.95
+        elif day_num == 2:
+            confidence = 0.90
+        elif day_num == 3:
+            confidence = 0.85
+        elif day_num == 4:
+            confidence = 0.75
+        elif day_num == 5:
+            confidence = 0.65
+        elif day_num == 6:
+            confidence = 0.55
+        elif day_num == 7:
+            confidence = 0.50
+        elif day_num == 8:
+            confidence = 0.45
+        elif day_num == 9:
+            confidence = 0.40
+        else:
+            confidence = 0.35
+        
+        note = None
+        if day_num > 5:
+            note = "Données simulées – tendance uniquement"
+        
         results.append({
-            'day': i + 1,
+            'day': day_num,
             'date': date_str,
             'score': final_score,  # Score pénalisé
+            'confidence': confidence,
+            'note': note,
             'weather': {
                 'temp_avg': round(temp_avg, 1),
                 'temp_min': round(temp_min, 1),
@@ -2110,37 +2139,60 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
     })
 
 def api_forecast_10days_fallback(lat: float, lon: float, species: str):
-    """Fallback si Open-Meteo échoue - génère des données simulées avec pénalité vent"""
+    """Fallback avec données saisonnières simulées mais cohérentes"""
     forecast = []
     today = datetime.now()
     
+    # Définir des profils mensuels pour la région (Tunisie)
+    monthly_profiles = {
+        1: {'temp': 14, 'wind': 18, 'precip': 60, 'condition': 'Pluie légère'},
+        2: {'temp': 15, 'wind': 17, 'precip': 50, 'condition': 'Nuageux'},
+        3: {'temp': 17, 'wind': 16, 'precip': 40, 'condition': 'Partiellement nuageux'},
+        4: {'temp': 20, 'wind': 15, 'precip': 30, 'condition': 'Ensoleillé'},
+        5: {'temp': 23, 'wind': 14, 'precip': 20, 'condition': 'Ensoleillé'},
+        6: {'temp': 26, 'wind': 13, 'precip': 10, 'condition': 'Ciel dégagé'},
+        7: {'temp': 29, 'wind': 12, 'precip': 5,  'condition': 'Ciel dégagé'},
+        8: {'temp': 29, 'wind': 12, 'precip': 10, 'condition': 'Ciel dégagé'},
+        9: {'temp': 26, 'wind': 14, 'precip': 30, 'condition': 'Ensoleillé'},
+        10: {'temp': 23, 'wind': 16, 'precip': 40, 'condition': 'Partiellement nuageux'},
+        11: {'temp': 19, 'wind': 18, 'precip': 50, 'condition': 'Nuageux'},
+        12: {'temp': 15, 'wind': 19, 'precip': 70, 'condition': 'Pluie légère'}
+    }
+    
     for day in range(10):
         date = today + timedelta(days=day)
-        weather_data = generate_forecast_weather(lat, lon, date)
-        water_temp = predictor.estimate_water_from_position(lat, lon)
-        wind_speed = weather_data['wind_speed']
-        wind_direction = weather_data['wind_direction']
+        month = date.month
+        profile = monthly_profiles.get(month, monthly_profiles[1])
         
-        full_weather_data = {
-            'temperature': weather_data['temperature'],
-            'wind_speed': wind_speed/3.6,
-            'wind_direction': wind_direction,
-            'pressure': weather_data['pressure'],
-            'wave_height': weather_data.get('wave_height',0.5),
-            'turbidity': weather_data.get('turbidity',1.0),
-            'humidity': weather_data.get('humidity',60),
-            'condition': weather_data['condition'],
-            'water_temperature': water_temp,
-            'salinity': config.SALINITY_MEDITERRANEAN,
-            'current_speed': 0.2
-        }
+        # Ajouter une variation quotidienne réaliste (bruit)
+        seed = day * 1000 + int(lat * 100) + int(lon * 100)
+        random.seed(seed)
+        temp_variation = random.uniform(-2, 2)
+        wind_variation = random.uniform(-3, 3)
         
-        prediction = predictor.predict_daily_activity(lat, lon, date, species, full_weather_data)
+        temperature = profile['temp'] + temp_variation
+        wind_speed = max(5, profile['wind'] + wind_variation)
+        condition = profile['condition']
         
-        # Récupérer le score de base
-        base_score = prediction['score']
+        # Calcul du score de pêche basé sur des règles simples
+        base_score = 50
+        if 18 <= temperature <= 28:
+            base_score += 15
+        elif 12 <= temperature <= 30:
+            base_score += 5
+        else:
+            base_score -= 10
         
-        # Appliquer la pénalité vent
+        if wind_speed < 15:
+            base_score += 10
+        elif wind_speed > 25:
+            base_score -= 15
+        
+        # Facteur saisonnier pour l'espèce
+        if species in ['loup', 'daurade'] and month in [3,4,5,9,10,11]:
+            base_score += 10
+        
+        # Pénalité vent
         wind_penalty = 1.0
         if wind_speed > 40:
             wind_penalty = 0.3
@@ -2157,16 +2209,41 @@ def api_forecast_10days_fallback(lat: float, lon: float, species: str):
         else:
             alert = "Vent favorable"
         
-        final_score = int(round(base_score * wind_penalty))
-        final_score = max(10, min(98, final_score))
+        score = max(20, min(95, int(round(base_score * wind_penalty))))
         
-        # Générer des données horaires de vent simulées
+        # Définir la confiance selon l'échéance
+        day_num = day + 1
+        if day_num == 1:
+            confidence = 0.95
+        elif day_num == 2:
+            confidence = 0.90
+        elif day_num == 3:
+            confidence = 0.85
+        elif day_num == 4:
+            confidence = 0.75
+        elif day_num == 5:
+            confidence = 0.65
+        elif day_num == 6:
+            confidence = 0.55
+        elif day_num == 7:
+            confidence = 0.50
+        elif day_num == 8:
+            confidence = 0.45
+        elif day_num == 9:
+            confidence = 0.40
+        else:
+            confidence = 0.35
+        
+        note = None
+        if day_num > 5:
+            note = "Données simulées – tendance uniquement"
+        
+        # Génération des données horaires (simulées)
         hourly_wind = []
-        base_speed = wind_speed
-        base_dir = wind_direction
         for h in [0,3,6,9,12,15,18,21]:
-            speed = base_speed * (0.8 + 0.4 * math.sin(h / 3))
-            direction = (base_dir + 15 * math.sin(h / 2)) % 360
+            hour_variation = 0.8 + 0.4 * math.sin(h / 3)
+            speed = wind_speed * hour_variation
+            direction = (h * 15) % 360
             dir_info = get_wind_direction_name(direction)
             hourly_wind.append({
                 'time': f"{h:02d}h",
@@ -2178,24 +2255,26 @@ def api_forecast_10days_fallback(lat: float, lon: float, species: str):
             })
         
         forecast.append({
-            'day': day + 1,
+            'day': day_num,
             'date': date.strftime('%Y-%m-%d'),
-            'score': final_score,
+            'score': score,
+            'confidence': confidence,
+            'note': note,
             'weather': {
-                'temp_avg': round(full_weather_data['temperature'],1),
-                'condition': weather_data['condition_fr'],
-                'wind_speed': round(wind_speed,1),
-                'wind_direction': weather_data['wind_direction_name'],
-                'wind_direction_deg': wind_direction,
-                'water_temperature': round(water_temp,1),
-                'wave_height': round(weather_data.get('wave_height',0.5),2)
+                'temp_avg': round(temperature, 1),
+                'condition': condition,
+                'wind_speed': round(wind_speed, 1),
+                'wind_direction': get_wind_direction_name((day*30)%360)['name'],
+                'wind_direction_deg': (day*30)%360,
+                'water_temperature': round(temperature - 2, 1),  # eau légèrement plus fraîche
+                'wave_height': round(0.3 + wind_speed*0.05, 2)
             },
             'wind': {
-                'speed': round(wind_speed,1),
-                'direction': wind_direction,
-                'direction_name': weather_data['wind_direction_name']
+                'speed': round(wind_speed, 1),
+                'direction': (day*30)%360,
+                'direction_name': get_wind_direction_name((day*30)%360)['name']
             },
-            'best_hours': prediction['best_fishing_hours'][:2],
+            'best_hours': [{'hour': 6}, {'hour': 18}],  # approximation
             'recommendation': alert,
             'data_source': 'model_simulation',
             'hourly_wind': hourly_wind
@@ -2206,9 +2285,10 @@ def api_forecast_10days_fallback(lat: float, lon: float, species: str):
         'forecast': forecast,
         'location': f'Position ({lat:.4f}, {lon:.4f})',
         'species': species,
-        'average_score': int(round(sum([day['score'] for day in forecast])/len(forecast))) if forecast else 65,
-        'source': 'modèle de simulation',
-        'note': 'Données Open-Meteo temporairement indisponibles'
+        'average_score': int(round(sum([d['score'] for d in forecast])/len(forecast))),
+        'source': 'modèle saisonnier',
+        'note': 'Données basées sur les moyennes climatologiques',
+        'timestamp': datetime.now().isoformat()
     })
 
 def generate_forecast_weather(lat: float, lon: float, date: datetime) -> dict:

@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.14,
+    "feels_like": 14.72,
+    "pressure": 1013,
+    "humidity": 77,
+    "wind_speed": 14.832,
+    "wind_direction": 250,
+    "wind_direction_abbr": "OSO",
+    "wind_direction_name": "Ouest-Sud-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.39,
+    "condition": "Clouds",
+    "condition_description": "nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "04n",
+    "clouds": 84,
+    "visibility": 10.0,
+    "sunrise": "2026-02-16T07:03:22",
+    "sunset": "2026-02-16T17:56:19",
+    "location": "Kelibia",
+    "country": "TN",
+    "timestamp": "2026-02-16T23:21:16.752984",
+    "score": 1.0
+  },
+  "timestamp": 1771280476.7529843,
+  "expires_at": 1771323676.7529843,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.8475,
+    "lon": 11.094
+  }
+}

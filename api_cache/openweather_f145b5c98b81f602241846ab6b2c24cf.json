@@ -1,10 +1,10 @@
 {
   "data": {
     "temperature": 14.99,
-    "feels_like": 14.56,
-    "pressure": 1015,
-    "humidity": 77,
-    "wind_speed": 25.92,
+    "feels_like": 14.42,
+    "pressure": 1014,
+    "humidity": 72,
+    "wind_speed": 31.5,
     "wind_direction": 270,
     "wind_direction_abbr": "O",
     "wind_direction_name": "Ouest",
@@ -12,7 +12,7 @@
     "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
     "wind_offshore": false,
     "wind_onshore": true,
-    "wave_height": 0.96,
+    "wave_height": 1.32,
     "condition": "Clouds",
     "condition_description": "peu nuageux",
     "condition_fr": "Nuageux",
@@ -23,11 +23,11 @@
     "sunset": "2026-02-16T18:00:01",
     "location": "Bab El Jazira",
     "country": "TN",
-    "timestamp": "2026-02-16T21:43:31.688939",
-    "score": 1.0
+    "timestamp": "2026-02-16T23:09:07.925571",
+    "score": 0.8999999999999998
   },
-  "timestamp": 1771274611.6889396,
-  "expires_at": 1771317811.6889396,
+  "timestamp": 1771279747.925571,
+  "expires_at": 1771322947.925571,
   "api_name": "openweather",
   "params": {
     "lat": 36.8065,

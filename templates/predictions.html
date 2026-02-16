@@ -247,6 +247,13 @@
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
     }
+    .confidence-badge {
+        font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;
+    }
+    .simulation-note {
+        font-size: 0.7rem; color: #f59e0b; margin-top: 0.25rem;
+        font-style: italic;
+    }
 </style>
 {% endblock %}
 
@@ -254,7 +261,7 @@
 <div class="predictions-hero">
     <div class="container">
         <h1><i class="fas fa-calendar-alt"></i> Prévisions 10 Jours</h1>
-        <p>Données temps réel • Vent synchronisé</p>
+        <p>Données temps réel • Vent synchronisé • Fiabilité indiquée</p>
     </div>
 </div>
 
@@ -357,7 +364,7 @@
                         </div>
                         
                         <h4 style="color:#e2e8f0;margin:1rem 0 0.5rem;font-size:0.95rem">
-                            <i class="fas fa-clock"></i> Meilleures heures
+                            <i class="fas fa-clock"></i> Meilleures plages horaires
                         </h4>
                         <div class="hourly-forecast-grid" id="hourly-forecast-grid"></div>
 
@@ -387,7 +394,7 @@
 <script>
 // ============================================
 // FISHING PREDICTOR PRO - PRÉVISIONS 10 JOURS
-// Version corrigée - Mars 2026
+// Version scientifique corrigée - Mars 2026
 // ============================================
 
 const AppState = {
@@ -422,23 +429,32 @@ const Config = {
         loup: { name: 'Loup de Mer', icon: '🐟', color: '#3b82f6' },
         daurade: { name: 'Daurade Royale', icon: '🐠', color: '#10b981' },
         thon: { name: 'Thon Rouge', icon: '🦈', color: '#ef4444' }
+    },
+    // Seuils de vent par espèce (km/h)
+    windThresholds: {
+        loup: 30,
+        daurade: 25,
+        thon: 40,
+        pageot: 30,
+        sar: 30,
+        mulet: 35,
+        marbré: 25,
+        rouget: 30,
+        sériole: 35,
+        bonite: 40,
+        default: 30
     }
 };
 
 // ============================================
-// FONCTIONS UTILITAIRES
+// FONCTIONS UTILITAIRES CORRIGÉES
 // ============================================
 
 /**
  * Calcule la distance entre deux points GPS (formule de Haversine)
- * @param {number} lat1 - Latitude point 1
- * @param {number} lon1 - Longitude point 1
- * @param {number} lat2 - Latitude point 2
- * @param {number} lon2 - Longitude point 2
- * @returns {number} Distance en kilomètres
  */
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Rayon de la Terre en km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -450,8 +466,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 /**
  * Affiche une notification temporaire
- * @param {string} message - Message à afficher
- * @param {string} type - Type de notification (success, error, info)
  */
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
@@ -465,21 +479,52 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+/**
+ * Convertit les degrés en nom de direction du vent (provenance)
+ */
 function getWindDirectionName(deg) {
     const directions = ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ouest', 'Ouest', 'Nord-Ouest'];
-    return directions[Math.round(deg / 45) % 8];
+    deg = parseFloat(deg) || 0;
+    deg = ((deg % 360) + 360) % 360;
+    const index = Math.round(deg / 45) % 8;
+    return directions[index];
 }
 
-function getWindDirectionIcon(deg) {
-    const icons = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
-    return icons[Math.round(deg / 45) % 8];
-}
-
+/**
+ * Convertit les degrés en abréviation de direction (provenance)
+ */
 function getWindDirectionAbbr(deg) {
     const abbreviations = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
-    return abbreviations[Math.round(deg / 45) % 8];
+    deg = parseFloat(deg) || 0;
+    deg = ((deg % 360) + 360) % 360;
+    const index = Math.round(deg / 45) % 8;
+    return abbreviations[index];
 }
 
+/**
+ * Convertit les degrés en icône de direction (provenance)
+ * Convention météo : la flèche pointe vers la direction d'où vient le vent
+ */
+function getWindDirectionIcon(deg) {
+    // Tableau des icônes dans l'ordre : [N, NE, E, SE, S, SO, O, NO]
+    const icons = ['⬇️', '↙️', '⬅️', '↖️', '⬆️', '↗️', '➡️', '↘️'];
+    
+    // S'assurer que deg est un nombre valide entre 0 et 360
+    deg = parseFloat(deg) || 0;
+    deg = ((deg % 360) + 360) % 360;
+    
+    // Calculer l'index (0-7)
+    const index = Math.round(deg / 45) % 8;
+    
+    // Log de débogage (à supprimer en production)
+    console.log(`getWindDirectionIcon: ${deg}° → ${icons[index]} (${getWindDirectionName(deg)})`);
+    
+    return icons[index];
+}
+
+/**
+ * Calcule la catégorie de vitesse du vent
+ */
 function getWindSpeedCategory(speed) {
     if (speed < 10) return 'low';
     if (speed < 20) return 'moderate';
@@ -489,8 +534,6 @@ function getWindSpeedCategory(speed) {
 
 /**
  * Calcule la hauteur estimée des vagues en fonction de la vitesse du vent
- * @param {number} windSpeed - Vitesse du vent en km/h
- * @returns {number} Hauteur estimée des vagues en mètres
  */
 function estimateWaveHeight(windSpeed) {
     if (windSpeed < 10) return 0.2;
@@ -780,19 +823,30 @@ const ForecastLoader = {
                 const forecast = data.forecast.map((day) => {
                     let hourlyWind = day.hourly_wind || [];
                     
-                    // Estimer la hauteur des vagues si non fournie
+                    // S'assurer que les données horaires ont les bons champs
+                    hourlyWind = hourlyWind.map(w => ({
+                        time: w.time,
+                        speed_kmh: w.speed_kmh,
+                        direction_deg: w.direction_deg,
+                        direction_name: w.direction_name || getWindDirectionName(w.direction_deg),
+                        direction_abbr: w.direction_abbr || getWindDirectionAbbr(w.direction_deg),
+                        direction_icon: getWindDirectionIcon(w.direction_deg) // Recalculer pour être sûr
+                    }));
+                    
                     const waveHeight = day.weather?.wave_height || 
                                       estimateWaveHeight(day.weather?.wind_speed || 0);
                     
                     return {
                         date: day.date, 
                         score: day.score,
+                        confidence: day.confidence || (day.day === 1 ? 0.95 : day.day === 2 ? 0.9 : day.day === 3 ? 0.85 : 0.5),
+                        note: day.note || null,
                         wind: { 
                             speed: day.weather?.wind_speed || 10, 
                             direction: day.weather?.wind_direction_deg || 0, 
-                            direction_name: day.weather?.wind_direction || getWindDirectionName(0)
+                            direction_name: day.weather?.wind_direction || getWindDirectionName(day.weather?.wind_direction_deg || 0)
                         },
-                        temperature: day.weather?.temperature || day.weather?.temp_avg || 20,
+                        temperature: day.weather?.temp_avg || day.weather?.temperature || 20,
                         wave_height: waveHeight, 
                         hourlyWind: hourlyWind, 
                         source: day.data_source || 'real_forecast'
@@ -827,12 +881,28 @@ const ForecastLoader = {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             const random = Math.abs(Math.sin(seed + i * 1000));
-            let score = 50 + ((date.getDay() === 0 || date.getDay() === 6) ? 15 : 0) + Math.sin(i * 0.5) * 15;
+            // Suppression du biais week-end
+            let score = 50 + Math.sin(i * 0.5) * 15;
             score = Math.max(20, Math.min(95, Math.round(score)));
             const windSpeed = 8 + Math.round(random * 15);
             const windDirection = Math.round(random * 360);
             const temperature = 18 + Math.round(random * 10);
             const waveHeight = estimateWaveHeight(windSpeed);
+            
+            // Fiabilité décroissante
+            let confidence = 0.95;
+            if (i === 1) confidence = 0.9;
+            else if (i === 2) confidence = 0.85;
+            else if (i === 3) confidence = 0.75;
+            else if (i === 4) confidence = 0.65;
+            else if (i === 5) confidence = 0.55;
+            else if (i === 6) confidence = 0.5;
+            else if (i === 7) confidence = 0.45;
+            else if (i === 8) confidence = 0.4;
+            else if (i === 9) confidence = 0.35;
+            
+            let note = null;
+            if (i >= 5) note = "Données simulées – tendance uniquement";
             
             const hours = [0,3,6,9,12,15,18,21];
             const hourlyWind = hours.map(h => {
@@ -840,6 +910,7 @@ const ForecastLoader = {
                 let speed = Math.round(windSpeed * speedVariation * 10) / 10;
                 let dirVariation = 15 * Math.sin(h / 3);
                 let direction = (windDirection + dirVariation + 360) % 360;
+                
                 return {
                     time: `${h.toString().padStart(2,'0')}h`,
                     speed_kmh: speed,
@@ -853,6 +924,8 @@ const ForecastLoader = {
             forecast.push({
                 date: date.toISOString().split('T')[0], 
                 score: score,
+                confidence: confidence,
+                note: note,
                 wind: { 
                     speed: windSpeed, 
                     direction: windDirection, 
@@ -860,7 +933,8 @@ const ForecastLoader = {
                 },
                 temperature: temperature, 
                 wave_height: waveHeight, 
-                hourlyWind: hourlyWind
+                hourlyWind: hourlyWind,
+                source: 'fallback'
             });
         }
         
@@ -927,16 +1001,19 @@ const ForecastLoader = {
             const icon = Lunar.icons[phase];
             let baseScore = Lunar.getFishingScore(phase);
             const weatherScore = day.score || 50;
-            const fusedScore = Math.round((baseScore * 0.6) + (weatherScore * 0.4));
             let borderColor = '#ef4444';
-            if (fusedScore >= 80) borderColor = '#10b981';
-            else if (fusedScore >= 60) borderColor = '#3b82f6';
-            else if (fusedScore >= 40) borderColor = '#f59e0b';
+            if (weatherScore >= 80) borderColor = '#10b981';
+            else if (weatherScore >= 60) borderColor = '#3b82f6';
+            else if (weatherScore >= 40) borderColor = '#f59e0b';
             const isActive = (index === AppState.selectedDay) ? 'active-moon' : '';
+            
             html += `<div class="moon-day ${isActive}" style="border-color: ${borderColor};" onclick="window.selectDay(${index})">
                 <div class="moon-icon">${icon}</div>
                 <div class="moon-phase-name">${phase}</div>
-                <div class="moon-score" style="color: ${borderColor};">${fusedScore}%</div>
+                <div style="display:flex; justify-content:center; gap:0.5rem; margin:0.25rem 0;">
+                    <span style="background:#3b82f6; color:white; padding:0.2rem 0.4rem; border-radius:12px; font-size:0.7rem;">🌡️ ${weatherScore}%</span>
+                    <span style="background:#8b5cf6; color:white; padding:0.2rem 0.4rem; border-radius:12px; font-size:0.7rem;">🌙 ${baseScore}%</span>
+                </div>
                 <small>${date.toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
             </div>`;
         });
@@ -961,14 +1038,33 @@ const ForecastDisplay = {
             let color = score >= 80 ? '#10b981' : score >= 60 ? '#3b82f6' : score >= 40 ? '#f59e0b' : '#ef4444';
             let decision = score >= 80 ? 'Excellent' : score >= 60 ? 'Bon' : score >= 40 ? 'Moyen' : 'Faible';
             let windAlertBadge = '';
-            if (i < 3 && day.wind.speed > 30) {
-                windAlertBadge = `<span class="wind-alert-badge" title="Vent fort prévu : ${day.wind.speed} km/h">⚠️</span>`;
+            
+            // Seuil de vent espèce-dépendant
+            const threshold = Config.windThresholds[AppState.currentSpecies] || Config.windThresholds.default;
+            if (i < 3 && day.wind.speed > threshold) {
+                windAlertBadge = `<span class="wind-alert-badge" title="Vent fort prévu : ${day.wind.speed} km/h (seuil ${threshold} km/h pour cette espèce)">⚠️</span>`;
             }
+            
+            // Badge de confiance
+            let confidenceText = '';
+            if (day.confidence) {
+                let confColor = day.confidence > 0.8 ? '#10b981' : day.confidence > 0.6 ? '#f59e0b' : '#94a3b8';
+                confidenceText = `<div class="confidence-badge" style="color:${confColor}">Fiabilité ${Math.round(day.confidence*100)}%</div>`;
+            }
+            
+            // Note de simulation
+            let noteText = '';
+            if (day.note) {
+                noteText = `<div class="simulation-note">${day.note}</div>`;
+            }
+            
             html += `<div class="forecast-day-card ${i === 0 ? 'active' : ''}" onclick="window.selectDay(${i})">
                 <div class="day-header">${dayName} ${windAlertBadge}</div>
                 <div class="day-date">${dayNum} ${month}</div>
                 <div class="day-score">${score}%</div>
                 <div class="day-decision" style="background:${color}">${decision}</div>
+                ${confidenceText}
+                ${noteText}
             </div>`;
         });
         document.getElementById('forecast-grid').innerHTML = html;
@@ -989,27 +1085,63 @@ const ForecastDisplay = {
         document.getElementById('detail-temp').textContent = `${day.temperature}°C`;
         document.getElementById('detail-waves').textContent = `${day.wave_height} m`;
         
+        // Affichage des plages horaires selon la fiabilité
         let hoursHtml = '';
-        [6,9,16,19].forEach(hour => {
-            const hourScore = 70 + Math.sin(hour * day.score) * 15;
-            const roundedScore = Math.max(40, Math.min(95, Math.round(hourScore)));
-            let color = roundedScore >= 80 ? '#10b981' : roundedScore >= 60 ? '#3b82f6' : '#f59e0b';
+        if (index <= 2) {
+            // Pour les 3 premiers jours, plages réalistes
+            const sunrise = 6;
+            const sunset = 19;
+            const morningStart = sunrise;
+            const morningEnd = sunrise + 3;
+            const eveningStart = sunset - 3;
+            const eveningEnd = sunset;
+            
+            // Matin
+            const morningScore = Math.min(95, day.score + 15);
+            let color = morningScore >= 80 ? '#10b981' : '#f59e0b';
             hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
-                <div style="font-weight:600;color:#e2e8f0">${hour}h</div>
-                <div style="font-size:1.3rem;font-weight:700;color:${color}">${roundedScore}%</div>
+                <div style="font-weight:600;color:#e2e8f0">${morningStart}h-${morningEnd}h</div>
+                <div style="font-size:1.3rem;font-weight:700;color:${color}">${morningScore}%</div>
+                <div style="font-size:0.7rem;color:#94a3b8">Matin</div>
             </div>`;
-        });
+            
+            // Soir
+            const eveningScore = Math.min(95, day.score + 15);
+            color = eveningScore >= 80 ? '#10b981' : '#f59e0b';
+            hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
+                <div style="font-weight:600;color:#e2e8f0">${eveningStart}h-${eveningEnd}h</div>
+                <div style="font-size:1.3rem;font-weight:700;color:${color}">${eveningScore}%</div>
+                <div style="font-size:0.7rem;color:#94a3b8">Soir</div>
+            </div>`;
+            
+            // Mi-journée
+            const middayScore = Math.max(30, day.score - 10);
+            color = '#ef4444';
+            hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
+                <div style="font-weight:600;color:#e2e8f0">12h-15h</div>
+                <div style="font-size:1.3rem;font-weight:700;color:${color}">${middayScore}%</div>
+                <div style="font-size:0.7rem;color:#94a3b8">Mi-journée</div>
+            </div>`;
+        } else {
+            // Au-delà de J+3, message de précision limitée
+            hoursHtml = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#94a3b8">Précision horaire insuffisante pour ce jour</div>';
+        }
         document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
         
+        // === SECTION VENT DÉTAILLÉ CORRIGÉE ===
         const windGrid = document.getElementById('hourlyWindGrid');
         if (day.hourlyWind && day.hourlyWind.length) {
             let windHtml = '';
             day.hourlyWind.forEach(item => {
+                // Utiliser la direction en degrés pour calculer l'icône
+                const directionDeg = item.direction_deg || 0;
+                const icon = getWindDirectionIcon(directionDeg);
                 const speedCat = getWindSpeedCategory(item.speed_kmh);
+                
                 windHtml += `<div class="wind-card" data-wind-speed="${speedCat}">
                     <div class="hour">${item.time}</div>
                     <div class="speed">${item.speed_kmh} km/h</div>
-                    <div class="direction-icon">${item.direction_icon}</div>
+                    <div class="direction-icon">${icon}</div>
                     <div class="direction-name" title="${item.direction_name}">${item.direction_abbr}</div>
                 </div>`;
             });
@@ -1104,7 +1236,8 @@ const Alerts = {
         if (oldWindAlert) oldWindAlert.remove();
         
         const nextThree = AppState.forecastData.slice(0, 3);
-        const strongWindDays = nextThree.filter(day => day.wind.speed > 30);
+        const threshold = Config.windThresholds[AppState.currentSpecies] || Config.windThresholds.default;
+        const strongWindDays = nextThree.filter(day => day.wind.speed > threshold);
         
         if (strongWindDays.length > 0) {
             const windAlert = document.createElement('div');
@@ -1116,7 +1249,7 @@ const Alerts = {
             windAlert.style.borderRadius = '8px';
             windAlert.style.marginBottom = '0.75rem';
             
-            let message = '<i class="fas fa-wind"></i> ⚠️ Vent fort dans les 3 jours : ';
+            let message = `<i class="fas fa-wind"></i> ⚠️ Vent fort (>${threshold}km/h) dans les 3 jours : `;
             message += strongWindDays.map(day => {
                 const d = new Date(day.date);
                 return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) + ' ' + day.wind.speed + 'km/h';
@@ -1139,14 +1272,20 @@ const HourlyTable = {
         const title = document.getElementById('hourly-table-title');
         const container = document.getElementById('hourly-table-container');
         
-        title.innerHTML = `<i class="fas fa-table"></i> ${AppState.currentSpot.name}`;
+        title.innerHTML = `<i class="fas fa-table"></i> ${AppState.currentSpot.name} – Fiabilité des prévisions`;
         
         let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem"><thead><tr>';
         html += '<th style="background:#334155;color:#e2e8f0;padding:0.75rem;position:sticky;left:0">Heure</th>';
         
-        AppState.forecastData.slice(0,5).forEach(day => { 
+        // Limiter à 3 jours pour la précision horaire
+        const daysToShow = Math.min(3, AppState.forecastData.length);
+        AppState.forecastData.slice(0, daysToShow).forEach((day, idx) => { 
             const d = new Date(day.date); 
-            html += `<th style="background:#1e293b;color:#e2e8f0;padding:0.75rem">${d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric' })}</th>`; 
+            const conf = day.confidence || (idx === 0 ? 0.95 : idx === 1 ? 0.9 : 0.85);
+            html += `<th style="background:#1e293b;color:#e2e8f0;padding:0.75rem">
+                ${d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric' })}<br>
+                <span style="font-size:0.7rem;color:#94a3b8">Fiabilité ${Math.round(conf*100)}%</span>
+            </th>`; 
         });
         
         html += '</tr></thead><tbody>';
@@ -1155,28 +1294,24 @@ const HourlyTable = {
             html += '<tr>';
             html += `<td style="background:#334155;color:#e2e8f0;padding:0.5rem;position:sticky;left:0">${hour}h</td>`;
             
-            AppState.forecastData.slice(0,5).forEach((day, dayIndex) => {
+            AppState.forecastData.slice(0, daysToShow).forEach((day, dayIndex) => {
                 let score = 50;
-                const hourScore = day.hourlyWind?.find(w => parseInt(w.time) === hour)?.score;
+                const isDaytime = hour >= 6 && hour <= 19;
+                const isMorning = hour >= 5 && hour <= 9;
+                const isEvening = hour >= 16 && hour <= 19;
                 
-                if (hourScore) {
-                    score = hourScore;
+                if (isMorning || isEvening) {
+                    score = Math.min(95, day.score + 10);
+                } else if (isDaytime) {
+                    score = Math.max(30, day.score - 10);
                 } else {
-                    // Calcul basé sur les heures optimales de la prédiction
-                    const isMorningPeak = (hour >= 5 && hour <= 9);
-                    const isEveningPeak = (hour >= 16 && hour <= 19);
-                    const isMidDay = (hour >= 12 && hour <= 14);
-                    
-                    if (isMorningPeak || isEveningPeak) {
-                        score = Math.min(95, day.score + 15);
-                    } else if (isMidDay) {
-                        score = Math.max(20, day.score - 20);
-                    } else {
-                        score = day.score - 5 + Math.sin(hour * 0.5) * 5;
-                    }
+                    score = Math.max(20, day.score - 20);
                 }
                 
-                score = Math.max(20, Math.min(95, Math.round(score)));
+                const confidence = day.confidence || (dayIndex === 0 ? 0.95 : dayIndex === 1 ? 0.9 : 0.85);
+                score = Math.round(score * confidence + 50 * (1 - confidence));
+                score = Math.max(20, Math.min(95, score));
+                
                 let scoreClass = 'score-very-poor';
                 if (score >= 80) scoreClass = 'score-excellent';
                 else if (score >= 60) scoreClass = 'score-good';
@@ -1190,6 +1325,9 @@ const HourlyTable = {
         }
         
         html += '</tbody></table></div>';
+        if (AppState.forecastData.length > 3) {
+            html += '<p style="color:#94a3b8;margin-top:1rem;font-size:0.9rem"><i class="fas fa-info-circle"></i> Les prévisions horaires au-delà de J+3 sont moins fiables ; seuls les scores journaliers sont affichés.</p>';
+        }
         container.innerHTML = html;
         modal.style.display = 'flex';
         
@@ -1211,7 +1349,7 @@ const SpeciesSelector = {
     init() {
         let html = '';
         Object.entries(Config.species).forEach(([key, s]) => {
-            html += `<button class="btn btn-secondary species-btn ${key === 'loup' ? 'btn-primary' : ''}" onclick="window.selectSpecies('${key}')" style="margin-right:0.5rem;margin-bottom:0.5rem">${s.icon} ${s.name}</button>`;
+            html += `<button class="btn btn-secondary species-btn ${key === 'loup' ? 'btn-primary' : ''}" onclick="window.selectSpecies('${key}', event)" style="margin-right:0.5rem;margin-bottom:0.5rem">${s.icon} ${s.name}</button>`;
         });
         document.getElementById('species-selector').innerHTML = html;
     },
@@ -1292,9 +1430,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Debug
+    // Test des fonctions de direction (à supprimer en production)
+    console.log("Test des icônes de vent :");
+    [0, 45, 90, 135, 180, 225, 270, 315].forEach(deg => {
+        console.log(`${deg}°: ${getWindDirectionName(deg)} (${getWindDirectionAbbr(deg)}) → ${getWindDirectionIcon(deg)}`);
+    });
+    
     window.AppDebug = AppState;
-    console.log('✅ Application initialisée');
+    console.log('✅ Application initialisée (version scientifique corrigée)');
 });
 </script>
 {% endblock %}
