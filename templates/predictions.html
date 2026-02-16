@@ -1085,48 +1085,89 @@ const ForecastDisplay = {
         document.getElementById('detail-temp').textContent = `${day.temperature}°C`;
         document.getElementById('detail-waves').textContent = `${day.wave_height} m`;
         
-        // Affichage des plages horaires selon la fiabilité
-        let hoursHtml = '';
-        if (index <= 2) {
-            // Pour les 3 premiers jours, plages réalistes
-            const sunrise = 6;
-            const sunset = 19;
-            const morningStart = sunrise;
-            const morningEnd = sunrise + 3;
-            const eveningStart = sunset - 3;
-            const eveningEnd = sunset;
+// Affichage des plages horaires selon les données disponibles
+let hoursHtml = '';
+if (index <= 2) {
+    // Extraire les heures depuis les données horaires de vent
+    const hourlyData = day.hourlyWind || [];
+    
+    // Définir les périodes
+    const periods = [
+        { name: 'Matin', start: 5, end: 9, emoji: '🌅' },
+        { name: 'Mi-journée', start: 12, end: 14, emoji: '☀️' },
+        { name: 'Soir', start: 16, end: 19, emoji: '🌆' }
+    ];
+    
+    // Calculer le score pour chaque période basé sur le vent
+    periods.forEach(period => {
+        // Filtrer les heures de la période
+        const periodHours = hourlyData.filter(w => {
+            const hour = parseInt(w.time);
+            return hour >= period.start && hour <= period.end;
+        });
+        
+        // Calculer le score en fonction du vent moyen sur la période
+        let periodScore = day.score; // score de base
+        
+        if (periodHours.length > 0) {
+            // Calculer la vitesse moyenne du vent sur la période
+            const avgWind = periodHours.reduce((sum, w) => sum + w.speed_kmh, 0) / periodHours.length;
             
-            // Matin
-            const morningScore = Math.min(95, day.score + 15);
-            let color = morningScore >= 80 ? '#10b981' : '#f59e0b';
-            hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
-                <div style="font-weight:600;color:#e2e8f0">${morningStart}h-${morningEnd}h</div>
-                <div style="font-size:1.3rem;font-weight:700;color:${color}">${morningScore}%</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Matin</div>
-            </div>`;
+            // Ajuster le score en fonction du vent
+            // Vent faible (<15 km/h) = bon pour la pêche
+            // Vent fort (>25 km/h) = mauvais pour la pêche
+            if (avgWind < 15) {
+                periodScore = Math.min(95, day.score + 20);
+            } else if (avgWind < 20) {
+                periodScore = Math.min(90, day.score + 10);
+            } else if (avgWind < 25) {
+                periodScore = day.score; // neutre
+            } else if (avgWind < 30) {
+                periodScore = Math.max(20, day.score - 15);
+            } else {
+                periodScore = Math.max(10, day.score - 30);
+            }
             
-            // Soir
-            const eveningScore = Math.min(95, day.score + 15);
-            color = eveningScore >= 80 ? '#10b981' : '#f59e0b';
-            hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
-                <div style="font-weight:600;color:#e2e8f0">${eveningStart}h-${eveningEnd}h</div>
-                <div style="font-size:1.3rem;font-weight:700;color:${color}">${eveningScore}%</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Soir</div>
-            </div>`;
+            // Bonus pour le matin et le soir (meilleurs moments biologiques)
+            if (period.name === 'Matin' || period.name === 'Soir') {
+                periodScore = Math.min(95, periodScore + 5);
+            }
             
-            // Mi-journée
-            const middayScore = Math.max(30, day.score - 10);
-            color = '#ef4444';
-            hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
-                <div style="font-weight:600;color:#e2e8f0">12h-15h</div>
-                <div style="font-size:1.3rem;font-weight:700;color:${color}">${middayScore}%</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Mi-journée</div>
-            </div>`;
-        } else {
-            // Au-delà de J+3, message de précision limitée
-            hoursHtml = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#94a3b8">Précision horaire insuffisante pour ce jour</div>';
+            // Pénalité pour la mi-journée (soleil fort)
+            if (period.name === 'Mi-journée') {
+                periodScore = Math.max(10, periodScore - 10);
+            }
         }
-        document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
+        
+        // Déterminer la couleur
+        let color = periodScore >= 80 ? '#10b981' : 
+                   periodScore >= 60 ? '#3b82f6' : 
+                   periodScore >= 40 ? '#f59e0b' : '#ef4444';
+        
+        hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
+            <div style="font-weight:600;color:#e2e8f0">${period.emoji} ${period.name}</div>
+            <div style="font-size:1.3rem;font-weight:700;color:${color}">${Math.round(periodScore)}%</div>
+            <div style="font-size:0.7rem;color:#94a3b8">${period.start}h-${period.end}h</div>
+        </div>`;
+    });
+    
+    // Ajouter une note sur la cohérence si nécessaire
+    const avgPeriodScore = Math.round(
+        (periods.reduce((sum, p, i) => {
+            const score = parseInt(hoursHtml.match(new RegExp(`${p.emoji}.*?(\\d+)%`))?.[1] || day.score);
+            return sum + score;
+        }, 0)) / periods.length
+    );
+    
+    if (Math.abs(avgPeriodScore - day.score) > 20) {
+        console.log(`ℹ️ Jour ${day.date}: global=${day.score}, moyenne périodes=${avgPeriodScore} (basé sur vent)`);
+    }
+    
+} else {
+    // Au-delà de J+3, message de précision limitée
+    hoursHtml = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#94a3b8">Précision horaire insuffisante pour ce jour</div>';
+}
+document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
         
         // === SECTION VENT DÉTAILLÉ CORRIGÉE ===
         const windGrid = document.getElementById('hourlyWindGrid');
