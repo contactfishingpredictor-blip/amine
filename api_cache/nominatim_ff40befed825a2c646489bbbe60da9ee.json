@@ -1,0 +1,18 @@
+{
+  "data": {
+    "success": true,
+    "name": "تونس",
+    "address": {
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1771268269.957078,
+  "expires_at": 1771354669.957078,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 37.32896611865291,
+    "lon": 9.643995508966807
+  }
+}

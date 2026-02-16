@@ -1335,7 +1335,7 @@ def api_quick_check():
 
 @app.route('/api/24h_forecast')
 def api_24h_forecast():
-    """Prévisions sur 24h pour le graphique"""
+    """Prévisions sur 24h basées sur les vraies données scientifiques"""
     try:
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
@@ -1343,57 +1343,185 @@ def api_24h_forecast():
         
         hours = []
         scores = []
+        best_periods = []
+        hourly_data = []
+        
         current_hour = datetime.now().hour
+        current_time = datetime.now()
         
+        # Seuils de qualité
+        EXCELLENT_THRESHOLD = 85
+        GOOD_THRESHOLD = 70
+        
+        # Récupérer la météo pour toutes les prédictions
+        weather_result = get_cached_weather(lat, lon)
+        if not weather_result['success']:
+            weather_result = generate_consistent_weather(lat, lon)
+        
+        # Collecter les prédictions pour chaque heure
         for hour_offset in range(24):
-            hour = (current_hour + hour_offset) % 24
+            forecast_time = current_time + timedelta(hours=hour_offset)
+            hour = forecast_time.hour
+            
+            # Utiliser le VRAI prédicteur scientifique
+            prediction = predictor.predict_daily_activity(
+                lat, lon, forecast_time, species, weather_result['weather']
+            )
+            
+            # Récupérer le score réel (déjà en pourcentage 0-100)
+            base_score = prediction['activity_score']
+            
+            # Appliquer une pénalité vent si nécessaire (optionnel)
+            wind_speed = weather_result['weather'].get('wind_speed', 10)
+            wind_penalty = 1.0
+            
+            if wind_speed > 40:
+                wind_penalty = 0.3
+            elif wind_speed > 30:
+                wind_penalty = 0.5
+            elif wind_speed > 20:
+                wind_penalty = 0.7
+            elif wind_speed > 15:
+                wind_penalty = 0.9
+            
+            score = int(round(base_score * wind_penalty))
+            score = max(10, min(98, score))
+            
             hours.append(f"{hour}h")
-            
-            base_score = 50
-            if (hour >= 5 and hour <= 9) or (hour >= 16 and hour <= 19):
-                base_score = 70 + math.sin(hour * 0.3) * 15
-            elif hour >= 12 and hour <= 14:
-                base_score = 30 + random.random() * 10
-            elif hour >= 22 or hour <= 4:
-                base_score = 20 + random.random() * 15
-            else:
-                base_score = 45 + math.sin(hour * 0.2) * 10
-            
-            score = max(20, min(95, round(base_score)))
             scores.append(score)
+            
+            hourly_data.append({
+                'hour': hour,
+                'time': forecast_time.strftime('%H:%M'),
+                'score': score,
+                'timestamp': forecast_time.timestamp()
+            })
         
-        next_peak_index = -1
-        max_score = 0
-        for i in range(1, len(scores)):
-            if scores[i] > max_score and scores[i] > scores[i-1] and scores[i] > 70:
-                max_score = scores[i]
-                next_peak_index = i
+        # Trouver la meilleure heure (celle avec le score max)
+        best_idx = scores.index(max(scores))
+        best_hour = hours[best_idx]
+        best_score = max(scores)
         
-        next_peak_hour = None
-        peak_countdown = None
-        if next_peak_index > 0:
-            next_peak_hour = (current_hour + next_peak_index) % 24
-            peak_countdown = next_peak_index * 60
+        # Détecter les périodes de bonne pêche (score >= GOOD_THRESHOLD)
+        i = 0
+        while i < len(hourly_data):
+            if hourly_data[i]['score'] >= GOOD_THRESHOLD:
+                start_idx = i
+                start_time = hourly_data[i]['time']
+                start_score = hourly_data[i]['score']
+                
+                # Chercher la fin de la période
+                while i < len(hourly_data) and hourly_data[i]['score'] >= GOOD_THRESHOLD:
+                    i += 1
+                
+                end_idx = i - 1
+                end_time = hourly_data[end_idx]['time']
+                
+                # Calculer la durée en heures et minutes
+                start_parts = start_time.split(':')
+                end_parts = end_time.split(':')
+                start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
+                end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
+                
+                # Gérer le cas où la période traverse minuit
+                if end_minutes < start_minutes:
+                    end_minutes += 24 * 60
+                
+                duration_minutes = end_minutes - start_minutes + 60  # +60 pour inclure la dernière heure
+                duration_hours = duration_minutes / 60
+                
+                # Trouver le pic dans cette période
+                peak_score = max(h['score'] for h in hourly_data[start_idx:end_idx+1])
+                
+                # Qualifier la période
+                if peak_score >= EXCELLENT_THRESHOLD:
+                    quality = "excellente"
+                elif peak_score >= GOOD_THRESHOLD:
+                    quality = "bonne"
+                else:
+                    quality = "moyenne"
+                
+                best_periods.append({
+                    'start': start_time,
+                    'end': end_time,
+                    'duration_hours': round(duration_hours, 1),
+                    'duration_minutes': duration_minutes,
+                    'peak_score': peak_score,
+                    'quality': quality,
+                    'start_hour': hourly_data[start_idx]['hour'],
+                    'end_hour': hourly_data[end_idx]['hour']
+                })
+            else:
+                i += 1
         
-        return jsonify({
+        # Trier les périodes par heure de début
+        best_periods.sort(key=lambda x: x['start_hour'])
+        
+        # Trouver la prochaine période
+        next_period = None
+        for period in best_periods:
+            if period['start_hour'] > current_hour:
+                next_period = period
+                break
+        
+        # Si pas de période aujourd'hui mais qu'il y a des périodes, prendre la première demain
+        if not next_period and best_periods:
+            next_period = best_periods[0].copy()
+            next_period['start'] = f"Demain {next_period['start']}"
+            next_period['end'] = f"Demain {next_period['end']}"
+            next_period['is_tomorrow'] = True
+        
+        # Calculer la tendance
+        if len(scores) >= 4:
+            if scores[3] > scores[0] + 5:
+                trend = 'rising'
+            elif scores[3] < scores[0] - 5:
+                trend = 'falling'
+            else:
+                trend = 'stable'
+        else:
+            trend = 'stable'
+        
+        # Construire la réponse
+        response_data = {
             'status': 'success',
             'hours': hours,
             'scores': scores,
             'current_hour': current_hour,
-            'next_peak': {
-                'hour': next_peak_hour,
-                'score': max_score,
-                'countdown_minutes': peak_countdown
-            },
-            'trend': 'stable' if abs(scores[0] - scores[3]) < 5 else 
-                    'rising' if scores[3] > scores[0] + 5 else 'falling',
-            'timestamp': datetime.now().isoformat()
-        })
+            'best_periods': best_periods,
+            'next_period': next_period,
+            'trend': trend,
+            'best_hour': best_hour,
+            'best_score': best_score,
+            'metadata': {
+                'location': {'lat': lat, 'lon': lon},
+                'species': species,
+                'timestamp': datetime.now().isoformat(),
+                'data_source': weather_result['weather'].get('source', 'scientific'),
+                'periods_found': len(best_periods)
+            }
+        }
+        
+        return jsonify(response_data)
+        
     except Exception as e:
         print(f"❌ Erreur prévisions 24h: {e}")
-        return jsonify({'status': 'error', 'message': str(e)})
-
-@app.route('/api/save_spot', methods=['POST'])
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback minimal en cas d'erreur
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'hours': [f"{h}h" for h in range(24)],
+            'scores': [50] * 24,
+            'current_hour': datetime.now().hour,
+            'best_periods': [],
+            'next_period': None,
+            'trend': 'stable',
+            'best_hour': f"{datetime.now().hour}h",
+            'best_score': 50
+        })@app.route('/api/save_spot', methods=['POST'])
 def api_save_spot():
     """Sauvegarder un spot personnalisé - VERSION CORRIGÉE"""
     try:

@@ -1,49 +1,49 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "f9e7a2af49cc",
+    "prediction_id": "f64851814ecd",
     "stable": true,
-    "valid_until": "2026-02-16T20:23:16.607879",
+    "valid_until": "2026-02-16T20:58:43.172080",
     "scores": {
-      "final": 86,
-      "environmental": 60,
+      "final": 91,
+      "environmental": 66,
       "behavioral": 89,
-      "bathymetry_factor": 88,
+      "bathymetry_factor": 100,
       "weather_factor": 100,
       "components": {
-        "scientific": 60,
-        "depth": 88,
+        "scientific": 66,
+        "depth": 100,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 14.99,
-      "wind_speed": 15.7,
-      "wind_direction": 279,
-      "wind_direction_abbr": "SO",
-      "wind_direction_name": "Sud-Ouest",
-      "wind_direction_icon": "↙️",
-      "wind_fishing_impact": "Vent de sud/sud-est - Apporte eaux chaudes, bon pour certaines espèces",
+      "temperature": 16.88,
+      "wind_speed": 8.9,
+      "wind_direction": 284,
+      "wind_direction_abbr": "ONO",
+      "wind_direction_name": "Ouest-Nord-Ouest",
+      "wind_direction_icon": "⬅️",
+      "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
-      "wind_onshore": false,
-      "pressure": 1015,
-      "humidity": 77,
+      "wind_onshore": true,
+      "pressure": 1016,
+      "humidity": 51,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
-      "wave_height": 0.73,
-      "updated": "2026-02-16T19:23:16.607879",
+      "wave_height": 0.62,
+      "updated": "2026-02-16T19:58:43.172080",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.47,
+        "value": 5.36,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.59,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -51,7 +51,7 @@
       "tidal_current": {
         "speed_mps": 0.107,
         "speed_knots": 0.208,
-        "direction": "O-E",
+        "direction": "NO-SE",
         "tide_height": 0.5,
         "tide_phase": "montante",
         "fishing_impact": "favorable"
@@ -59,11 +59,11 @@
     },
     "recommendations": {
       "tips": [
-        "Opportunité: BONNE",
+        "Opportunité: TRÈS BONNE",
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 15.0°C, Vent: 15.7 km/h"
+        "Météo: Nuageux, 16.9°C, Vent: 8.9 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,47 +73,47 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 25,
-      "source": "Expert Tunisie - Tunis - Rade",
+      "depth": 12,
+      "source": "Expert Tunisie - Sousse - Port",
       "accuracy": "excellente",
       "confidence": 0.99,
-      "seabed_type": "mixed",
-      "seabed_description": "Mixte",
-      "optimal_for_species": false,
-      "zone": "ولاية تونس",
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": true,
+      "zone": "ولاية سوسة",
       "recommended_fishing": [
-        "Profondeur: 25m (sous-optimale)",
-        "Type de fond: Mixte",
+        "Profondeur: 12m (optimale)",
+        "Type de fond: Sableux",
         "Précision: excellente"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
+      "lat": 35.8254,
+      "lon": 10.636,
+      "name": "سوسة, معتمدية سوسة المدينة, ولاية سوسة, تونس",
       "type": "city",
-      "region": "ولاية تونس"
+      "region": "ولاية سوسة"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-16T19:23:16.607879",
-      "data_source": "Expert Tunisie - Tunis - Rade",
+      "timestamp": "2026-02-16T19:58:43.172080",
+      "data_source": "Expert Tunisie - Sousse - Port",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "20:23",
+      "next_update_recommended": "20:58",
       "api_usage_info": {
-        "openweather_calls_today": 3,
+        "openweather_calls_today": 4,
         "using_cache": false
       }
     }
   },
-  "timestamp": 1771266196.6085696,
-  "expires_at": 1771269796.6085696,
+  "timestamp": 1771268323.1720803,
+  "expires_at": 1771271923.1720803,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 35.8254,
+    "lon": 10.636,
     "species": "loup"
   }
 }

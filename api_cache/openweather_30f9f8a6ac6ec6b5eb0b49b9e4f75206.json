@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 16.86,
+    "feels_like": 16.04,
+    "pressure": 1018,
+    "humidity": 55,
+    "wind_speed": 28.62,
+    "wind_direction": 259,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 1.12,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01n",
+    "clouds": 0,
+    "visibility": 10.0,
+    "sunrise": "2026-02-16T06:58:12",
+    "sunset": "2026-02-16T17:59:34",
+    "location": "Zarzis",
+    "country": "TN",
+    "timestamp": "2026-02-16T19:58:15.255688",
+    "score": 1.0
+  },
+  "timestamp": 1771268295.2556887,
+  "expires_at": 1771311495.2556887,
+  "api_name": "openweather",
+  "params": {
+    "lat": 33.5420815500299,
+    "lon": 11.335362768077017
+  }
+}

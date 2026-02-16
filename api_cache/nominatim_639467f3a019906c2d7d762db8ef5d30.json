@@ -12,8 +12,8 @@
     },
     "type": "administrative"
   },
-  "timestamp": 1771063856.2704394,
-  "expires_at": 1771150256.2704394,
+  "timestamp": 1771268716.4510427,
+  "expires_at": 1771355116.4510427,
   "api_name": "nominatim",
   "params": {
     "lat": 37.2747,

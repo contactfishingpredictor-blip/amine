@@ -1,0 +1,15 @@
+{
+  "data": {
+    "success": true,
+    "name": "Position 33.5421, 11.3354",
+    "address": {},
+    "type": "water"
+  },
+  "timestamp": 1771268296.0198674,
+  "expires_at": 1771354696.0198674,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 33.5420815500299,
+    "lon": 11.335362768077017
+  }
+}

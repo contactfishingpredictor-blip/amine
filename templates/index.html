@@ -335,9 +335,12 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                         </div>
                     </div>
                     <div style="text-align:center;padding:.75rem;background:#1e293b;border-radius:8px">
-                        <div style="color:#94a3b8;font-size:.8rem">Prochain pic</div>
-                        <div style="font-size:1.5rem;font-weight:700;margin-top:.25rem" id="next-peak">--:--</div>
-                        <div style="font-size:.75rem;color:#94a3b8">dans <span id="peak-countdown">--</span> min</div>
+                        <div style="color:#94a3b8;font-size:.8rem">Prochaine fenêtre</div>
+                        <div style="font-size:1.5rem;font-weight:700;margin-top:.25rem" id="next-window-start">--:--</div>
+                        <div style="font-size:.9rem;color:#3b82f6" id="next-window-end">jusqu'à --:--</div>
+                        <div style="font-size:.75rem;color:#94a3b8;margin-top:.25rem">
+                            <span id="window-duration">--</span> min • <span id="window-quality">--</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -455,13 +458,14 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Fishing Dashboard Object - VERSION FINALE CORRIGÉE
+// Fishing Dashboard Object - VERSION CORRIGÉE AVEC SÉPARATION DES POSITIONS
 const FishingDashboard = (function() {
     // ========== VARIABLES PRIVÉES ==========
     let map = null;
-    let currentLat = 36.8065;
-    let currentLon = 10.1815;
-    let currentMarker = null;
+    let userLat = 36.8065;        // Position de l'utilisateur (point de départ)
+    let userLon = 10.1815;
+    let currentMarker = null;      // Marqueur de l'utilisateur
+    let selectedSpot = null;       // Spot sélectionné (point d'arrivée)
     let windAnimationActive = false;
     let windCanvas = null;
     let windCtx = null;
@@ -469,7 +473,6 @@ const FishingDashboard = (function() {
     let windAnimationFrame = null;
     let activityChart = null;
     let customSpots = [];
-    let selectedSpot = null;
     let currentPredictionData = null;
     let currentWindDirection = 0;
     let currentWindSpeed = 10;
@@ -510,7 +513,116 @@ const FishingDashboard = (function() {
         document.getElementById('detail-wave-height').textContent = waveValue + ' m';
     }
     
-    // --- ANIMATION VENT - CORRECTION ROBUSTE ---
+    // --- MISE À JOUR DE LA POSITION UTILISATEUR ---
+    function updateUserPosition(lat, lon) {
+        userLat = lat;
+        userLon = lon;
+        if (currentMarker) {
+            currentMarker.setLatLng([lat, lon]);
+        }
+        // Optionnel : recentrer la carte
+        if (map) map.setView([lat, lon], map.getZoom());
+        // Recalculer la distance si un spot est sélectionné
+        if (selectedSpot) {
+            calculateDistanceToSpot(selectedSpot.lat, selectedSpot.lon);
+        }
+        // Rafraîchir les données météo pour la nouvelle position
+        loadWeatherDataInternal();
+        updatePredictionInternal();
+        updateScientificDataInternal();
+        load24hForecastInternal();
+    }
+    
+    // --- CALCUL DE DISTANCE ---
+    async function calculateDistanceToSpot(lat, lon) {
+        try {
+            const response = await fetch(`/api/distance_calculation?lat1=${userLat}&lon1=${userLon}&lat2=${lat}&lon2=${lon}`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                const distanceKm = parseFloat(data.distance_km);
+                const travelTimeMinutes = data.travel_time_minutes || Math.round((distanceKm / 50) * 60);
+                
+                // Mettre à jour l'affichage dans le bloc "Spot sélectionné"
+                const spotDistanceEl = document.getElementById('spot-distance');
+                if (spotDistanceEl) {
+                    if (distanceKm < 0.1) {
+                        spotDistanceEl.innerHTML = `<span style="color:#94a3b8">Vous êtes ici</span>`;
+                    } else {
+                        spotDistanceEl.innerHTML = `${distanceKm.toFixed(1)} km<br><span style="font-size:.7rem">${formatTime(travelTimeMinutes)}</span>`;
+                    }
+                }
+                
+                // Mettre à jour la zone d'info distance (sous la carte)
+                const distanceInfo = document.getElementById('distance-info');
+                if (distanceInfo) {
+                    if (distanceKm < 0.1) {
+                        distanceInfo.innerHTML = `<div style="color:#94a3b8;padding:.5rem;"><i class="fas fa-check-circle" style="color:#10b981"></i> Vous êtes sur place</div>`;
+                    } else {
+                        distanceInfo.innerHTML = `
+                            <div style="display:flex;align-items:center;gap:.5rem;background:#1e293b;padding:.5rem;border-radius:6px">
+                                <i class="fas fa-route" style="color:#3b82f6"></i>
+                                <div><span style="font-weight:600">${distanceKm.toFixed(1)} km</span> • ${formatTime(travelTimeMinutes)}</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        } catch(error) {
+            console.error('Erreur calcul distance:', error);
+        }
+    }
+    
+    // --- FORMATER LE TEMPS DE TRAJET ---
+    function formatTime(minutes) {
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return mins > 0 ? `${hours}h${mins}` : `${hours}h`;
+    }
+    
+    // --- SÉLECTION D'UN SPOT ---
+    async function selectSpot(lat, lon, name) {
+        selectedSpot = { lat, lon, name };
+        
+        // Mettre à jour l'affichage du spot
+        const spotInfo = document.getElementById('spot-info');
+        if (spotInfo) {
+            spotInfo.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <h3 style="margin:0;color:#3b82f6">${name}</h3>
+                        <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
+                            ${lat.toFixed(4)}, ${lon.toFixed(4)}
+                        </div>
+                    </div>
+                    <div style="background:#1e293b;padding:.5rem;border-radius:8px">
+                        <div style="color:#94a3b8;font-size:.8rem">Distance</div>
+                        <div style="font-weight:700" id="spot-distance">Calcul...</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Centrer la carte sur le spot
+        if (map) map.setView([lat, lon], 13);
+        
+        // Calculer la distance par rapport à la position utilisateur
+        await calculateDistanceToSpot(lat, lon);
+        
+        // Charger les données pour ce spot (en passant les coordonnées)
+        await loadWeatherDataInternal(lat, lon);
+        await updatePredictionInternal(lat, lon);
+        await updateScientificDataInternal(lat, lon);
+        await load24hForecastInternal(lat, lon);
+        
+        // Fermer les popups éventuels
+        if (map) map.closePopup();
+        
+        // Notification
+        showNotification(`Spot "${name}" sélectionné`, 'success');
+    }
+    
+    // --- ANIMATION VENT ---
     function initWindAnimation() {
         windCanvas = document.getElementById('wind-animation-canvas');
         if(!windCanvas) return;
@@ -619,10 +731,12 @@ const FishingDashboard = (function() {
         }
     }
     
-    // --- CHARGEMENT MÉTÉO ---
-    async function loadWeatherDataInternal() {
+    // --- CHARGEMENT MÉTÉO (accepte des coordonnées optionnelles) ---
+    async function loadWeatherDataInternal(lat = null, lon = null) {
+        const targetLat = lat !== null ? lat : userLat;
+        const targetLon = lon !== null ? lon : userLon;
         try {
-            const response = await fetch(`/api/current_weather?lat=${currentLat}&lon=${currentLon}`);
+            const response = await fetch(`/api/current_weather?lat=${targetLat}&lon=${targetLon}`);
             const data = await response.json();
             
             console.log('📦 Données météo reçues:', data);
@@ -673,7 +787,6 @@ const FishingDashboard = (function() {
                     document.getElementById('weather-pressure').textContent = `${weather.pressure?.toFixed(0) || '--'} hPa`;
                 }
                 
-                // CORRECTION URGENTE - On utilise uniquement la valeur de l'API
                 checkOffshoreWind(weather.wind_offshore);
                 checkStrongWind(weather.wind_speed || 0);
                 
@@ -692,13 +805,15 @@ const FishingDashboard = (function() {
         } catch(error) {
             console.error('Erreur météo:', error);
         }
-        updatePredictionInternal();
+        updatePredictionInternal(lat, lon);
     }
     
-    // --- PRÉDICTION ---
-    async function updatePredictionInternal() {
+    // --- PRÉDICTION (accepte des coordonnées optionnelles) ---
+    async function updatePredictionInternal(lat = null, lon = null) {
+        const targetLat = lat !== null ? lat : userLat;
+        const targetLon = lon !== null ? lon : userLon;
         try {
-            const response = await fetch(`/api/tunisian_prediction?lat=${currentLat}&lon=${currentLon}&species=loup`);
+            const response = await fetch(`/api/tunisian_prediction?lat=${targetLat}&lon=${targetLon}&species=loup`);
             const data = await response.json();
             
             if(data.status === 'success') {
@@ -767,10 +882,12 @@ const FishingDashboard = (function() {
         }
     }
     
-    // --- DONNÉES SCIENTIFIQUES ---
-    async function updateScientificDataInternal() {
+    // --- DONNÉES SCIENTIFIQUES (accepte des coordonnées optionnelles) ---
+    async function updateScientificDataInternal(lat = null, lon = null) {
+        const targetLat = lat !== null ? lat : userLat;
+        const targetLon = lon !== null ? lon : userLon;
         try {
-            const response = await fetch(`/api/scientific_factors?lat=${currentLat}&lon=${currentLon}&species=loup`);
+            const response = await fetch(`/api/scientific_factors?lat=${targetLat}&lon=${targetLon}&species=loup`);
             const data = await response.json();
             
             if(data.status === 'success') {
@@ -790,37 +907,114 @@ const FishingDashboard = (function() {
         }
     }
     
-    // --- GRAPHIQUE ACTIVITÉ ---
-    async function load24hForecastInternal() {
+    // --- GRAPHIQUE ACTIVITÉ 24H ---
+    async function load24hForecastInternal(lat = null, lon = null) {
+        const targetLat = lat !== null ? lat : userLat;
+        const targetLon = lon !== null ? lon : userLon;
         try {
-            const response = await fetch(`/api/24h_forecast?lat=${currentLat}&lon=${currentLon}`);
+            const response = await fetch(`/api/24h_forecast?lat=${targetLat}&lon=${targetLon}&species=loup`);
             const data = await response.json();
+            
             if(data.status === 'success' && activityChart) {
+                // Mettre à jour le graphique
                 activityChart.data.labels = data.hours || [];
                 activityChart.data.datasets[0].data = data.scores || [];
                 activityChart.update();
                 
-                if(data.next_peak) {
-                    document.getElementById('next-peak').textContent = `${data.next_peak.hour || '--'}:00`;
-                    document.getElementById('peak-countdown').textContent = data.next_peak.countdown_minutes || '--';
-                    document.getElementById('best-period').textContent = `${data.next_peak.hour || '--'}h`;
-                }
-                
+                // Mettre à jour la tendance
                 const trendEl = document.getElementById('current-trend');
                 const trendArrow = document.getElementById('trend-arrow');
-                if(data.trend === 'rising') {
-                    trendEl.textContent = 'Hausse';
-                    trendArrow.textContent = '↗️';
-                } else if(data.trend === 'falling') {
-                    trendEl.textContent = 'Baisse';
-                    trendArrow.textContent = '↘️';
-                } else {
-                    trendEl.textContent = 'Stable';
-                    trendArrow.textContent = '➡️';
+                if(trendEl && trendArrow) {
+                    if(data.trend === 'rising') {
+                        trendEl.textContent = 'Hausse';
+                        trendArrow.textContent = '↗️';
+                    } else if(data.trend === 'falling') {
+                        trendEl.textContent = 'Baisse';
+                        trendArrow.textContent = '↘️';
+                    } else {
+                        trendEl.textContent = 'Stable';
+                        trendArrow.textContent = '➡️';
+                    }
+                }
+                
+                // --- Afficher la prochaine fenêtre ---
+                const nextPeriod = data.next_period;
+                const bestHour = data.best_hour || '--h';
+                
+                const nextWindowStart = document.getElementById('next-window-start');
+                const nextWindowEnd = document.getElementById('next-window-end');
+                const windowDuration = document.getElementById('window-duration');
+                const windowQuality = document.getElementById('window-quality');
+                const bestPeriodEl = document.getElementById('best-period');
+                
+                if(nextPeriod && nextWindowStart && nextWindowEnd && windowDuration && windowQuality) {
+                    // Une vraie période a été trouvée
+                    nextWindowStart.textContent = nextPeriod.start || '--:--';
+                    nextWindowEnd.textContent = `jusqu'à ${nextPeriod.end || '--:--'}`;
+                    
+                    // Calculer la durée en minutes
+                    let durationMinutes = nextPeriod.duration_minutes || (nextPeriod.duration_hours * 60) || 60;
+                    windowDuration.textContent = Math.round(durationMinutes);
+                    
+                    // Qualité avec emoji
+                    let qualityText = nextPeriod.quality || 'moyenne';
+                    let qualityEmoji = qualityText === 'excellente' ? '🔥' : 
+                                      qualityText === 'bonne' ? '👍' : '👌';
+                    windowQuality.textContent = qualityText + ' ' + qualityEmoji;
+                    
+                    // Mettre à jour aussi l'ancien champ "Meilleur" si présent
+                    if(bestPeriodEl) bestPeriodEl.textContent = bestHour;
+                } else if (bestPeriodEl && nextWindowStart && nextWindowEnd && windowDuration && windowQuality) {
+                    // PAS de période trouvée - utiliser la meilleure heure
+                    console.log('⚠️ Aucune période trouvée, utilisation de la meilleure heure:', bestHour);
+                    
+                    // Extraire l'heure du format "19h"
+                    let displayHour = bestHour.replace('h', ':00');
+                    
+                    nextWindowStart.textContent = displayHour;
+                    nextWindowEnd.textContent = 'pic unique (1h)';
+                    windowDuration.textContent = '60';
+                    windowQuality.textContent = 'moyenne 👌';
+                    
+                    // Mettre à jour l'ancien champ
+                    bestPeriodEl.textContent = bestHour;
+                }
+                
+                // Afficher la liste des périodes (optionnel)
+                if(data.best_periods && data.best_periods.length > 0) {
+                    // Supprimer l'ancienne liste
+                    const oldList = document.getElementById('periods-list');
+                    if(oldList) oldList.remove();
+                    
+                    let periodsHtml = '<div id="periods-list" style="margin-top:1rem;padding:.5rem;background:#1e293b;border-radius:6px">';
+                    periodsHtml += '<div style="color:#94a3b8;font-size:.8rem;margin-bottom:.5rem">📋 Prochaines fenêtres :</div>';
+                    
+                    data.best_periods.slice(0, 3).forEach(p => {
+                        let qualityEmoji = p.quality === 'excellente' ? '🔥' : 
+                                          p.quality === 'bonne' ? '👍' : '👌';
+                        periodsHtml += `
+                            <div style="display:flex;justify-content:space-between;font-size:.9rem;padding:.25rem 0;border-bottom:1px solid #334155">
+                                <span>${p.start} → ${p.end}</span>
+                                <span style="color:${p.quality === 'excellente' ? '#10b981' : '#f59e0b'}">
+                                    ${qualityEmoji} ${p.duration_hours}h
+                                </span>
+                            </div>
+                        `;
+                    });
+                    
+                    periodsHtml += '</div>';
+                    
+                    // Ajouter au DOM
+                    const chartContainer = document.querySelector('.chart-container');
+                    if(chartContainer) {
+                        const periodsDiv = document.createElement('div');
+                        periodsDiv.innerHTML = periodsHtml;
+                        chartContainer.parentNode.insertBefore(periodsDiv.firstChild, chartContainer.nextSibling);
+                    }
                 }
             }
         } catch(error) {
-            console.error('Erreur 24h:', error);
+            console.error('Erreur prévisions 24h:', error);
         }
     }
     
@@ -833,7 +1027,6 @@ const FishingDashboard = (function() {
         }
     }
     
-    // CORRECTION URGENTE - On utilise uniquement la valeur booléenne de l'API
     function checkOffshoreWind(isOffshore) {
         const alertDiv = document.getElementById('wind-offshore-alert');
         const dangerDiv = document.getElementById('offshore-danger');
@@ -950,7 +1143,7 @@ const FishingDashboard = (function() {
         // Initialisation
         initMap() {
             if(!document.getElementById('map')) return;
-            map = L.map('map').setView([currentLat, currentLon], 10);
+            map = L.map('map').setView([userLat, userLon], 10);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution:'© OpenStreetMap'
             }).addTo(map);
@@ -958,13 +1151,13 @@ const FishingDashboard = (function() {
             loadCustomSpots();
             TUNISIAN_SPOTS.forEach(s => addSpotToMap(s, false));
             
-            currentMarker = L.marker([currentLat, currentLon], {
+            currentMarker = L.marker([userLat, userLon], {
                 icon: L.divIcon({
-                    html: '<div style="background:#ef4444;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(239,68,68,0.7);animation:pulse 2s infinite"></div>',
-                    className: 'current-location-icon',
+                    html: '<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(59,130,246,0.7);"></div>',
+                    className: 'user-location-icon',
                     iconSize: [22, 22]
                 })
-            }).addTo(map).bindPopup('Votre position');
+            }).addTo(map).bindPopup('Votre position actuelle');
             
             map.on('click', (e) => {
                 const name = prompt("Nom du spot :", "Mon spot");
@@ -1058,71 +1251,14 @@ const FishingDashboard = (function() {
             if(map) map.eachLayer(layer => { if(layer.spotType === type) layer.setOpacity(isChecked ? 1 : 0); });
         },
         
-        // SÉLECTION SPOT
-        async selectSpot(lat, lon, name) {
-            selectedSpot = { lat, lon, name };
-            currentLat = lat;
-            currentLon = lon;
-            
-            if(map) map.setView([lat, lon], 13);
-            
-            const spotInfo = document.getElementById('spot-info');
-            if(spotInfo) {
-                spotInfo.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:center">
-                        <div>
-                            <h3 style="margin:0;color:#3b82f6">${name}</h3>
-                            <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
-                                ${lat.toFixed(4)}, ${lon.toFixed(4)}
-                            </div>
-                        </div>
-                        <div style="background:#1e293b;padding:.5rem;border-radius:8px">
-                            <div style="color:#94a3b8;font-size:.8rem">Distance</div>
-                            <div style="font-weight:700" id="spot-distance">Calcul...</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            await this.calculateDistanceToSpot(lat, lon);
-            await loadWeatherDataInternal();
-            await updatePredictionInternal();
-            await updateScientificDataInternal();
-            await load24hForecastInternal();
-            
-            if(map) map.closePopup();
-            this.showNotification(`Spot sélectionné: ${name}`, 'success');
+        // SÉLECTION SPOT (exposée publiquement)
+        selectSpot(lat, lon, name) {
+            return selectSpot(lat, lon, name);
         },
         
-        // CALCUL DISTANCE
-        async calculateDistanceToSpot(lat, lon) {
-            try {
-                const r = await fetch(`/api/distance_calculation?lat1=${currentLat}&lon1=${currentLon}&lat2=${lat}&lon2=${lon}`);
-                const d = await r.json();
-                if(d.status === 'success') {
-                    const distanceKm = parseFloat(d.distance_km);
-                    
-                    const averageSpeedKmh = 30;
-                    const travelTimeMinutes = Math.round((distanceKm / averageSpeedKmh) * 60);
-                    
-                    let timeDisplay = '';
-                    if(travelTimeMinutes >= 60) {
-                        const hours = Math.floor(travelTimeMinutes / 60);
-                        const minutes = travelTimeMinutes % 60;
-                        timeDisplay = `${hours}h${minutes > 0 ? minutes + 'min' : ''}`;
-                    } else {
-                        timeDisplay = `${travelTimeMinutes} min`;
-                    }
-                    
-                    document.getElementById('spot-distance').innerHTML = `${distanceKm.toFixed(1)} km<br><span style="font-size:.7rem">${timeDisplay}</span>`;
-                    document.getElementById('distance-info').innerHTML = `
-                        <div style="display:flex;align-items:center;gap:.5rem;color:#475569;padding:.5rem;background:#f8fafc;border-radius:6px">
-                            <i class="fas fa-route"></i>
-                            <div><span style="font-weight:600">${distanceKm.toFixed(1)} km</span> • ${timeDisplay}</div>
-                        </div>
-                    `;
-                }
-            } catch(e) { console.error(e); }
+        // CALCUL DISTANCE (exposée publiquement)
+        calculateDistanceToSpot(lat, lon) {
+            return calculateDistanceToSpot(lat, lon);
         },
         
         // GESTION DES SPOTS PERSONNALISÉS
@@ -1167,18 +1303,19 @@ const FishingDashboard = (function() {
         // Actions
         getCurrentLocation() {
             if(navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    currentLat = pos.coords.latitude;
-                    currentLon = pos.coords.longitude;
-                    if(map) {
-                        map.setView([currentLat, currentLon], 12);
-                        if(currentMarker) currentMarker.setLatLng([currentLat, currentLon]);
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        updateUserPosition(pos.coords.latitude, pos.coords.longitude);
+                        this.showNotification('Position mise à jour !', 'success');
+                    },
+                    (err) => {
+                        console.error('Erreur géolocalisation:', err);
+                        this.showNotification('Impossible d\'obtenir votre position', 'error');
                     }
-                    loadWeatherDataInternal();
-                    updateScientificDataInternal();
-                    this.showNotification('Position mise à jour !', 'success');
-                }, () => this.showNotification('Géolocalisation refusée', 'error'));
-            } else this.showNotification('Géolocalisation non supportée', 'error');
+                );
+            } else {
+                this.showNotification('Géolocalisation non supportée', 'error');
+            }
         },
         
         saveCurrentSpot() {
@@ -1201,7 +1338,9 @@ const FishingDashboard = (function() {
                         }
                     }).catch(e=>this.showNotification("Erreur sauvegarde", 'error'));
                 }
-            } else this.showNotification("Sélectionnez d'abord un spot", 'error');
+            } else {
+                this.showNotification("Sélectionnez d'abord un spot", 'error');
+            }
         },
         
         calculatePreparationTime() {
@@ -1216,7 +1355,7 @@ const FishingDashboard = (function() {
         
         async checkGoNowDecision() {
             try {
-                const r = await fetch(`/api/quick_check?lat=${currentLat}&lon=${currentLon}`);
+                const r = await fetch(`/api/quick_check?lat=${userLat}&lon=${userLon}`);
                 const d = await r.json();
                 if(d.status === 'success') {
                     const banner = document.getElementById('instant-decision-banner');
