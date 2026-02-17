@@ -3,11 +3,11 @@
     "status": "success",
     "prediction_id": "1245565e2a82",
     "stable": true,
-    "valid_until": "2026-02-17T20:48:32.241210",
+    "valid_until": "2026-02-17T21:51:24.632441",
     "scores": {
       "final": 84,
       "environmental": 53,
-      "behavioral": 90,
+      "behavioral": 88,
       "bathymetry_factor": 88,
       "weather_factor": 100,
       "components": {
@@ -19,8 +19,8 @@
     },
     "weather": {
       "temperature": 13.99,
-      "wind_speed": 13.5,
-      "wind_direction": 295,
+      "wind_speed": 12.1,
+      "wind_direction": 293,
       "wind_direction_abbr": "O",
       "wind_direction_name": "Ouest",
       "wind_direction_icon": "⬅️",
@@ -32,12 +32,12 @@
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 0.96,
-      "updated": "2026-02-17T19:48:32.241210",
+      "updated": "2026-02-17T20:51:24.632441",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.49,
+        "value": 5.48,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 14.0°C, Vent: 13.5 km/h"
+        "Météo: Nuageux, 14.0°C, Vent: 12.1 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -96,20 +96,20 @@
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-17T19:48:32.241210",
+      "timestamp": "2026-02-17T20:51:24.632441",
       "data_source": "Expert Tunisie - Tunis - Rade",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "20:48",
+      "next_update_recommended": "21:51",
       "api_usage_info": {
-        "openweather_calls_today": 3,
-        "using_cache": false
+        "openweather_calls_today": 0,
+        "using_cache": true
       }
     }
   },
-  "timestamp": 1771354112.2412102,
-  "expires_at": 1771357712.2412102,
+  "timestamp": 1771357884.6324418,
+  "expires_at": 1771361484.6324418,
   "api_name": "prediction",
   "params": {
     "lat": 36.8065,
