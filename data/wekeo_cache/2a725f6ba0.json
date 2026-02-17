@@ -1,12 +1,12 @@
 {
   "data": {
-    "wind_speed_kmh": 11.6,
-    "wind_direction_deg": 292,
-    "wind_speed_ms": 3.2,
-    "source": "Open-Meteo",
-    "quality": "medium",
-    "resolution": "11km"
+    "wind_speed_kmh": 19.1,
+    "wind_direction_deg": 300,
+    "wind_speed_ms": 5.3,
+    "source": "Mod\u00e8le climatique Tunisie",
+    "quality": "low",
+    "note": "Donn\u00e9es estim\u00e9es bas\u00e9es sur climatologie"
   },
-  "timestamp": 1771358498.0855572,
-  "expires": 1771362098.0855572
+  "timestamp": 1771363566.8319027,
+  "expires": 1771367166.8319027
 }
