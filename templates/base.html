@@ -3,9 +3,8 @@
 <head>
     <!-- ENCODAGE ET VIEWPORT -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     
-    <!-- TITRE SEO -->
     <title>{% block title %}Fishing Predictor Pro - Prédictions Scientifiques de Pêche en Tunisie{% endblock %}</title>
     
     <!-- META DESCRIPTION -->
@@ -63,11 +62,17 @@
     <link rel="canonical" href="{{ request.url }}">
     
     <style>
-        /* ===== STYLES GLOBAUX ===== */
+        /* ===== RESET TOTAL ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
         
         body {
@@ -88,6 +93,7 @@
             position: sticky;
             top: 0;
             z-index: 1000;
+            width: 100%;
         }
         
         .nav-container {
@@ -115,6 +121,7 @@
             justify-content: center;
             font-size: 1.5rem;
             color: white;
+            flex-shrink: 0;
         }
         
         .nav-brand h1 {
@@ -231,56 +238,75 @@
             flex: 1;
         }
         
-        /* Menu mobile */
+        /* ===== MENU MOBILE AVEC TRANSFORM (CORRIGÉ) ===== */
         @media (max-width: 768px) {
             .mobile-menu-btn {
                 display: block;
             }
             
             .nav-links {
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 80%;
-                max-width: 300px;
-                height: 100vh;
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                flex-direction: column;
-                padding: 80px 20px 20px;
-                transition: right 0.3s ease;
-                z-index: 1000;
-                box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-                border-left: 2px solid #334155;
+                position: fixed !important;
+                top: 0 !important;
+                right: 0 !important;  /* On met right:0 mais on cache avec transform */
+                width: 85% !important;
+                max-width: 85% !important;
+                height: 100vh !important;
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+                flex-direction: column !important;
+                padding: 80px 15px 20px !important;
+                /* LA CLÉ : utiliser transform au lieu de right */
+                transform: translateX(100%) !important;
+                transition: transform 0.3s ease !important;
+                z-index: 9999 !important;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.5) !important;
+                border-left: 2px solid #334155 !important;
+                display: flex !important;
+                overflow-y: auto !important;
+                margin: 0 !important;
+                left: auto !important;
+                bottom: 0 !important;
             }
             
             .nav-links.active {
-                right: 0;
+                transform: translateX(0) !important;  /* Affiche le menu */
             }
             
             .nav-link {
-                width: 100%;
-                padding: 15px;
-                margin: 5px 0;
-                border-radius: 10px;
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
+                width: 100% !important;
+                padding: 12px !important;
+                margin: 4px 0 !important;
+                background: rgba(255,255,255,0.05) !important;
+                border: 1px solid rgba(255,255,255,0.1) !important;
+                border-radius: 8px !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                font-size: 14px !important;
+            }
+            
+            .nav-link i {
+                min-width: 20px !important;
+            }
+            
+            .nav-link span {
+                flex: 1 !important;
+                text-align: left !important;
             }
             
             .close-menu-btn {
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                background: rgba(255,255,255,0.1);
-                border: none;
-                color: white;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                border: 1px solid rgba(255,255,255,0.2);
+                position: absolute !important;
+                top: 15px !important;
+                right: 15px !important;
+                background: rgba(255,255,255,0.15) !important;
+                border: none !important;
+                color: white !important;
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                z-index: 10000 !important;
             }
             
             .menu-overlay {
@@ -291,7 +317,7 @@
                 right: 0;
                 bottom: 0;
                 background: rgba(0,0,0,0.7);
-                z-index: 999;
+                z-index: 9998;
                 cursor: pointer;
             }
             
@@ -300,11 +326,13 @@
             }
             
             body.menu-open {
-                overflow: hidden;
+                overflow: hidden !important;
+                position: fixed !important;
+                width: 100% !important;
+                height: 100% !important;
             }
         }
         
-        /* Animations */
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
@@ -324,7 +352,7 @@
             <div class="logo-icon"><i class="fas fa-fish"></i></div>
             <div>
                 <h1>Fishing Predictor <span class="pro-badge">PRO</span></h1>
-                <p style="font-size:0.9rem;opacity:0.9">Prédictions scientifiques pour pêcheurs</p>
+                <p style="font-size:0.9rem;opacity:0.9;margin-top:2px;">Prédictions scientifiques</p>
             </div>
         </div>
         <div class="nav-links" id="navLinks">
@@ -372,11 +400,11 @@
                     </div>
                     <div>
                         <h3 style="margin:0;color:#f8fafc">Fishing Predictor Pro</h3>
-                        <p style="margin:0.5rem 0 0 0;color:#94a3b8">Prédictions halieutiques scientifiques pour les pêcheurs</p>
+                        <p style="margin:0.5rem 0 0 0;color:#94a3b8">Prédictions halieutiques scientifiques</p>
                     </div>
                 </div>
                 <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
-                    <i class="fas fa-shield-alt"></i> Fiabilité 95% validée scientifiquement
+                    <i class="fas fa-shield-alt"></i> Fiabilité 95%
                 </p>
             </div>
             <div class="footer-section">
@@ -391,24 +419,17 @@
                 </ul>
             </div>
             <div class="footer-section">
-                <h4 style="color:#f8fafc;margin-bottom:1rem">Contact & Support</h4>
+                <h4 style="color:#f8fafc;margin-bottom:1rem">Contact</h4>
                 <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
-                    <i class="fas fa-envelope"></i> contactfishingpredictor@gmail.com
-                </p>
-                <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
-                    <i class="fas fa-phone"></i> +216 xx xxx xxx
+                    <i class="fas fa-envelope"></i> contact@fishingpredictor.com
                 </p>
                 <p style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
                     <i class="fas fa-map-marker-alt"></i> Tunis, Tunisie
                 </p>
-                <p style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;color:#94a3b8">
-                    <i class="fas fa-clock"></i> Support 7j/7
-                </p>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; <span>2026</span> Fishing Predictor Pro. Tous droits réservés. | Précision scientifique validée</p>
-            <p style="margin-top:0.5rem;font-size:0.9rem">Utilise des données meteorologiques et scientifiques pour des prédictions fiables</p>
+            <p>&copy; 2026 Fishing Predictor Pro</p>
         </div>
     </div>
 </footer>
@@ -439,31 +460,109 @@ function closeMobileMenu() {
     body.classList.remove('menu-open');
 }
 
-// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
-    // Fermer le menu en cliquant sur un lien (mobile)
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function() {
-            if (window.innerWidth <= 768) {
-                closeMobileMenu();
-            }
+            if (window.innerWidth <= 768) closeMobileMenu();
         });
     });
     
-    // Fermer avec la touche Échap
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeMobileMenu();
     });
-    
-    // Fermer au redimensionnement si on passe en desktop
-    window.addEventListener('resize', function() {
-        if (window.innerWidth > 768) closeMobileMenu();
-    });
 });
 
-// Exposer les fonctions globalement
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
+</script>
+
+<!-- ===== SCRIPT DE CORRECTION AVEC TRANSFORM ===== -->
+<script>
+(function() {
+    console.log('🔧 Script de correction avec transform activé');
+    
+    function forceMenuPosition() {
+        if (window.innerWidth <= 768) {
+            const navLinks = document.getElementById('navLinks');
+            if (!navLinks) return;
+            
+            // S'assurer que le transform est correct
+            if (!navLinks.classList.contains('active')) {
+                navLinks.style.transform = 'translateX(100%)';
+            } else {
+                navLinks.style.transform = 'translateX(0)';
+            }
+            
+            // Forcer les dimensions
+            navLinks.style.width = '85%';
+            navLinks.style.maxWidth = '85%';
+            
+            // Vérification
+            setTimeout(() => {
+                const rect = navLinks.getBoundingClientRect();
+                console.log(`Menu - Largeur: ${rect.width}px, Droite: ${rect.right}px, Fenêtre: ${window.innerWidth}px`);
+                
+                // Si le menu dépasse alors qu'il n'est pas actif, c'est normal
+                if (navLinks.classList.contains('active')) {
+                    if (rect.right > window.innerWidth + 5) {
+                        console.log('❌ Menu actif dépasse, correction...');
+                        navLinks.style.transform = 'translateX(0)';
+                        navLinks.style.width = (window.innerWidth * 0.85) + 'px';
+                    } else {
+                        console.log('✅ Menu actif OK');
+                    }
+                } else {
+                    // Menu inactif - il doit être caché
+                    if (rect.right > window.innerWidth) {
+                        console.log('ℹ️ Menu inactif - correction de la position cachée');
+                        navLinks.style.transform = 'translateX(100%)';
+                    }
+                }
+            }, 100);
+        }
+    }
+    
+    // Appliquer à différents moments
+    forceMenuPosition();
+    window.addEventListener('load', forceMenuPosition);
+    window.addEventListener('resize', forceMenuPosition);
+    window.addEventListener('orientationchange', forceMenuPosition);
+    
+    // Appliquer après les transitions
+    setTimeout(forceMenuPosition, 500);
+    setTimeout(forceMenuPosition, 1000);
+})();
+</script>
+
+<!-- ===== FONCTION DE TEST ===== -->
+<script>
+window.testMobileMenu = function() {
+    console.log('📏 TEST DU MENU MOBILE');
+    const navLinks = document.getElementById('navLinks');
+    if (navLinks) {
+        const rect = navLinks.getBoundingClientRect();
+        const isActive = navLinks.classList.contains('active');
+        console.log(`Menu ${isActive ? '(ACTIF)' : '(INACTIF)'} - Largeur: ${Math.round(rect.width)}px, Droite: ${Math.round(rect.right)}px`);
+        console.log(`Fenêtre: ${window.innerWidth}px`);
+        
+        if (isActive) {
+            console.log(rect.right <= window.innerWidth ? '✅ OK' : '❌ DÉPASSE');
+        } else {
+            console.log(rect.right >= window.innerWidth ? '✅ Caché' : '⚠️ Visible alors qu\'inactif');
+        }
+        
+        navLinks.querySelectorAll('.nav-link').forEach((link, i) => {
+            const r = link.getBoundingClientRect();
+            if (r.right > window.innerWidth && isActive) {
+                console.log(`❌ Lien ${i} dépasse: ${link.innerText.trim()}`);
+            }
+        });
+    }
+};
+
+window.addEventListener('load', function() {
+    setTimeout(window.testMobileMenu, 1500);
+});
 </script>
 
 {% block extra_js %}{% endblock %}
@@ -474,29 +573,11 @@ window.closeMobileMenu = closeMobileMenu;
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "Fishing Predictor Pro",
-  "description": "Carte interactive de prédiction pour la pêche avec prévisions météo et conseils par espèce",
+  "description": "Carte interactive de prédiction pour la pêche",
   "url": "https://fishing-activity.onrender.com",
   "applicationCategory": "WeatherApplication",
-  "operatingSystem": "Any",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "ratingCount": "125",
-    "bestRating": "5",
-    "worstRating": "1"
-  },
-  "author": {
-    "@type": "Organization",
-    "name": "Fishing Predictor Pro"
-  },
-  "datePublished": "2024-01-01",
-  "dateModified": "2026-02-11"
+  "operatingSystem": "Any"
 }
 </script>
 </body>
-</html>                
+</html>

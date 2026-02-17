@@ -168,19 +168,77 @@
     .score-very-poor { background: #6b7280; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    /* ===== CORRECTIONS FORCÉES POUR MOBILE ===== */
     @media (max-width: 768px) {
-        .predictions-hero h1 { font-size: 1.5rem; }
-        .map-container { height: 350px; }
-        .forecast-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-        .day-stats-grid { grid-template-columns: 1fr 1fr; }
-        .btn { width: 100%; }
+        .dashboard-grid {
+            grid-template-columns: 1fr !important;
+        }
+        
+        /* CORRECTION DU MENU MOBILE */
+        .nav-links {
+            transform: translateX(100%) !important;
+            transition: transform 0.3s ease !important;
+        }
+        .nav-links.active {
+            transform: translateX(0) !important;
+        }
+        
+        /* Empêcher le body de scroller quand le menu est ouvert */
+        body.menu-open {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .leaflet-marker-icon {
+            max-width: none !important;
+            transform: translate(-50%, -100%) !important;
+        }
+        
+        * {
+            max-width: 100vw !important;
+            box-sizing: border-box !important;
+        }
+        
+        body, html {
+            overflow-x: hidden !important;
+            width: 100% !important;
+        }
+        
+        .predictions-hero h1 { 
+            font-size: 1.5rem; 
+        }
+        .map-container { 
+            height: 350px; 
+        }
+        .forecast-grid { 
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+        }
+        .day-stats-grid { 
+            grid-template-columns: 1fr 1fr; 
+        }
+        .btn { 
+            width: 100%; 
+        }
     }
+    
     @media (max-width: 480px) {
-        .predictions-hero h1 { font-size: 1.3rem; }
-        .map-container { height: 300px; }
-        .forecast-grid { grid-template-columns: repeat(2, 1fr); }
-        .day-stats-grid { grid-template-columns: 1fr; }
+        .predictions-hero h1 { 
+            font-size: 1.3rem; 
+        }
+        .map-container { 
+            height: 300px; 
+        }
+        .forecast-grid { 
+            grid-template-columns: repeat(2, 1fr); 
+        }
+        .day-stats-grid { 
+            grid-template-columns: 1fr; 
+        }
     }
+    
     .lunar-card {
         background: rgba(15,23,42,0.95); border: 1px solid #8b5cf6;
         box-shadow: 0 0 20px rgba(139,92,246,0.2);
@@ -515,9 +573,6 @@ function getWindDirectionIcon(deg) {
     
     // Calculer l'index (0-7)
     const index = Math.round(deg / 45) % 8;
-    
-    // Log de débogage (à supprimer en production)
-    console.log(`getWindDirectionIcon: ${deg}° → ${icons[index]} (${getWindDirectionName(deg)})`);
     
     return icons[index];
 }
@@ -881,7 +936,6 @@ const ForecastLoader = {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             const random = Math.abs(Math.sin(seed + i * 1000));
-            // Suppression du biais week-end
             let score = 50 + Math.sin(i * 0.5) * 15;
             score = Math.max(20, Math.min(95, Math.round(score)));
             const windSpeed = 8 + Math.round(random * 15);
@@ -1085,89 +1139,77 @@ const ForecastDisplay = {
         document.getElementById('detail-temp').textContent = `${day.temperature}°C`;
         document.getElementById('detail-waves').textContent = `${day.wave_height} m`;
         
-// Affichage des plages horaires selon les données disponibles
-let hoursHtml = '';
-if (index <= 2) {
-    // Extraire les heures depuis les données horaires de vent
-    const hourlyData = day.hourlyWind || [];
-    
-    // Définir les périodes
-    const periods = [
-        { name: 'Matin', start: 5, end: 9, emoji: '🌅' },
-        { name: 'Mi-journée', start: 12, end: 14, emoji: '☀️' },
-        { name: 'Soir', start: 16, end: 19, emoji: '🌆' }
-    ];
-    
-    // Calculer le score pour chaque période basé sur le vent
-    periods.forEach(period => {
-        // Filtrer les heures de la période
-        const periodHours = hourlyData.filter(w => {
-            const hour = parseInt(w.time);
-            return hour >= period.start && hour <= period.end;
-        });
-        
-        // Calculer le score en fonction du vent moyen sur la période
-        let periodScore = day.score; // score de base
-        
-        if (periodHours.length > 0) {
-            // Calculer la vitesse moyenne du vent sur la période
-            const avgWind = periodHours.reduce((sum, w) => sum + w.speed_kmh, 0) / periodHours.length;
+        // Affichage des plages horaires selon les données disponibles
+        let hoursHtml = '';
+        if (index <= 2) {
+            // Extraire les heures depuis les données horaires de vent
+            const hourlyData = day.hourlyWind || [];
             
-            // Ajuster le score en fonction du vent
-            // Vent faible (<15 km/h) = bon pour la pêche
-            // Vent fort (>25 km/h) = mauvais pour la pêche
-            if (avgWind < 15) {
-                periodScore = Math.min(95, day.score + 20);
-            } else if (avgWind < 20) {
-                periodScore = Math.min(90, day.score + 10);
-            } else if (avgWind < 25) {
-                periodScore = day.score; // neutre
-            } else if (avgWind < 30) {
-                periodScore = Math.max(20, day.score - 15);
-            } else {
-                periodScore = Math.max(10, day.score - 30);
-            }
+            // Définir les périodes
+            const periods = [
+                { name: 'Matin', start: 5, end: 9, emoji: '🌅' },
+                { name: 'Mi-journée', start: 12, end: 14, emoji: '☀️' },
+                { name: 'Soir', start: 16, end: 19, emoji: '🌆' }
+            ];
             
-            // Bonus pour le matin et le soir (meilleurs moments biologiques)
-            if (period.name === 'Matin' || period.name === 'Soir') {
-                periodScore = Math.min(95, periodScore + 5);
-            }
+            // Calculer le score pour chaque période basé sur le vent
+            periods.forEach(period => {
+                // Filtrer les heures de la période
+                const periodHours = hourlyData.filter(w => {
+                    const hour = parseInt(w.time);
+                    return hour >= period.start && hour <= period.end;
+                });
+                
+                // Calculer le score en fonction du vent moyen sur la période
+                let periodScore = day.score; // score de base
+                
+                if (periodHours.length > 0) {
+                    // Calculer la vitesse moyenne du vent sur la période
+                    const avgWind = periodHours.reduce((sum, w) => sum + w.speed_kmh, 0) / periodHours.length;
+                    
+                    // Ajuster le score en fonction du vent
+                    // Vent faible (<15 km/h) = bon pour la pêche
+                    // Vent fort (>25 km/h) = mauvais pour la pêche
+                    if (avgWind < 15) {
+                        periodScore = Math.min(95, day.score + 20);
+                    } else if (avgWind < 20) {
+                        periodScore = Math.min(90, day.score + 10);
+                    } else if (avgWind < 25) {
+                        periodScore = day.score; // neutre
+                    } else if (avgWind < 30) {
+                        periodScore = Math.max(20, day.score - 15);
+                    } else {
+                        periodScore = Math.max(10, day.score - 30);
+                    }
+                    
+                    // Bonus pour le matin et le soir (meilleurs moments biologiques)
+                    if (period.name === 'Matin' || period.name === 'Soir') {
+                        periodScore = Math.min(95, periodScore + 5);
+                    }
+                    
+                    // Pénalité pour la mi-journée (soleil fort)
+                    if (period.name === 'Mi-journée') {
+                        periodScore = Math.max(10, periodScore - 10);
+                    }
+                }
+                
+                // Déterminer la couleur
+                let color = periodScore >= 80 ? '#10b981' : 
+                           periodScore >= 60 ? '#3b82f6' : 
+                           periodScore >= 40 ? '#f59e0b' : '#ef4444';
+                
+                hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
+                    <div style="font-weight:600;color:#e2e8f0">${period.emoji} ${period.name}</div>
+                    <div style="font-size:1.3rem;font-weight:700;color:${color}">${Math.round(periodScore)}%</div>
+                    <div style="font-size:0.7rem;color:#94a3b8">${period.start}h-${period.end}h</div>
+                </div>`;
+            });
             
-            // Pénalité pour la mi-journée (soleil fort)
-            if (period.name === 'Mi-journée') {
-                periodScore = Math.max(10, periodScore - 10);
-            }
+        } else {
+            // Au-delà de J+3, message de précision limitée
+            hoursHtml = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#94a3b8">Précision horaire insuffisante pour ce jour</div>';
         }
-        
-        // Déterminer la couleur
-        let color = periodScore >= 80 ? '#10b981' : 
-                   periodScore >= 60 ? '#3b82f6' : 
-                   periodScore >= 40 ? '#f59e0b' : '#ef4444';
-        
-        hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
-            <div style="font-weight:600;color:#e2e8f0">${period.emoji} ${period.name}</div>
-            <div style="font-size:1.3rem;font-weight:700;color:${color}">${Math.round(periodScore)}%</div>
-            <div style="font-size:0.7rem;color:#94a3b8">${period.start}h-${period.end}h</div>
-        </div>`;
-    });
-    
-    // Ajouter une note sur la cohérence si nécessaire
-    const avgPeriodScore = Math.round(
-        (periods.reduce((sum, p, i) => {
-            const score = parseInt(hoursHtml.match(new RegExp(`${p.emoji}.*?(\\d+)%`))?.[1] || day.score);
-            return sum + score;
-        }, 0)) / periods.length
-    );
-    
-    if (Math.abs(avgPeriodScore - day.score) > 20) {
-        console.log(`ℹ️ Jour ${day.date}: global=${day.score}, moyenne périodes=${avgPeriodScore} (basé sur vent)`);
-    }
-    
-} else {
-    // Au-delà de J+3, message de précision limitée
-    hoursHtml = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#94a3b8">Précision horaire insuffisante pour ce jour</div>';
-}
-document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
+        document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
         
         // === SECTION VENT DÉTAILLÉ CORRIGÉE ===
         const windGrid = document.getElementById('hourlyWindGrid');

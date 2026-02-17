@@ -35,6 +35,45 @@ h1{font-size:2.5rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-ba
     .info-grid{grid-template-columns:1fr 1fr}
 }
 
+/* ===== CORRECTIONS FORCÉES POUR MOBILE ===== */
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* CORRECTION DU MENU MOBILE */
+    .nav-links {
+        transform: translateX(100%) !important;
+        transition: transform 0.3s ease !important;
+    }
+    .nav-links.active {
+        transform: translateX(0) !important;
+    }
+    
+    /* Empêcher le body de scroller quand le menu est ouvert */
+    body.menu-open {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    .leaflet-marker-icon {
+        max-width: none !important;
+        transform: translate(-50%, -100%) !important;
+    }
+    
+    * {
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+    
+    body, html {
+        overflow-x: hidden !important;
+        width: 100% !important;
+    }
+}
+
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
