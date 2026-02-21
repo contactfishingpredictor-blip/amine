@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 17.08,
+    "feels_like": 15.97,
+    "pressure": 1027,
+    "humidity": 43,
+    "wind_speed": 20.52,
+    "wind_direction": 340,
+    "wind_direction_abbr": "NNO",
+    "wind_direction_name": "Nord-Nord-Ouest",
+    "wind_direction_icon": "⬆️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.63,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01d",
+    "clouds": 0,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T06:56:22",
+    "sunset": "2026-02-21T18:07:20",
+    "location": "Mareth",
+    "country": "TN",
+    "timestamp": "2026-02-21T13:37:18.463551",
+    "score": 1.0
+  },
+  "timestamp": 1771677438.4635515,
+  "expires_at": 1771720638.4635515,
+  "api_name": "openweather",
+  "params": {
+    "lat": 33.63456473031782,
+    "lon": 10.489633376681475
+  }
+}

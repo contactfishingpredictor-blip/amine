@@ -1,49 +1,49 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "9931f4cb453b",
+    "prediction_id": "6710de182304",
     "stable": true,
-    "valid_until": "2026-02-21T14:36:49.726347",
+    "valid_until": "2026-02-21T13:26:03.824879",
     "scores": {
-      "final": 65,
-      "environmental": 59,
-      "behavioral": 73,
-      "bathymetry_factor": 88,
+      "final": 87,
+      "environmental": 56,
+      "behavioral": 72,
+      "bathymetry_factor": 100,
       "weather_factor": 100,
       "components": {
-        "scientific": 59,
-        "depth": 88,
+        "scientific": 56,
+        "depth": 100,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 16.99,
-      "wind_speed": 20.6,
-      "wind_direction": 303,
+      "temperature": 16.02,
+      "wind_speed": 23.0,
+      "wind_direction": 305,
       "wind_direction_abbr": "ONO",
       "wind_direction_name": "Ouest-Nord-Ouest",
-      "wind_direction_icon": "↖️",
+      "wind_direction_icon": "⬅️",
       "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
       "wind_onshore": true,
-      "pressure": 1025,
-      "humidity": 59,
+      "pressure": 1026,
+      "humidity": 67,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 1.47,
-      "updated": "2026-02-21T13:36:49.726347",
+      "updated": "2026-02-21T12:26:03.824879",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.41,
+        "value": 5.37,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.63,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 17.0°C, Vent: 20.6 km/h"
+        "Météo: Nuageux, 16.0°C, Vent: 23.0 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,47 +73,47 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 25,
-      "source": "Expert Tunisie - Tunis - Rade",
-      "accuracy": "excellente",
-      "confidence": 0.99,
+      "depth": 18.0,
+      "source": "GEBCO 2025",
+      "accuracy": "moyenne",
+      "confidence": 0.7,
       "seabed_type": "mixed",
       "seabed_description": "Mixte",
-      "optimal_for_species": false,
+      "optimal_for_species": true,
       "zone": "ولاية تونس",
       "recommended_fishing": [
-        "Profondeur: 25m (sous-optimale)",
+        "Profondeur: 18.0m (optimale)",
         "Type de fond: Mixte",
-        "Précision: excellente"
+        "Précision: moyenne"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
+      "lat": 36.92053107778564,
+      "lon": 10.308219405003513,
+      "name": "قرطاج, تونس, ولاية تونس, 2016, تونس",
       "type": "city",
       "region": "ولاية تونس"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-21T13:36:49.726347",
-      "data_source": "Expert Tunisie - Tunis - Rade",
+      "timestamp": "2026-02-21T12:26:03.824879",
+      "data_source": "GEBCO 2025",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "14:36",
+      "next_update_recommended": "13:26",
       "api_usage_info": {
-        "openweather_calls_today": 6,
-        "using_cache": true
+        "openweather_calls_today": 14,
+        "using_cache": false
       }
     }
   },
-  "timestamp": 1771677409.7263477,
-  "expires_at": 1771681009.7263477,
+  "timestamp": 1771673163.8248792,
+  "expires_at": 1771676763.8248792,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 36.92053107778564,
+    "lon": 10.308219405003513,
     "species": "loup"
   }
 }

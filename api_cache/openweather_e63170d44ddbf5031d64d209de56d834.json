@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 17.18,
+    "feels_like": 16.34,
+    "pressure": 1025,
+    "humidity": 53,
+    "wind_speed": 41.04,
+    "wind_direction": 335,
+    "wind_direction_abbr": "NNO",
+    "wind_direction_name": "Nord-Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 2.1,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01d",
+    "clouds": 10,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T06:56:00",
+    "sunset": "2026-02-21T18:03:03",
+    "location": "Zouila",
+    "country": "TN",
+    "timestamp": "2026-02-21T13:02:52.580503",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1771675372.5805037,
+  "expires_at": 1771718572.5805037,
+  "api_name": "openweather",
+  "params": {
+    "lat": 35.4876787455532,
+    "lon": 11.071352088187595
+  }
+}

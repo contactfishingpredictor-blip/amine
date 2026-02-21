@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 13.36,
+    "feels_like": 12.74,
+    "pressure": 1028,
+    "humidity": 76,
+    "wind_speed": 24.084000000000003,
+    "wind_direction": 320,
+    "wind_direction_abbr": "NO",
+    "wind_direction_name": "Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.85,
+    "condition": "Rain",
+    "condition_description": "légère pluie",
+    "condition_fr": "Pluie",
+    "icon": "10d",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T07:06:52",
+    "sunset": "2026-02-21T18:10:41",
+    "location": "Tabarka",
+    "country": "TN",
+    "timestamp": "2026-02-21T12:02:45.043154",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1771671765.0431545,
+  "expires_at": 1771714965.0431545,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.954,
+    "lon": 8.758
+  }
+}

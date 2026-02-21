@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "القرع, معتمدية جربة أجيم, ولاية مدنين, تونس",
+    "address": {
+      "county": "القرع",
+      "state_district": "معتمدية جربة أجيم",
+      "state": "ولاية مدنين",
+      "ISO3166-2-lvl4": "TN-82",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1771671771.1997788,
+  "expires_at": 1771758171.1997788,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 33.8078,
+    "lon": 10.8451
+  }
+}

@@ -1,49 +1,49 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "9931f4cb453b",
+    "prediction_id": "897d12b2fe22",
     "stable": true,
-    "valid_until": "2026-02-21T14:36:49.726347",
+    "valid_until": "2026-02-21T13:07:01.363976",
     "scores": {
-      "final": 65,
-      "environmental": 59,
-      "behavioral": 73,
-      "bathymetry_factor": 88,
+      "final": 75,
+      "environmental": 53,
+      "behavioral": 72,
+      "bathymetry_factor": 50,
       "weather_factor": 100,
       "components": {
-        "scientific": 59,
-        "depth": 88,
-        "regional": 70,
+        "scientific": 53,
+        "depth": 50,
+        "regional": 100,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 16.99,
-      "wind_speed": 20.6,
-      "wind_direction": 303,
+      "temperature": 15.99,
+      "wind_speed": 26.5,
+      "wind_direction": 301,
       "wind_direction_abbr": "ONO",
       "wind_direction_name": "Ouest-Nord-Ouest",
-      "wind_direction_icon": "↖️",
+      "wind_direction_icon": "⬅️",
       "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
       "wind_onshore": true,
-      "pressure": 1025,
-      "humidity": 59,
+      "pressure": 1026,
+      "humidity": 63,
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 1.47,
-      "updated": "2026-02-21T13:36:49.726347",
+      "updated": "2026-02-21T12:07:01.363976",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
       "dissolved_oxygen": {
-        "value": 5.41,
+        "value": 5.48,
         "unit": "mg/L",
         "optimal_range": "5.0-8.0 mg/L",
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.43,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -51,7 +51,7 @@
       "tidal_current": {
         "speed_mps": 0.198,
         "speed_knots": 0.385,
-        "direction": "E-O",
+        "direction": "SO-NE",
         "tide_height": 0.43,
         "tide_phase": "descendante",
         "fishing_impact": "favorable"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 17.0°C, Vent: 20.6 km/h"
+        "Météo: Nuageux, 16.0°C, Vent: 26.5 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,47 +73,47 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 25,
-      "source": "Expert Tunisie - Tunis - Rade",
+      "depth": 50,
+      "source": "Expert Tunisie - Bizerte - Large",
       "accuracy": "excellente",
       "confidence": 0.99,
-      "seabed_type": "mixed",
-      "seabed_description": "Mixte",
+      "seabed_type": "rock",
+      "seabed_description": "Rocheux",
       "optimal_for_species": false,
-      "zone": "ولاية تونس",
+      "zone": "ولاية بنزرت",
       "recommended_fishing": [
-        "Profondeur: 25m (sous-optimale)",
-        "Type de fond: Mixte",
+        "Profondeur: 50m (sous-optimale)",
+        "Type de fond: Rocheux",
         "Précision: excellente"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
-      "type": "city",
-      "region": "ولاية تونس"
+      "lat": 37.2747,
+      "lon": 9.8739,
+      "name": "المؤتمر, معتمدية بنزرت الشمالية, ولاية بنزرت, تونس",
+      "type": "administrative",
+      "region": "ولاية بنزرت"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-21T13:36:49.726347",
-      "data_source": "Expert Tunisie - Tunis - Rade",
+      "timestamp": "2026-02-21T12:07:01.363976",
+      "data_source": "Expert Tunisie - Bizerte - Large",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "14:36",
+      "next_update_recommended": "13:07",
       "api_usage_info": {
         "openweather_calls_today": 6,
-        "using_cache": true
+        "using_cache": false
       }
     }
   },
-  "timestamp": 1771677409.7263477,
-  "expires_at": 1771681009.7263477,
+  "timestamp": 1771672021.3639765,
+  "expires_at": 1771675621.3639765,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 37.2747,
+    "lon": 9.8739,
     "species": "loup"
   }
 }

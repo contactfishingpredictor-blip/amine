@@ -1,10 +1,10 @@
 {
   "data": {
-    "temperature": 14.03,
-    "feels_like": 13.24,
-    "pressure": 1023,
-    "humidity": 67,
-    "wind_speed": 37.044,
+    "temperature": 17.02,
+    "feels_like": 16.32,
+    "pressure": 1025,
+    "humidity": 59,
+    "wind_speed": 33.336,
     "wind_direction": 290,
     "wind_direction_abbr": "ONO",
     "wind_direction_name": "Ouest-Nord-Ouest",
@@ -12,25 +12,25 @@
     "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
     "wind_offshore": false,
     "wind_onshore": true,
-    "wave_height": 1.76,
+    "wave_height": 1.47,
     "condition": "Clouds",
     "condition_description": "partiellement nuageux",
     "condition_fr": "Nuageux",
-    "icon": "03n",
+    "icon": "03d",
     "clouds": 40,
     "visibility": 10.0,
-    "sunrise": "2026-02-21T07:02:41",
-    "sunset": "2026-02-21T18:05:47",
-    "location": "Bizerte",
+    "sunrise": "2026-02-21T07:00:38",
+    "sunset": "2026-02-21T18:04:31",
+    "location": "Dar Sidi M’hamed ech Cherif",
     "country": "TN",
-    "timestamp": "2026-02-21T00:58:32.856233",
-    "score": 0.7999999999999998
+    "timestamp": "2026-02-21T13:24:13.297412",
+    "score": 0.8999999999999999
   },
-  "timestamp": 1771631912.856234,
-  "expires_at": 1771675112.856234,
+  "timestamp": 1771676653.2974126,
+  "expires_at": 1771719853.2974126,
   "api_name": "openweather",
   "params": {
-    "lat": 37.26766161872659,
-    "lon": 9.893146405196232
+    "lat": 36.92039641248571,
+    "lon": 10.307583231718658
   }
 }

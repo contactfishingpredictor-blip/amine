@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.03,
+    "feels_like": 13.39,
+    "pressure": 1027,
+    "humidity": 73,
+    "wind_speed": 37.692,
+    "wind_direction": 297,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.82,
+    "condition": "Clouds",
+    "condition_description": "nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "04d",
+    "clouds": 60,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T07:05:16",
+    "sunset": "2026-02-21T18:08:29",
+    "location": "Sejenane",
+    "country": "TN",
+    "timestamp": "2026-02-21T12:22:00.730202",
+    "score": 0.7999999999999998
+  },
+  "timestamp": 1771672920.7302027,
+  "expires_at": 1771716120.7302027,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.22078079153127,
+    "lon": 9.235385605369226
+  }
+}

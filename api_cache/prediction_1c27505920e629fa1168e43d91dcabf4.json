@@ -1,0 +1,119 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "1b4c4a2273c0",
+    "stable": true,
+    "valid_until": "2026-02-21T13:49:00.300386",
+    "scores": {
+      "final": 86,
+      "environmental": 54,
+      "behavioral": 72,
+      "bathymetry_factor": 100,
+      "weather_factor": 100,
+      "components": {
+        "scientific": 54,
+        "depth": 100,
+        "regional": 70,
+        "weather": 100
+      }
+    },
+    "weather": {
+      "temperature": 16.45,
+      "wind_speed": 31.0,
+      "wind_direction": 321,
+      "wind_direction_abbr": "NO",
+      "wind_direction_name": "Nord-Ouest",
+      "wind_direction_icon": "↖️",
+      "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+      "wind_offshore": false,
+      "wind_onshore": true,
+      "pressure": 1024,
+      "humidity": 58,
+      "condition": "Clear",
+      "condition_fr": "Ciel dégagé",
+      "wave_height": 2.69,
+      "updated": "2026-02-21T12:49:00.300386",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.36,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 0.61,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "suboptimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.198,
+        "speed_knots": 0.385,
+        "direction": "E-O",
+        "tide_height": 0.43,
+        "tide_phase": "descendante",
+        "fishing_impact": "favorable"
+      }
+    },
+    "recommendations": {
+      "tips": [
+        "Opportunité: BONNE",
+        "Heures optimales: 6h, 19h, 7h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Ciel dégagé, 16.4°C, Vent: 31.0 km/h"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "success": true,
+      "depth": 8.0,
+      "source": "GEBCO 2025",
+      "accuracy": "moyenne",
+      "confidence": 0.7,
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": true,
+      "zone": "ولاية نابل",
+      "recommended_fishing": [
+        "Profondeur: 8.0m (optimale)",
+        "Type de fond: Sableux",
+        "Précision: moyenne"
+      ]
+    },
+    "location": {
+      "lat": 36.39548472445802,
+      "lon": 10.610685261754066,
+      "name": "الحمامات, الحمامات الشرقية, معتمدية الحمامات, ولاية نابل, 8050, تونس",
+      "type": "city",
+      "region": "ولاية نابل"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-02-21T12:49:00.300386",
+      "data_source": "GEBCO 2025",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "13:49",
+      "api_usage_info": {
+        "openweather_calls_today": 15,
+        "using_cache": false
+      }
+    }
+  },
+  "timestamp": 1771674540.3144252,
+  "expires_at": 1771678140.3144252,
+  "api_name": "prediction",
+  "params": {
+    "lat": 36.39548472445802,
+    "lon": 10.610685261754066,
+    "species": "loup"
+  }
+}

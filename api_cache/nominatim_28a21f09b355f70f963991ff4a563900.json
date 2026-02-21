@@ -1,0 +1,23 @@
+{
+  "data": {
+    "success": true,
+    "name": "طبرقة, معتمدية طبرقة, ولاية جندوبة, 8110, تونس",
+    "address": {
+      "county": "طبرقة",
+      "state_district": "معتمدية طبرقة",
+      "state": "ولاية جندوبة",
+      "ISO3166-2-lvl4": "TN-32",
+      "postcode": "8110",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1771671765.5118427,
+  "expires_at": 1771758165.5118427,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 36.954,
+    "lon": 8.758
+  }
+}

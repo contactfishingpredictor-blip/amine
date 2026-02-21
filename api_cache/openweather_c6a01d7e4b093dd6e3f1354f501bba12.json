@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 16.78,
+    "feels_like": 15.87,
+    "pressure": 1025,
+    "humidity": 52,
+    "wind_speed": 42.012,
+    "wind_direction": 331,
+    "wind_direction_abbr": "NNO",
+    "wind_direction_name": "Nord-Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 2.2,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02d",
+    "clouds": 12,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T06:56:03",
+    "sunset": "2026-02-21T18:03:04",
+    "location": "Mahdia",
+    "country": "TN",
+    "timestamp": "2026-02-21T12:24:05.541163",
+    "score": 0.8999999999999999
+  },
+  "timestamp": 1771673045.5411632,
+  "expires_at": 1771716245.5411632,
+  "api_name": "openweather",
+  "params": {
+    "lat": 35.5047,
+    "lon": 11.0622
+  }
+}

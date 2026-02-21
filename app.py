@@ -597,6 +597,95 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
     
     return marine_data
 
+
+# ===== FONCTION INTERNE POUR RÉUTILISATION DES PRÉVISIONS 24H =====
+def api_24h_forecast_internal(lat, lon, species):
+    """Version interne de api_24h_forecast pour réutilisation"""
+    try:
+        current_time = datetime.now()
+        hourly_data = []
+        
+        # Fonction interne pour obtenir TOUTES les données marines
+        def get_complete_marine_data(target_time):
+            """Retourne toutes les données marines pour une date/heure spécifique"""
+            # Météo pour cette heure
+            weather_result = get_cached_weather(lat, lon)
+            weather = weather_result['weather'] if weather_result['success'] else generate_consistent_weather(lat, lon)['weather']
+            
+            # Données marines multi-sources
+            marine = get_marine_data_multi_source(lat, lon)
+            
+            # Température de l'eau estimée
+            water_temp = predictor.estimate_water_from_position(lat, lon)
+            
+            # Oxygène dissous
+            oxygen = predictor.calculate_dissolved_oxygen(
+                water_temp,
+                config.SALINITY_MEDITERRANEAN,
+                weather['pressure']
+            )
+            
+            # Chlorophylle
+            chlorophyll = marine.get('chlorophyll', 
+                predictor.estimate_chlorophyll(target_time.month, lat, lon))
+            
+            # Courant tidal
+            current = predictor.calculate_tidal_current(lat, lon, target_time)
+            
+            return {
+                'temperature': weather['temperature'],
+                'wind_speed': marine.get('wind_speed_kmh', weather['wind_speed']) / 3.6,
+                'wind_direction': marine.get('wind_direction_deg', weather['wind_direction']),
+                'pressure': weather['pressure'],
+                'wave_height': weather.get('wave_height', calculate_wave_height(weather['wind_speed'])),
+                'turbidity': weather.get('turbidity', 1.0),
+                'humidity': weather['humidity'],
+                'condition': weather['condition'],
+                'water_temperature': water_temp,
+                'salinity': config.SALINITY_MEDITERRANEAN,
+                'current_speed': current['speed_mps'],
+                'oxygen': oxygen,
+                'chlorophyll': chlorophyll
+            }
+        
+        # Calculer pour CHAQUE heure avec les données COMPLÈTES
+        for hour_offset in range(24):
+            forecast_time = current_time + timedelta(hours=hour_offset)
+            
+            # Données marines COMPLÈTES pour cette heure
+            marine_data = get_complete_marine_data(forecast_time)
+            
+            # Prédiction COMPLÈTE pour cette heure
+            prediction = predictor.predict_daily_activity(
+                lat, 
+                lon, 
+                forecast_time, 
+                species, 
+                marine_data
+            )
+            
+            # Récupération du score (déjà en pourcentage 0-100)
+            score = int(round(prediction['score']))
+            
+            hourly_data.append({
+                'hour': forecast_time.hour,
+                'time': forecast_time.strftime('%H:%M'),
+                'score': score,
+                'timestamp': forecast_time.timestamp()
+            })
+        
+        hours = [f"{d['hour']}h" for d in hourly_data]
+        scores = [d['score'] for d in hourly_data]
+        
+        return jsonify({
+            'status': 'success',
+            'hours': hours,
+            'scores': scores,
+            'current_score': scores[0] if scores else 0
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
 # ===== ROUTES PRINCIPALES =====
 @app.route('/')
 def index(): return render_template('index.html')
@@ -692,12 +781,42 @@ def api_tunisian_prediction():
         # Récupérer le score de l'advanced_predictor (déjà en pourcentage 0-100)
         activity_score_percent = prediction['score']
         
-        # Calcul du score final
-        final_score = round(
-            activity_score_percent * 0.35 + 
-            depth_factor * 25 + 
-            weather_score * 40
-        )
+        # 👇 NOUVELLE VERSION : Utiliser le pictogramme comme source de vérité
+        forecast_response = api_24h_forecast_internal(lat, lon, species)
+        if forecast_response.status_code == 200:
+            try:
+                forecast_data = json.loads(forecast_response.data)
+                if forecast_data.get('scores') and len(forecast_data['scores']) > 0:
+                    # L'heure actuelle correspond à l'index de l'heure courante
+                    current_hour = datetime.now().hour
+                    # Chercher l'index de l'heure actuelle dans le pictogramme
+                    current_index = -1
+                    for i, h in enumerate(forecast_data['hours']):
+                        if h == f"{current_hour}h":
+                            current_index = i
+                            break
+                    
+                    if current_index >= 0:
+                        final_score = forecast_data['scores'][current_index]
+                    else:
+                        # Fallback si l'heure n'est pas trouvée
+                        final_score = forecast_data['scores'][0]
+                else:
+                    final_score = forecast_data['current_score']
+            except Exception as e:
+                print(f"⚠️ Erreur parsing forecast: {e}")
+                final_score = round(
+                    activity_score_percent * 0.35 + 
+                    depth_factor * 25 + 
+                    weather_score * 40
+                )
+        else:
+            # Fallback sur l'ancien calcul
+            final_score = round(
+                activity_score_percent * 0.35 + 
+                depth_factor * 25 + 
+                weather_score * 40
+            )
         
         final_score = max(0, min(100, final_score))
         

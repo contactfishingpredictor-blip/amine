@@ -1,29 +1,29 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "9931f4cb453b",
+    "prediction_id": "35ae143430cb",
     "stable": true,
-    "valid_until": "2026-02-21T14:36:49.726347",
+    "valid_until": "2026-02-21T14:37:02.543301",
     "scores": {
       "final": 65,
       "environmental": 59,
       "behavioral": 73,
-      "bathymetry_factor": 88,
+      "bathymetry_factor": 100,
       "weather_factor": 100,
       "components": {
         "scientific": 59,
-        "depth": 88,
+        "depth": 100,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 16.99,
-      "wind_speed": 20.6,
-      "wind_direction": 303,
+      "temperature": 17.02,
+      "wind_speed": 22.0,
+      "wind_direction": 305,
       "wind_direction_abbr": "ONO",
       "wind_direction_name": "Ouest-Nord-Ouest",
-      "wind_direction_icon": "↖️",
+      "wind_direction_icon": "⬅️",
       "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
       "wind_onshore": true,
@@ -32,7 +32,7 @@
       "condition": "Clouds",
       "condition_fr": "Nuageux",
       "wave_height": 1.47,
-      "updated": "2026-02-21T13:36:49.726347",
+      "updated": "2026-02-21T13:37:02.543301",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
@@ -43,7 +43,7 @@
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.63,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 17.0°C, Vent: 20.6 km/h"
+        "Météo: Nuageux, 17.0°C, Vent: 22.0 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,47 +73,47 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 25,
-      "source": "Expert Tunisie - Tunis - Rade",
-      "accuracy": "excellente",
-      "confidence": 0.99,
-      "seabed_type": "mixed",
-      "seabed_description": "Mixte",
-      "optimal_for_species": false,
+      "depth": 4.0,
+      "source": "GEBCO 2025",
+      "accuracy": "moyenne",
+      "confidence": 0.7,
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": true,
       "zone": "ولاية تونس",
       "recommended_fishing": [
-        "Profondeur: 25m (sous-optimale)",
-        "Type de fond: Mixte",
-        "Précision: excellente"
+        "Profondeur: 4.0m (optimale)",
+        "Type de fond: Sableux",
+        "Précision: moyenne"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
+      "lat": 36.935359061522654,
+      "lon": 10.268933934607693,
+      "name": "قرطاج, تونس, ولاية تونس, 2016, تونس",
       "type": "city",
       "region": "ولاية تونس"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-21T13:36:49.726347",
-      "data_source": "Expert Tunisie - Tunis - Rade",
+      "timestamp": "2026-02-21T13:37:02.543301",
+      "data_source": "GEBCO 2025",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "14:36",
+      "next_update_recommended": "14:37",
       "api_usage_info": {
-        "openweather_calls_today": 6,
-        "using_cache": true
+        "openweather_calls_today": 8,
+        "using_cache": false
       }
     }
   },
-  "timestamp": 1771677409.7263477,
-  "expires_at": 1771681009.7263477,
+  "timestamp": 1771677422.5433013,
+  "expires_at": 1771681022.5433013,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 36.935359061522654,
+    "lon": 10.268933934607693,
     "species": "loup"
   }
 }

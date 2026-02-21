@@ -1,0 +1,119 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "5406a5f989be",
+    "stable": true,
+    "valid_until": "2026-02-21T14:37:20.593685",
+    "scores": {
+      "final": 67,
+      "environmental": 60,
+      "behavioral": 73,
+      "bathymetry_factor": 83,
+      "weather_factor": 100,
+      "components": {
+        "scientific": 60,
+        "depth": 83,
+        "regional": 70,
+        "weather": 100
+      }
+    },
+    "weather": {
+      "temperature": 17.08,
+      "wind_speed": 14.1,
+      "wind_direction": 328,
+      "wind_direction_abbr": "NNO",
+      "wind_direction_name": "Nord-Nord-Ouest",
+      "wind_direction_icon": "⬆️",
+      "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+      "wind_offshore": false,
+      "wind_onshore": true,
+      "pressure": 1027,
+      "humidity": 43,
+      "condition": "Clear",
+      "condition_fr": "Ciel dégagé",
+      "wave_height": 0.63,
+      "updated": "2026-02-21T13:37:20.593685",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.31,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 0.35,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "suboptimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.198,
+        "speed_knots": 0.385,
+        "direction": "N-S",
+        "tide_height": 0.43,
+        "tide_phase": "descendante",
+        "fishing_impact": "favorable"
+      }
+    },
+    "recommendations": {
+      "tips": [
+        "Opportunité: BONNE",
+        "Heures optimales: 6h, 19h, 7h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Ciel dégagé, 17.1°C, Vent: 14.1 km/h"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "success": true,
+      "depth": 2.0,
+      "source": "GEBCO 2025",
+      "accuracy": "moyenne",
+      "confidence": 0.7,
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": false,
+      "zone": "Zone côtière",
+      "recommended_fishing": [
+        "Profondeur: 2.0m (sous-optimale)",
+        "Type de fond: Sableux",
+        "Précision: moyenne"
+      ]
+    },
+    "location": {
+      "lat": 33.63456473031782,
+      "lon": 10.489633376681475,
+      "name": "تونس",
+      "type": "administrative",
+      "region": "Tunisie"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-02-21T13:37:20.593685",
+      "data_source": "GEBCO 2025",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "14:37",
+      "api_usage_info": {
+        "openweather_calls_today": 9,
+        "using_cache": false
+      }
+    }
+  },
+  "timestamp": 1771677440.5936852,
+  "expires_at": 1771681040.5936852,
+  "api_name": "prediction",
+  "params": {
+    "lat": 33.63456473031782,
+    "lon": 10.489633376681475,
+    "species": "loup"
+  }
+}
