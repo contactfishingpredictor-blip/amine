@@ -794,101 +794,79 @@ def api_tunisian_prediction():
 
 @app.route('/api/24h_forecast')
 def api_24h_forecast():
-    """Prévisions sur 24h basées sur les vraies données scientifiques"""
+    """Prévisions sur 24h scientifiquement exactes - MÊME niveau de détail pour toutes les heures"""
     try:
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
         
         current_time = datetime.now()
-        current_hour = current_time.hour
-        
-        # Récupérer la météo ACTUELLE
-        weather_result = get_cached_weather(lat, lon)
-        if not weather_result['success']:
-            weather_result = generate_consistent_weather(lat, lon)
-        
-        # --- SCORE ACTUEL : Utiliser EXACTEMENT le même calcul que /api/tunisian_prediction ---
-        # 1. Récupérer les mêmes données marines
-        marine_data = get_marine_data_multi_source(lat, lon)
-        
-        # 2. Construire le même objet weather pour le prédicteur
-        if weather_result['success']:
-            real_weather = weather_result['weather']
-            predictor_weather = {
-                'temperature': real_weather['temperature'],
-                'wind_speed': marine_data.get('wind_speed_kmh', real_weather['wind_speed'])/3.6,
-                'wind_direction': marine_data.get('wind_direction_deg', real_weather['wind_direction']),
-                'pressure': real_weather['pressure'],
-                'wave_height': real_weather.get('wave_height', 0.5),
-                'turbidity': real_weather.get('turbidity', 1.0),
-                'humidity': real_weather['humidity'],
-                'condition': real_weather['condition'],
-                'water_temperature': marine_data['water_temperature'],
-                'salinity': marine_data['salinity'],
-                'current_speed': marine_data['current_speed']
-            }
-        else:
-            fallback_weather = generate_consistent_weather(lat, lon)['weather']
-            predictor_weather = {
-                'temperature': fallback_weather['temperature'],
-                'wind_speed': marine_data.get('wind_speed_kmh', fallback_weather['wind_speed'])/3.6,
-                'wind_direction': marine_data.get('wind_direction_deg', fallback_weather['wind_direction']),
-                'pressure': fallback_weather['pressure'],
-                'wave_height': fallback_weather['wave_height'],
-                'turbidity': fallback_weather['turbidity'],
-                'humidity': fallback_weather['humidity'],
-                'condition': fallback_weather['condition'],
-                'water_temperature': marine_data['water_temperature'],
-                'salinity': marine_data['salinity'],
-                'current_speed': marine_data['current_speed']
-            }
-        
-        # 3. Ajouter oxygène et chlorophylle
-        oxygen_level = predictor.calculate_dissolved_oxygen(
-            marine_data['water_temperature'], 
-            marine_data['salinity'], 
-            predictor_weather['pressure']
-        )
-        chlorophyll_level = marine_data.get('chlorophyll', 
-            predictor.estimate_chlorophyll(datetime.now().month, lat, lon))
-        predictor_weather.update({'oxygen': oxygen_level, 'chlorophyll': chlorophyll_level})
-        
-        # 4. Obtenir la prédiction pour l'heure actuelle
-        current_prediction = predictor.predict_daily_activity(
-            lat, lon, current_time, species, predictor_weather
-        )
-        
-        # 5. Calculer le score final EXACTEMENT comme dans /api/tunisian_prediction
-        depth = get_real_bathymetry(lat, lon).get('depth', 10)
-        depth_factor = calculate_depth_factor(depth, species)
-        weather_score = calculate_weather_score(predictor_weather)
-        activity_score_percent = current_prediction['score']
-        
-        current_score = round(
-            activity_score_percent * 0.35 + 
-            depth_factor * 25 + 
-            weather_score * 40
-        )
-        current_score = max(0, min(100, current_score))
-        # --- FIN DU CALCUL IDENTIQUE ---
-        
-        # Collecter les scores pour les 24 prochaines heures (version simplifiée pour la performance)
         hourly_data = []
-        for hour_offset in range(24):
-            forecast_time = current_time + timedelta(hours=hour_offset)
-            hour = forecast_time.hour
+        
+        # Fonction interne pour obtenir TOUTES les données marines
+        def get_complete_marine_data(target_time):
+            """Retourne toutes les données marines pour une date/heure spécifique"""
+            # Météo pour cette heure
+            weather_result = get_cached_weather(lat, lon)
+            weather = weather_result['weather'] if weather_result['success'] else generate_consistent_weather(lat, lon)['weather']
             
-            # Pour les prévisions futures, on utilise une version simplifiée
-            # (sinon ce serait trop lent)
-            simple_prediction = predictor.predict_daily_activity(
-                lat, lon, forecast_time, species, weather_result['weather']
+            # Données marines multi-sources
+            marine = get_marine_data_multi_source(lat, lon)
+            
+            # Température de l'eau estimée
+            water_temp = predictor.estimate_water_from_position(lat, lon)
+            
+            # Oxygène dissous
+            oxygen = predictor.calculate_dissolved_oxygen(
+                water_temp,
+                config.SALINITY_MEDITERRANEAN,
+                weather['pressure']
             )
             
-            score = int(round(simple_prediction['activity_score']))
+            # Chlorophylle
+            chlorophyll = marine.get('chlorophyll', 
+                predictor.estimate_chlorophyll(target_time.month, lat, lon))
+            
+            # Courant tidal
+            current = predictor.calculate_tidal_current(lat, lon, target_time)
+            
+            return {
+                'temperature': weather['temperature'],
+                'wind_speed': marine.get('wind_speed_kmh', weather['wind_speed']) / 3.6,
+                'wind_direction': marine.get('wind_direction_deg', weather['wind_direction']),
+                'pressure': weather['pressure'],
+                'wave_height': weather.get('wave_height', calculate_wave_height(weather['wind_speed'])),
+                'turbidity': weather.get('turbidity', 1.0),
+                'humidity': weather['humidity'],
+                'condition': weather['condition'],
+                'water_temperature': water_temp,
+                'salinity': config.SALINITY_MEDITERRANEAN,
+                'current_speed': current['speed_mps'],
+                'oxygen': oxygen,
+                'chlorophyll': chlorophyll
+            }
+        
+        # Calculer pour CHAQUE heure avec les données COMPLÈTES
+        for hour_offset in range(24):
+            forecast_time = current_time + timedelta(hours=hour_offset)
+            
+            # Données marines COMPLÈTES pour cette heure
+            marine_data = get_complete_marine_data(forecast_time)
+            
+            # Prédiction COMPLÈTE pour cette heure
+            prediction = predictor.predict_daily_activity(
+                lat, 
+                lon, 
+                forecast_time, 
+                species, 
+                marine_data
+            )
+            
+            # Récupération du score (déjà en pourcentage 0-100)
+            score = int(round(prediction['score']))
             
             hourly_data.append({
-                'hour': hour,
+                'hour': forecast_time.hour,
                 'time': forecast_time.strftime('%H:%M'),
                 'score': score,
                 'timestamp': forecast_time.timestamp()
@@ -898,37 +876,38 @@ def api_24h_forecast():
         hours = [f"{d['hour']}h" for d in hourly_data]
         scores = [d['score'] for d in hourly_data]
         
-        # Trouver la meilleure heure future
-        best_future_score = max(scores)
-        best_indices = [i for i, s in enumerate(scores) if s == best_future_score]
+        # Le score actuel est simplement la première heure
+        current_score = scores[0]
+        current_hour = current_time.hour
+        
+        # Trouver le meilleur score (parmi toutes les heures)
+        best_score = max(scores)
+        best_indices = [i for i, s in enumerate(scores) if s == best_score]
         best_idx = best_indices[0]
         best_hour = hours[best_idx]
         best_time = hourly_data[best_idx]['time']
         best_hour_number = hourly_data[best_idx]['hour']
         
-        # Comparer avec le score actuel (calculé avec la méthode complète)
-        if current_score >= best_future_score:
-            best_score = current_score
-            best_hour = f"{current_hour}h (maintenant)"
-            best_time = current_time.strftime('%H:%M')
-            best_hour_number = current_hour
+        # Comparer avec le score actuel (qui est déjà dans la liste)
+        if current_score == best_score and best_idx == 0:
             note = "🔥 Le meilleur moment est MAINTENANT !"
+        elif current_score == best_score:
+            note = f"🔥 Meilleur moment également à {best_hour}"
         else:
-            best_score = best_future_score
             note = None
         
-        # Calculer la tendance
+        # Calculer la tendance (comparer les premières heures)
         if len(scores) >= 4:
-            if scores[3] > scores[0] + 5:
+            if scores[3] > scores[0] + 3:
                 trend = 'rising'
-            elif scores[3] < scores[0] - 5:
+            elif scores[3] < scores[0] - 3:
                 trend = 'falling'
             else:
                 trend = 'stable'
         else:
             trend = 'stable'
         
-        # Meilleurs créneaux
+        # Meilleurs créneaux (fenêtres de 3h)
         best_windows = []
         window_size = 3
         for i in range(len(hourly_data) - window_size + 1):
@@ -950,7 +929,7 @@ def api_24h_forecast():
             'hours': hours,
             'scores': scores,
             'current_hour': current_hour,
-            'current_score': current_score,  # Maintenant identique à /api/tunisian_prediction
+            'current_score': current_score,
             'best_hour': best_hour,
             'best_time': best_time,
             'best_hour_number': best_hour_number,
@@ -961,7 +940,7 @@ def api_24h_forecast():
             'metadata': {
                 'location': {'lat': lat, 'lon': lon},
                 'species': species,
-                'data_source': weather_result['weather'].get('source', 'scientific'),
+                'data_source': 'scientific_complete',
                 'timestamp': datetime.now().isoformat()
             }
         }
@@ -982,6 +961,7 @@ def api_24h_forecast():
             'best_time': '--:--',
             'best_score': 0
         })
+
 @app.route('/api/location_search')
 def api_location_search():
     """Recherche de localisations par nom"""
