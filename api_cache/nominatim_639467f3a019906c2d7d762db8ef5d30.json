@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "المؤتمر, معتمدية بنزرت الشمالية, ولاية بنزرت, تونس",
+    "address": {
+      "county": "المؤتمر",
+      "state_district": "معتمدية بنزرت الشمالية",
+      "state": "ولاية بنزرت",
+      "ISO3166-2-lvl4": "TN-23",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1771625814.2772653,
+  "expires_at": 1771712214.2772653,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 37.2747,
+    "lon": 9.8739
+  }
+}

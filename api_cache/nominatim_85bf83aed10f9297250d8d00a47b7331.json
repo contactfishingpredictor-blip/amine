@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "قليبية الشرقية, معتمدية قليبية, ولاية نابل, تونس",
+    "address": {
+      "county": "قليبية الشرقية",
+      "state_district": "معتمدية قليبية",
+      "state": "ولاية نابل",
+      "ISO3166-2-lvl4": "TN-21",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1771625805.6959393,
+  "expires_at": 1771712205.6959393,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 36.8475,
+    "lon": 11.094
+  }
+}

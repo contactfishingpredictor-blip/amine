@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.02,
+    "feels_like": 14.09,
+    "pressure": 1026,
+    "humidity": 58,
+    "wind_speed": 27.791999999999998,
+    "wind_direction": 350,
+    "wind_direction_abbr": "N",
+    "wind_direction_name": "Nord",
+    "wind_direction_icon": "⬆️",
+    "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.07,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01n",
+    "clouds": 0,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T06:55:07",
+    "sunset": "2026-02-21T18:05:31",
+    "location": "Houmt Souk",
+    "country": "TN",
+    "timestamp": "2026-02-21T01:40:30.402661",
+    "score": 1.0
+  },
+  "timestamp": 1771634430.4026616,
+  "expires_at": 1771677630.4026616,
+  "api_name": "openweather",
+  "params": {
+    "lat": 33.9085197093043,
+    "lon": 10.873639069631142
+  }
+}

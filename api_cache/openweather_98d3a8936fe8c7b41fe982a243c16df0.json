@@ -1,36 +1,36 @@
 {
   "data": {
-    "temperature": 12.99,
-    "feels_like": 12.33,
+    "temperature": 14,
+    "feels_like": 13.21,
     "pressure": 1023,
-    "humidity": 76,
-    "wind_speed": 25.92,
-    "wind_direction": 300,
+    "humidity": 67,
+    "wind_speed": 37.044,
+    "wind_direction": 290,
     "wind_direction_abbr": "ONO",
     "wind_direction_name": "Ouest-Nord-Ouest",
-    "wind_direction_icon": "↖️",
+    "wind_direction_icon": "⬅️",
     "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
     "wind_offshore": false,
     "wind_onshore": true,
-    "wave_height": 0.96,
+    "wave_height": 1.76,
     "condition": "Clouds",
     "condition_description": "partiellement nuageux",
     "condition_fr": "Nuageux",
     "icon": "03n",
     "clouds": 40,
     "visibility": 10.0,
-    "sunrise": "2026-02-21T07:01:01",
-    "sunset": "2026-02-21T18:05:09",
-    "location": "Bab El Jazira",
+    "sunrise": "2026-02-21T07:02:46",
+    "sunset": "2026-02-21T18:05:52",
+    "location": "Bizerte",
     "country": "TN",
-    "timestamp": "2026-02-21T00:47:48.420370",
-    "score": 0.9999999999999999
+    "timestamp": "2026-02-21T00:41:58.045647",
+    "score": 0.7999999999999998
   },
-  "timestamp": 1771631268.4203706,
-  "expires_at": 1771674468.4203706,
+  "timestamp": 1771630918.0456479,
+  "expires_at": 1771674118.0456479,
   "api_name": "openweather",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815
+    "lat": 37.2747,
+    "lon": 9.8739
   }
 }

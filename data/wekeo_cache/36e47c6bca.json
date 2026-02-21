@@ -1,0 +1,12 @@
+{
+  "data": {
+    "wind_speed_kmh": 18.9,
+    "wind_direction_deg": 310,
+    "wind_speed_ms": 5.2,
+    "source": "Open-Meteo",
+    "quality": "medium",
+    "resolution": "11km"
+  },
+  "timestamp": 1771635228.6223776,
+  "expires": 1771638828.6223776
+}

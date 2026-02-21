@@ -1,38 +1,38 @@
 {
   "data": {
     "status": "success",
-    "prediction_id": "9931f4cb453b",
+    "prediction_id": "30ac820c0b88",
     "stable": true,
-    "valid_until": "2026-02-21T02:24:17.026431",
+    "valid_until": "2026-02-21T02:53:44.434368",
     "scores": {
-      "final": 83,
-      "environmental": 55,
+      "final": 75,
+      "environmental": 57,
       "behavioral": 74,
-      "bathymetry_factor": 88,
+      "bathymetry_factor": 50,
       "weather_factor": 100,
       "components": {
-        "scientific": 55,
-        "depth": 88,
+        "scientific": 57,
+        "depth": 50,
         "regional": 70,
         "weather": 100
       }
     },
     "weather": {
-      "temperature": 12.99,
-      "wind_speed": 16.6,
-      "wind_direction": 300,
-      "wind_direction_abbr": "ONO",
-      "wind_direction_name": "Ouest-Nord-Ouest",
-      "wind_direction_icon": "↖️",
+      "temperature": 14.14,
+      "wind_speed": 26.1,
+      "wind_direction": 305,
+      "wind_direction_abbr": "O",
+      "wind_direction_name": "Ouest",
+      "wind_direction_icon": "⬅️",
       "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
       "wind_offshore": false,
       "wind_onshore": true,
-      "pressure": 1023,
-      "humidity": 76,
-      "condition": "Clouds",
-      "condition_fr": "Nuageux",
-      "wave_height": 0.96,
-      "updated": "2026-02-21T01:24:17.026431",
+      "pressure": 1022,
+      "humidity": 67,
+      "condition": "Clear",
+      "condition_fr": "Ciel dégagé",
+      "wave_height": 0.47,
+      "updated": "2026-02-21T01:53:44.434368",
       "source": "OpenWeatherMap"
     },
     "scientific_factors": {
@@ -43,7 +43,7 @@
         "status": "optimal"
       },
       "chlorophyll_a": {
-        "value": 0.62,
+        "value": 0.63,
         "unit": "mg/m³",
         "optimal_range": "0.8-3.0 mg/m³",
         "status": "suboptimal"
@@ -63,7 +63,7 @@
         "Heures optimales: 6h, 19h, 7h",
         "Profondeur optimale: 3-20m",
         "Type de fond recommandé: rocheux/mixte",
-        "Météo: Nuageux, 13.0°C, Vent: 16.6 km/h"
+        "Météo: Ciel dégagé, 14.1°C, Vent: 26.1 km/h"
       ],
       "techniques": [
         "surfcasting",
@@ -73,47 +73,47 @@
     },
     "bathymetry": {
       "success": true,
-      "depth": 25,
-      "source": "Expert Tunisie - Tunis - Rade",
+      "depth": 45,
+      "source": "Expert Tunisie - Kélibia Nord - Canyon",
       "accuracy": "excellente",
       "confidence": 0.99,
-      "seabed_type": "mixed",
-      "seabed_description": "Mixte",
+      "seabed_type": "rock",
+      "seabed_description": "Rocheux",
       "optimal_for_species": false,
-      "zone": "ولاية تونس",
+      "zone": "ولاية نابل",
       "recommended_fishing": [
-        "Profondeur: 25m (sous-optimale)",
-        "Type de fond: Mixte",
+        "Profondeur: 45m (sous-optimale)",
+        "Type de fond: Rocheux",
         "Précision: excellente"
       ]
     },
     "location": {
-      "lat": 36.8065,
-      "lon": 10.1815,
-      "name": "تونس, ولاية تونس, تونس",
-      "type": "city",
-      "region": "ولاية تونس"
+      "lat": 36.8475,
+      "lon": 11.094,
+      "name": "قليبية الشرقية, معتمدية قليبية, ولاية نابل, تونس",
+      "type": "administrative",
+      "region": "ولاية نابل"
     },
     "metadata": {
       "species": "loup",
-      "timestamp": "2026-02-21T01:24:17.026431",
-      "data_source": "Expert Tunisie - Tunis - Rade",
+      "timestamp": "2026-02-21T01:53:44.434368",
+      "data_source": "Expert Tunisie - Kélibia Nord - Canyon",
       "weather_source": "OpenWeatherMap",
       "prediction_stable": true,
       "cache_duration_minutes": 60,
-      "next_update_recommended": "02:24",
+      "next_update_recommended": "02:53",
       "api_usage_info": {
-        "openweather_calls_today": 0,
-        "using_cache": true
+        "openweather_calls_today": 6,
+        "using_cache": false
       }
     }
   },
-  "timestamp": 1771633457.0264316,
-  "expires_at": 1771637057.0264316,
+  "timestamp": 1771635224.4343686,
+  "expires_at": 1771638824.4343686,
   "api_name": "prediction",
   "params": {
-    "lat": 36.8065,
-    "lon": 10.1815,
+    "lat": 36.8475,
+    "lon": 11.094,
     "species": "loup"
   }
 }

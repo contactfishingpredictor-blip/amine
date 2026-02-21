@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 12.88,
+    "feels_like": 11.84,
+    "pressure": 1024,
+    "humidity": 62,
+    "wind_speed": 20.376,
+    "wind_direction": 280,
+    "wind_direction_abbr": "O",
+    "wind_direction_name": "Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.62,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T06:58:07",
+    "sunset": "2026-02-21T18:04:25",
+    "location": "Sousse",
+    "country": "TN",
+    "timestamp": "2026-02-21T01:53:45.823212",
+    "score": 0.9999999999999999
+  },
+  "timestamp": 1771635225.8232126,
+  "expires_at": 1771678425.8232126,
+  "api_name": "openweather",
+  "params": {
+    "lat": 35.8254,
+    "lon": 10.636
+  }
+}

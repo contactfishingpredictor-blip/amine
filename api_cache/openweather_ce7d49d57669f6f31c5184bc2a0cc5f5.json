@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.03,
+    "feels_like": 13.24,
+    "pressure": 1023,
+    "humidity": 67,
+    "wind_speed": 37.044,
+    "wind_direction": 290,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.76,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03n",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T07:02:41",
+    "sunset": "2026-02-21T18:05:47",
+    "location": "Bizerte",
+    "country": "TN",
+    "timestamp": "2026-02-21T00:58:32.856233",
+    "score": 0.7999999999999998
+  },
+  "timestamp": 1771631912.856234,
+  "expires_at": 1771675112.856234,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.26766161872659,
+    "lon": 9.893146405196232
+  }
+}

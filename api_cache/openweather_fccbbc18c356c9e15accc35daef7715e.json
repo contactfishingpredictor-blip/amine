@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.02,
+    "feels_like": 13.23,
+    "pressure": 1023,
+    "humidity": 67,
+    "wind_speed": 37.044,
+    "wind_direction": 290,
+    "wind_direction_abbr": "ONO",
+    "wind_direction_name": "Ouest-Nord-Ouest",
+    "wind_direction_icon": "⬅️",
+    "wind_fishing_impact": "Vent d'ouest - Favorable pour le surfcasting",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 1.76,
+    "condition": "Clouds",
+    "condition_description": "partiellement nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "03n",
+    "clouds": 40,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T07:02:31",
+    "sunset": "2026-02-21T18:05:39",
+    "location": "Menzel Jemil",
+    "country": "TN",
+    "timestamp": "2026-02-21T01:40:15.334133",
+    "score": 0.7999999999999998
+  },
+  "timestamp": 1771634415.3341339,
+  "expires_at": 1771677615.3341339,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.25516048395788,
+    "lon": 9.930078393513467
+  }
+}

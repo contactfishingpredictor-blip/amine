@@ -122,6 +122,13 @@ h1{font-size:2.5rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-ba
 .detail-value-small{font-size:.85rem;color:#94a3b8}
 
 footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #334155;margin-top:2rem}
+
+/* Animation pulse pour les marqueurs temporaires */
+@keyframes pulse-marker {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
 </style>
 {% endblock %}
 
@@ -497,7 +504,7 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Fishing Dashboard Object - VERSION CORRIGÉE AVEC SÉPARATION DES POSITIONS
+// Fishing Dashboard Object - VERSION AVEC TOUTES LES MODIFICATIONS
 const FishingDashboard = (function() {
     // ========== VARIABLES PRIVÉES ==========
     let map = null;
@@ -976,13 +983,6 @@ const FishingDashboard = (function() {
                     }
                 }
                 
-                // --- CORRECTION : Synchroniser le score affiché avec l'API 24h ---
-                if (data.current_score) {
-                    document.getElementById('prediction-score').textContent = data.current_score + '%';
-                    document.getElementById('header-prediction-score').textContent = data.current_score + '%';
-                    document.getElementById('check-score').textContent = data.current_score + '%';
-                }
-                
                 // --- MEILLEURE HEURE (sous le pictogramme) ---
                 const bestPeriodEl = document.getElementById('best-period');
                 if (bestPeriodEl && data.best_hour) {
@@ -1166,9 +1166,10 @@ const FishingDashboard = (function() {
         }, 1000);
     }
     
-    // --- SPOTS ---
+    // --- SPOTS (FONCTION AVEC CLIC DIRECT) ---
     function addSpotToMap(spot, isCustom = false) {
         if(!spot || !spot.lat || !spot.lon) return;
+        
         let iconColor = {port:'#3b82f6',plage:'#10b981',rocheux:'#f59e0b',custom:'#ef4444'}[spot.type] || '#6b7280';
         
         const icon = L.divIcon({
@@ -1179,30 +1180,100 @@ const FishingDashboard = (function() {
         
         const marker = L.marker([spot.lat, spot.lon], {icon}).addTo(map);
         
-        let popupContent = `
-            <div style="min-width:200px;">
-                <h3 style="margin:0 0 5px;color:#1e40af">${spot.name}</h3>
-                <span style="background:${iconColor};color:white;padding:2px 8px;border-radius:12px;font-size:12px">${isCustom?'Personnalisé':spot.type}</span>
-                <p style="margin:5px 0">${spot.description || ''}</p>
-                <button onclick="window.FishingDashboard.selectSpot(${spot.lat},${spot.lon},'${spot.name.replace(/'/g,"\\'")}')" 
-                        style="margin-top:10px;padding:5px 10px;background:#3b82f6;color:white;border:none;border-radius:4px;width:100%;margin-bottom:5px;">
-                    <i class="fas fa-check"></i> Sélectionner
-                </button>
-        `;
+        // === SOLUTION : Attacher les données du spot au marqueur ===
+        marker.spotData = {
+            name: spot.name,
+            lat: spot.lat,
+            lon: spot.lon,
+            type: spot.type,
+            description: spot.description
+        };
         
-        if(isCustom) {
-            popupContent += `
-                <button onclick="window.FishingDashboard.deleteCustomSpot(${spot.lat},${spot.lon},'${spot.name.replace(/'/g,"\\'")}')" 
-                        style="padding:5px 10px;background:#dc2626;color:white;border:none;border-radius:4px;width:100%;">
-                    <i class="fas fa-trash"></i> Supprimer ce spot
-                </button>
-            `;
+        // Ajouter l'écouteur de clic DIRECT sur le marqueur
+        marker.on('click', function() {
+            console.log('📍 Clic sur marqueur:', this.spotData.name);
+            if (typeof window.selectSpot === 'function') {
+                window.selectSpot(this.spotData.lat, this.spotData.lon, this.spotData.name);
+            }
+        });
+        
+        // Créer le popup avec le bouton
+        const popupDiv = document.createElement('div');
+        popupDiv.style.minWidth = '200px';
+        
+        const title = document.createElement('h3');
+        title.style.margin = '0 0 5px';
+        title.style.color = '#1e40af';
+        title.textContent = spot.name;
+        popupDiv.appendChild(title);
+        
+        const typeSpan = document.createElement('span');
+        typeSpan.style.background = iconColor;
+        typeSpan.style.color = 'white';
+        typeSpan.style.padding = '2px 8px';
+        typeSpan.style.borderRadius = '12px';
+        typeSpan.style.fontSize = '12px';
+        typeSpan.style.display = 'inline-block';
+        typeSpan.style.marginBottom = '5px';
+        typeSpan.textContent = isCustom ? 'Personnalisé' : spot.type;
+        popupDiv.appendChild(typeSpan);
+        
+        if (spot.description) {
+            const desc = document.createElement('p');
+            desc.style.margin = '5px 0';
+            desc.textContent = spot.description;
+            popupDiv.appendChild(desc);
         }
         
-        popupContent += `</div>`;
-        marker.bindPopup(popupContent);
+        const selectBtn = document.createElement('button');
+        selectBtn.style.marginTop = '10px';
+        selectBtn.style.padding = '5px 10px';
+        selectBtn.style.background = '#3b82f6';
+        selectBtn.style.color = 'white';
+        selectBtn.style.border = 'none';
+        selectBtn.style.borderRadius = '4px';
+        selectBtn.style.width = '100%';
+        selectBtn.style.cursor = 'pointer';
+        selectBtn.innerHTML = '<i class="fas fa-check"></i> Sélectionner';
+        
+        selectBtn.onclick = function(e) {
+            e.stopPropagation();
+            window.selectSpot(spot.lat, spot.lon, spot.name);
+            map.closePopup();
+        };
+        
+        popupDiv.appendChild(selectBtn);
+        
+        if (isCustom) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.style.marginTop = '5px';
+            deleteBtn.style.padding = '5px 10px';
+            deleteBtn.style.background = '#dc2626';
+            deleteBtn.style.color = 'white';
+            deleteBtn.style.border = 'none';
+            deleteBtn.style.borderRadius = '4px';
+            deleteBtn.style.width = '100%';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
+            
+            deleteBtn.onclick = function(e) {
+                e.stopPropagation();
+                if (confirm(`Supprimer "${spot.name}" ?`)) {
+                    // Logique de suppression
+                    const customSpots = JSON.parse(localStorage.getItem('fishingPredictorCustomSpots') || '[]');
+                    const updatedSpots = customSpots.filter(s => 
+                        !(Math.abs(s.lat - spot.lat) < 0.0001 && Math.abs(s.lon - spot.lon) < 0.0001)
+                    );
+                    localStorage.setItem('fishingPredictorCustomSpots', JSON.stringify(updatedSpots));
+                    window.location.reload();
+                }
+            };
+            
+            popupDiv.appendChild(deleteBtn);
+        }
+        
+        marker.bindPopup(popupDiv);
         marker.spotType = spot.type;
-        marker.spotData = spot;
         marker.isCustom = isCustom;
     }
     
@@ -1225,7 +1296,11 @@ const FishingDashboard = (function() {
         // Initialisation
         initMap() {
             if(!document.getElementById('map')) return;
-            map = L.map('map').setView([userLat, userLon], 10);
+            
+            // === MODIFICATION 1 : Rendre la carte accessible globalement ===
+            window.fishingMap = L.map('map').setView([userLat, userLon], 10);
+            map = window.fishingMap; // Garder la compatibilité avec le code existant
+            
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution:'© OpenStreetMap'
             }).addTo(map);
@@ -1241,18 +1316,26 @@ const FishingDashboard = (function() {
                 })
             }).addTo(map).bindPopup('Votre position actuelle');
             
-            map.on('click', (e) => {
-                const name = prompt("Nom du spot :", "Mon spot");
-                if(name) {
-                    const newSpot = {
-                        name, lat: e.latlng.lat, lon: e.latlng.lng,
-                        type: "custom", depth: "?", description: "Spot personnalisé"
-                    };
-                    addSpotToMap(newSpot, true);
-                    customSpots.push(newSpot);
-                    saveCustomSpots();
-                    this.showNotification(`Spot "${name}" ajouté !`, 'success');
-                }
+            // === MODIFICATION 3 : Clic partout sur la carte ===
+            map.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lon = e.latlng.lng;
+                const spotName = `Spot ${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+                
+                // Marqueur temporaire
+                const tempMarker = L.marker([lat, lon], {
+                    icon: L.divIcon({
+                        html: `<div style="background:#ef4444; width:16px; height:16px; border-radius:50%; border:3px solid white; animation:pulse-marker 1s infinite;"></div>`,
+                        className: 'temp-marker',
+                        iconSize: [22, 22]
+                    })
+                }).addTo(map);
+                setTimeout(() => map.removeLayer(tempMarker), 2000);
+                
+                localStorage.setItem('currentSpotName', spotName);
+                localStorage.setItem('currentLat', lat);
+                localStorage.setItem('currentLon', lon);
+                window.selectSpot(lat, lon, spotName);
             });
             
             initWindAnimation();
@@ -1299,6 +1382,37 @@ const FishingDashboard = (function() {
                     load24hForecastInternal();
                 }
             }, 5 * 60000);
+            
+            // === MODIFICATION 2 : Création des marqueurs par défaut ===
+            function createDefaultMarkers() {
+                const spots = [
+                    { name: "Tunis Marina", lat: 36.8065, lon: 10.1815, color: '#3b82f6' },
+                    { name: "Cap Bon", lat: 36.8475, lon: 11.094, color: '#f59e0b' },
+                    { name: "Sousse", lat: 35.8254, lon: 10.636, color: '#10b981' },
+                    { name: "Hammamet", lat: 36.4, lon: 10.6, color: '#ef4444' },
+                    { name: "Bizerte", lat: 37.2747, lon: 9.8739, color: '#8b5cf6' }
+                ];
+                
+                spots.forEach(spot => {
+                    const icon = L.divIcon({
+                        html: `<div style="background:${spot.color}; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.5); cursor:pointer;"></div>`,
+                        className: 'custom-marker',
+                        iconSize: [26, 26]
+                    });
+                    
+                    const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(map);
+                    
+                    marker.on('click', () => {
+                        localStorage.setItem('currentSpotName', spot.name);
+                        localStorage.setItem('currentLat', spot.lat);
+                        localStorage.setItem('currentLon', spot.lon);
+                        window.selectSpot(spot.lat, spot.lon, spot.name);
+                    });
+                    
+                    marker.bindPopup(`<b>${spot.name}</b>`);
+                });
+            }
+            createDefaultMarkers();
         },
         
         // VENT - Activation/désactivation

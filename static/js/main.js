@@ -1,4 +1,4 @@
-// main.js - Version complète avec fonctions de sélection de spot pour TOUTES les pages
+// main.js - Version corrigée avec synchronisation parfaite du score et anti-cache
 console.log("🎣 Fishing Predictor Pro - Module principal initialisé");
 
 // Variables globales
@@ -9,6 +9,24 @@ let currentLat = 36.8065;
 let currentLon = 10.1815;
 let map = null;
 let currentMarker = null;
+
+// ===== SOLUTION ANTI-CACHE DÉFINITIVE =====
+(function setupNoCache() {
+    const originalFetch = window.fetch;
+    
+    window.fetch = function(url, options) {
+        if (typeof url === 'string' && url.includes('/api/')) {
+            // Éviter de dupliquer le paramètre
+            if (!url.includes('_=') && !url.includes('refresh=') && !url.includes('nocache=')) {
+                const separator = url.includes('?') ? '&' : '?';
+                url = `${url}${separator}_=${Date.now()}`;
+            }
+        }
+        return originalFetch.call(this, url, options);
+    };
+    
+    console.log('✅ Anti-cache system activated - Tous les appels API sont frais');
+})();
 
 // Détection mobile
 function detectMobileDevice() {
@@ -33,63 +51,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
         Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
-}
-
-// Sélection de spot (UNIVERSEL - utilisable sur toutes les pages)
-async function selectSpot(lat, lon, name) {
-    try {
-        // Convertir en nombres
-        const latNum = parseFloat(lat);
-        const lonNum = parseFloat(lon);
-        
-        console.log('🎯 Sélection du spot :', name, latNum, lonNum);
-        
-        // Vérification stricte
-        if (isNaN(latNum) || isNaN(lonNum)) {
-            console.error('❌ Coordonnées invalides:', { lat, lon, name });
-            showNotification('Coordonnées du spot invalides', 'error');
-            return;
-        }
-        
-        // Sauvegarder la position utilisateur AVANT de la changer
-        const userLat = currentLat;
-        const userLon = currentLon;
-        
-        // Calcul précis de la distance
-        const distanceKm = calculateDistance(userLat, userLon, latNum, lonNum);
-        
-        // Mettre à jour la position courante
-        currentLat = latNum;
-        currentLon = lonNum;
-        
-        // Sauvegarder dans localStorage pour persistance entre les pages
-        localStorage.setItem('currentLat', latNum.toString());
-        localStorage.setItem('currentLon', lonNum.toString());
-        localStorage.setItem('currentSpotName', name);
-        localStorage.setItem('currentSpotDistance', distanceKm.toFixed(1));
-        
-        // Centrer la carte si elle existe
-        if (map && typeof map.setView === 'function') {
-            map.setView([latNum, lonNum], 13);
-        }
-        
-        // Mettre à jour l'affichage du spot si les éléments existent
-        updateSpotDisplay(name, latNum, lonNum, distanceKm);
-        
-        // Rafraîchir les données météo pour ce spot
-        loadWeatherData(latNum, lonNum);
-        
-        // Déclencher un événement personnalisé pour informer les autres scripts
-        const spotSelectedEvent = new CustomEvent('spotSelected', {
-            detail: { lat: latNum, lon: lonNum, name, distance: distanceKm }
-        });
-        document.dispatchEvent(spotSelectedEvent);
-        
-        showNotification(`Spot sélectionné : ${name}`, 'success');
-    } catch (error) {
-        console.error('❌ Erreur selectSpot:', error);
-        showNotification('Erreur lors de la sélection', 'error');
-    }
 }
 
 // Mettre à jour l'affichage du spot
@@ -323,6 +284,135 @@ function initWeather() {
     }
 }
 
+// ========== FONCTION PRINCIPALE DE SÉLECTION DE SPOT ==========
+
+/**
+ * Fonction universelle de sélection de spot
+ * Délègue à FishingDashboard si disponible, sinon fait un fallback manuel
+ */
+async function selectSpot(lat, lon, name) {
+    console.log(`🎯 Sélection du spot : ${name} ${lat} ${lon}`);
+    
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    
+    if (isNaN(latNum) || isNaN(lonNum)) {
+        console.error('❌ Coordonnées invalides:', { lat, lon, name });
+        showNotification('Coordonnées du spot invalides', 'error');
+        return;
+    }
+    
+    // Sauvegarder la position utilisateur AVANT de la changer
+    const userLat = currentLat;
+    const userLon = currentLon;
+    
+    // Calcul précis de la distance
+    const distanceKm = calculateDistance(userLat, userLon, latNum, lonNum);
+    
+    // Mettre à jour la position courante
+    currentLat = latNum;
+    currentLon = lonNum;
+    
+    // Sauvegarder dans localStorage pour persistance entre les pages
+    localStorage.setItem('currentLat', latNum.toString());
+    localStorage.setItem('currentLon', lonNum.toString());
+    localStorage.setItem('currentSpotName', name);
+    localStorage.setItem('currentSpotDistance', distanceKm.toFixed(1));
+    
+    // Centrer la carte si elle existe
+    if (map && typeof map.setView === 'function') {
+        map.setView([latNum, lonNum], 13);
+    }
+    
+    // Mettre à jour l'affichage du spot
+    updateSpotDisplay(name, latNum, lonNum, distanceKm);
+    
+    // --- PRIORITÉ 1: Utiliser FishingDashboard si disponible ---
+    if (window.FishingDashboard && typeof window.FishingDashboard.selectSpot === 'function') {
+        console.log('✅ Délégation à FishingDashboard.selectSpot');
+        
+        // Mettre à jour les variables internes de FishingDashboard
+        if (typeof FishingDashboard.updateUserPosition === 'function') {
+            FishingDashboard.updateUserPosition(latNum, lonNum);
+        }
+        
+        // Appeler la méthode de sélection
+        await FishingDashboard.selectSpot(latNum, lonNum, name);
+        
+        // Forcer le rechargement des données
+        await Promise.all([
+            FishingDashboard.loadWeatherDataInternal?.(latNum, lonNum),
+            FishingDashboard.updatePredictionInternal?.(latNum, lonNum),
+            FishingDashboard.updateScientificDataInternal?.(latNum, lonNum),
+            FishingDashboard.load24hForecastInternal?.(latNum, lonNum)
+        ]);
+        
+        console.log(`✅ Spot "${name}" entièrement chargé via FishingDashboard`);
+        showNotification(`Spot sélectionné : ${name}`, 'success');
+        
+        // Déclencher l'événement personnalisé
+        const spotSelectedEvent = new CustomEvent('spotSelected', {
+            detail: { lat: latNum, lon: lonNum, name, distance: distanceKm }
+        });
+        document.dispatchEvent(spotSelectedEvent);
+        
+        return;
+    }
+    
+    // --- PRIORITÉ 2: Fallback manuel ---
+    console.log('⚠️ FishingDashboard non disponible, fallback manuel...');
+    
+    // Charger la météo
+    console.log(`🔄 Chargement des données météo pour ${name}...`);
+    await loadWeatherData(latNum, lonNum);
+    
+    // Charger la prédiction
+    try {
+        const response = await fetch(`/api/tunisian_prediction?lat=${latNum}&lon=${lonNum}&species=loup`);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const score = data.scores?.final || 0;
+            
+            // Mettre à jour tous les éléments de score
+            const scoreElements = [
+                'prediction-score',
+                'header-prediction-score',
+                'check-score'
+            ];
+            
+            scoreElements.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = score + '%';
+            });
+            
+            // Mettre à jour les sous-scores
+            if (data.scores) {
+                document.getElementById('mini-env-score') && (document.getElementById('mini-env-score').textContent = data.scores.environmental + '%');
+                document.getElementById('mini-beh-score') && (document.getElementById('mini-beh-score').textContent = data.scores.behavioral + '%');
+            }
+            
+            console.log(`✅ Score mis à jour: ${score}%`);
+        }
+    } catch (error) {
+        console.error('❌ Erreur chargement prédiction:', error);
+    }
+    
+    // Forcer la mise à jour du graphique 24h si disponible
+    if (typeof window.forcePredictionUpdate === 'function') {
+        await window.forcePredictionUpdate(latNum, lonNum);
+    }
+    
+    console.log(`✅ Spot "${name}" chargé (fallback)`);
+    showNotification(`Spot sélectionné : ${name}`, 'success');
+    
+    // Déclencher l'événement
+    const spotSelectedEvent = new CustomEvent('spotSelected', {
+        detail: { lat: latNum, lon: lonNum, name, distance: distanceKm }
+    });
+    document.dispatchEvent(spotSelectedEvent);
+}
+
 // ========== NOTIFICATIONS ==========
 
 function showNotification(message, type = 'info') {
@@ -385,6 +475,97 @@ function initBackToTop() {
     });
 }
 
+// ========== FONCTION D'URGENCE POUR LA PAGE INDEX ==========
+
+window.forcePredictionUpdate = async function(lat, lon) {
+    console.log('🔄 Force prediction update for', lat, lon);
+    
+    if (window.FishingDashboard) {
+        if (typeof FishingDashboard.updatePredictionInternal === 'function') {
+            await FishingDashboard.updatePredictionInternal(lat, lon);
+        }
+        if (typeof FishingDashboard.updateScientificDataInternal === 'function') {
+            await FishingDashboard.updateScientificDataInternal(lat, lon);
+        }
+        if (typeof FishingDashboard.load24hForecastInternal === 'function') {
+            await FishingDashboard.load24hForecastInternal(lat, lon);
+        }
+        console.log('✅ Mise à jour FishingDashboard effectuée');
+    }
+};
+
+// ========== SYNCHRONISATION FORCÉE AVEC FISHINGDASHBOARD ==========
+// Cette fonction force la synchronisation entre main.js et FishingDashboard
+window.forceSyncWithFishingDashboard = function(lat, lon, name, distance) {
+    if (!window.FishingDashboard) return false;
+    
+    console.log('🔄 Synchronisation forcée avec FishingDashboard...');
+    
+    // Méthode 1: Utiliser updateUserPosition si disponible
+    if (typeof FishingDashboard.updateUserPosition === 'function') {
+        FishingDashboard.updateUserPosition(lat, lon);
+    }
+    
+    // Méthode 2: Mise à jour manuelle des variables
+    FishingDashboard.userLat = lat;
+    FishingDashboard.userLon = lon;
+    FishingDashboard.selectedSpot = { 
+        lat: lat, 
+        lon: lon, 
+        name: name,
+        distance: distance 
+    };
+    
+    // Méthode 3: Forcer le rechargement des données
+    if (typeof FishingDashboard.loadWeatherDataInternal === 'function') {
+        FishingDashboard.loadWeatherDataInternal(lat, lon);
+    }
+    if (typeof FishingDashboard.updatePredictionInternal === 'function') {
+        FishingDashboard.updatePredictionInternal(lat, lon);
+    }
+    if (typeof FishingDashboard.updateScientificDataInternal === 'function') {
+        FishingDashboard.updateScientificDataInternal(lat, lon);
+    }
+    if (typeof FishingDashboard.load24hForecastInternal === 'function') {
+        FishingDashboard.load24hForecastInternal(lat, lon);
+    }
+    
+    // Méthode 4: Centrer la carte
+    if (FishingDashboard.map && typeof FishingDashboard.map.setView === 'function') {
+        FishingDashboard.map.setView([lat, lon], 13);
+    }
+    
+    console.log(`✅ FishingDashboard synchronisé: (${FishingDashboard.userLat}, ${FishingDashboard.userLon})`);
+    return true;
+};
+
+// ========== CORRECTION DÉFINITIVE POUR LA SYNCHRONISATION ==========
+(function fixSpotSelection() {
+    console.log('🔧 Application de la correction définitive selectSpot...');
+    
+    // Sauvegarder l'ancienne fonction
+    const originalSelectSpot = window.selectSpot;
+    
+    // Nouvelle fonction qui inclut la synchronisation
+    window.selectSpot = async function(lat, lon, name) {
+        await originalSelectSpot(lat, lon, name);
+        
+        // Forcer la synchronisation avec FishingDashboard
+        const latNum = parseFloat(lat);
+        const lonNum = parseFloat(lon);
+        const distanceKm = calculateDistance(currentLat, currentLon, latNum, lonNum);
+        
+        window.forceSyncWithFishingDashboard(latNum, lonNum, name, distanceKm);
+        
+        // Forcer la mise à jour des variables globales
+        window.currentLat = latNum;
+        window.currentLon = lonNum;
+    };
+    
+    console.log('✅ Correction définitive appliquée!');
+    console.log('📝 Nouvelle fonction selectSpot avec synchronisation forcée');
+})();
+
 // ========== INITIALISATION ==========
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -395,19 +576,64 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreLastSpot();
     initWeather();
     
-    // Écouter les clics sur les boutons de sélection de spot (sans passer l'événement)
+    // Synchroniser avec localStorage au chargement
+    const savedLat = localStorage.getItem('currentLat');
+    const savedLon = localStorage.getItem('currentLon');
+    const savedName = localStorage.getItem('currentSpotName');
+    
+    if (savedLat && savedLon && savedName) {
+        window.currentLat = parseFloat(savedLat);
+        window.currentLon = parseFloat(savedLon);
+        
+        // Forcer la synchronisation avec FishingDashboard
+        setTimeout(() => {
+            window.forceSyncWithFishingDashboard(
+                window.currentLat, 
+                window.currentLon, 
+                savedName,
+                localStorage.getItem('currentSpotDistance') || 0
+            );
+        }, 1000);
+    }
+    
+    // Écouter les clics sur les boutons de sélection de spot
     document.addEventListener('click', function(e) {
         const selectSpotBtn = e.target.closest('[data-select-spot]');
         if (selectSpotBtn) {
             const lat = parseFloat(selectSpotBtn.dataset.lat);
             const lon = parseFloat(selectSpotBtn.dataset.lon);
             const name = selectSpotBtn.dataset.name || 'Spot';
-            selectSpot(lat, lon, name);  // NE PAS passer e
+            selectSpot(lat, lon, name);
         }
     });
     
     console.log("✅ Application initialisée - Fonctions de spot disponibles sur toutes les pages");
 });
+
+// ========== INTERVALLE DE SYNCHRONISATION ==========
+// Vérifier et synchroniser toutes les 30 secondes
+setInterval(function() {
+    const savedLat = localStorage.getItem('currentLat');
+    const savedLon = localStorage.getItem('currentLon');
+    
+    if (savedLat && savedLon && window.FishingDashboard) {
+        const savedLatNum = parseFloat(savedLat);
+        const savedLonNum = parseFloat(savedLon);
+        
+        // Si les variables sont désynchronisées, forcer la mise à jour
+        if (window.FishingDashboard.userLat !== savedLatNum || 
+            window.FishingDashboard.userLon !== savedLonNum) {
+            
+            console.log('🔄 Désynchronisation détectée, correction automatique...');
+            window.forceSyncWithFishingDashboard(
+                savedLatNum, 
+                savedLonNum, 
+                localStorage.getItem('currentSpotName') || 'Spot',
+                localStorage.getItem('currentSpotDistance') || 0
+            );
+        }
+    }
+}, 30000);
 
 // ========== EXPOSITION GLOBALE ==========
 
@@ -422,5 +648,6 @@ window.escapeHTML = escapeHTML;
 window.currentLat = currentLat;
 window.currentLon = currentLon;
 window.isMobileDevice = isMobileDevice;
+window.forceSyncWithFishingDashboard = forceSyncWithFishingDashboard;
 
 console.log("✅ Module main.js chargé - Fonctions de sélection de spot disponibles GLOBALEMENT");

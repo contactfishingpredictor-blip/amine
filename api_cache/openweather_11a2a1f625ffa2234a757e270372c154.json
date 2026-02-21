@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.02,
+    "feels_like": 14.22,
+    "pressure": 1026,
+    "humidity": 63,
+    "wind_speed": 23.148,
+    "wind_direction": 333,
+    "wind_direction_abbr": "NNO",
+    "wind_direction_name": "Nord-Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.79,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01n",
+    "clouds": 0,
+    "visibility": 10.0,
+    "sunrise": "2026-02-21T06:55:15",
+    "sunset": "2026-02-21T18:06:10",
+    "location": "El Mây",
+    "country": "TN",
+    "timestamp": "2026-02-21T01:51:34.692010",
+    "score": 1.0
+  },
+  "timestamp": 1771635094.6920106,
+  "expires_at": 1771678294.6920106,
+  "api_name": "openweather",
+  "params": {
+    "lat": 33.66526811838616,
+    "lon": 10.776447446823367
+  }
+}
