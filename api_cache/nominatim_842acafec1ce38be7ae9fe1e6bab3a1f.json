@@ -1,0 +1,24 @@
+{
+  "data": {
+    "success": true,
+    "name": "المنستير, المدينة, معتمدية المنستير, ولاية المنستير, 5000, تونس",
+    "address": {
+      "city": "المنستير",
+      "county": "المدينة",
+      "state_district": "معتمدية المنستير",
+      "state": "ولاية المنستير",
+      "ISO3166-2-lvl4": "TN-52",
+      "postcode": "5000",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "city"
+  },
+  "timestamp": 1772924045.960981,
+  "expires_at": 1773010445.960981,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 35.78980176087154,
+    "lon": 10.681809311091454
+  }
+}

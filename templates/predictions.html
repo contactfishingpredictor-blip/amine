@@ -39,6 +39,7 @@
     }
     .btn-primary { background: linear-gradient(90deg, #3b82f6, #2563eb); color: white; }
     .btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid #475569; }
+    .btn-success { background: linear-gradient(90deg, #10b981, #059669); color: white; }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
     .map-container {
         height: 380px; border-radius: 12px; overflow: hidden; position: relative;
@@ -99,12 +100,17 @@
     }
     .stat-value { font-size: 1.3rem; font-weight: 800; color: #f8fafc; margin: 0.25rem 0; }
     .hourly-forecast-grid {
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 0.75rem; margin: 1rem 0;
     }
     .hour-card {
         background: rgba(51,65,85,0.6); padding: 0.75rem; border-radius: 10px;
         text-align: center; border-top: 4px solid; transition: all 0.3s;
+        cursor: help;
+    }
+    .hour-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     .wind-rose-grid {
         display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin: 1rem 0;
@@ -175,7 +181,6 @@
             grid-template-columns: 1fr !important;
         }
         
-        /* CORRECTION DU MENU MOBILE */
         .nav-links {
             transform: translateX(100%) !important;
             transition: transform 0.3s ease !important;
@@ -184,7 +189,6 @@
             transform: translateX(0) !important;
         }
         
-        /* Empêcher le body de scroller quand le menu est ouvert */
         body.menu-open {
             overflow: hidden !important;
             position: fixed !important;
@@ -312,6 +316,156 @@
         font-size: 0.7rem; color: #f59e0b; margin-top: 0.25rem;
         font-style: italic;
     }
+    
+    /* ===== MODALE MOBILE POUR LES PRÉVISIONS ===== */
+    .mobile-predictions-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        z-index: 10000;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    
+    @keyframes slideDown {
+        from { transform: translateY(0); }
+        to { transform: translateY(100%); }
+    }
+    
+    .mobile-predictions-modal.closing {
+        animation: slideDown 0.3s ease-out forwards;
+    }
+    
+    .modal-header {
+        position: sticky;
+        top: 0;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #334155;
+        z-index: 10001;
+        backdrop-filter: blur(10px);
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #f8fafc;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 70%;
+    }
+    
+    .modal-header .close-modal {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #475569;
+        color: white;
+        font-size: 1.2rem;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .modal-header .close-modal:hover,
+    .modal-header .close-modal:active {
+        background: #ef4444;
+        border-color: #ef4444;
+        transform: scale(1.1);
+    }
+    
+    .modal-content {
+        padding: 1.5rem;
+    }
+    
+    /* ===== OPTIMISATIONS MOBILE POUR PREDICTIONS.HTML ===== */
+    @media (max-width: 768px) {
+        .forecast-grid {
+            display: flex !important;
+            overflow-x: auto !important;
+            scroll-snap-type: x mandatory !important;
+            gap: 1rem !important;
+            padding: 1rem 0.5rem !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        .forecast-day-card {
+            flex: 0 0 140px !important;
+            scroll-snap-align: start !important;
+            margin: 0 !important;
+        }
+        
+        .day-details {
+            display: none !important;
+        }
+        
+        .mobile-details-btn {
+            display: block !important;
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            margin: 1rem 0;
+            cursor: pointer;
+        }
+        
+        .swipe-indicator {
+            display: block;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin: 0.5rem 0;
+            animation: bounce 2s infinite;
+        }
+    }
+    
+    .swipe-indicator {
+        display: none;
+    }
+    
+    .mobile-details-btn {
+        display: none;
+    }
+    
+    .forecast-grid::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .forecast-grid::-webkit-scrollbar-track {
+        background: #1e293b;
+    }
+    
+    .forecast-grid::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 4px;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(5px); }
+    }
 </style>
 {% endblock %}
 
@@ -324,11 +478,46 @@
 </div>
 
 <div class="container">
+    <!-- Éléments cachés pour main.js -->
     <div class="weather-elements-hidden">
-        <div id="temperature"></div><div id="weather-condition"></div><div id="wind-speed"></div>
-        <div id="weather-location-name"></div><div id="weather-icon"></div><div id="wind-direction"></div>
-        <div id="weather-pressure"></div><div id="wind-impact"></div><div id="wind-fishing-tips"></div>
+        <div id="temperature"></div>
+        <div id="weather-condition"></div>
+        <div id="wind-speed"></div>
+        <div id="weather-location-name"></div>
+        <div id="weather-icon"></div>
+        <div id="wind-direction"></div>
+        <div id="weather-pressure"></div>
+        <div id="wind-impact"></div>
+        <div id="wind-fishing-tips"></div>
         <div id="weather-updated"></div>
+        <div id="prediction-score"></div>
+        <div id="last-update"></div>
+        <div id="current-fish-count"></div>
+        <div id="water-temp"></div>
+        <div id="oxygen-level"></div>
+        <div id="phytoplankton"></div>
+        <div id="wave-height"></div>
+        <div id="moon-phase"></div>
+        <div id="best-period"></div>
+        <div id="pressure-current"></div>
+        <div id="pressure-trend-icon"></div>
+        <div id="pressure-message"></div>
+        <div id="mini-env-score"></div>
+        <div id="mini-beh-score"></div>
+        <div id="mini-depth"></div>
+        <div id="mini-seabed"></div>
+        <div id="check-offshore"></div>
+        <div id="check-score"></div>
+        <div id="check-hour"></div>
+        <div id="check-waves"></div>
+        <div id="detail-environmental"></div>
+        <div id="detail-behavioral"></div>
+        <div id="detail-depth"></div>
+        <div id="detail-seabed"></div>
+        <div id="detail-wave-height"></div>
+        <div id="detail-current"></div>
+        <div id="detail-current-impact"></div>
+        <div id="pressure-chart"></div>
     </div>
 
     <div class="dashboard-grid">
@@ -344,6 +533,7 @@
                 <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
                     <button class="btn btn-secondary" onclick="window.loadForecast()"><i class="fas fa-sync-alt"></i> Actualiser</button>
                     <button class="btn btn-secondary" onclick="window.toggleWindLayer()" id="windToggleBtn"><i class="fas fa-wind"></i> Vent</button>
+                    <button class="btn btn-success" onclick="window.shareForecast()"><i class="fas fa-share-alt"></i> Partager</button>
                     <button class="btn btn-primary" onclick="window.showHourlyForecastTable()" style="margin-left:auto"><i class="fas fa-table"></i> Tableau</button>
                 </div>
             </div>
@@ -396,7 +586,17 @@
                 </div>
                 
                 <div id="forecast-container" style="display:none">
+                    <!-- Indicateur de swipe (visible uniquement sur mobile) -->
+                    <div class="swipe-indicator">
+                        <i class="fas fa-chevron-left"></i> Faites glisser <i class="fas fa-chevron-right"></i>
+                    </div>
+                    
                     <div class="forecast-grid" id="forecast-grid"></div>
+                    
+                    <!-- Bouton pour voir les détails sur mobile -->
+                    <button class="btn btn-primary mobile-details-btn" id="prediction-details-btn" onclick="showPredictionsModal()">
+                        <i class="fas fa-chart-line"></i> Voir les détails du jour
+                    </button>
                     
                     <div id="day-details" class="day-details" style="display:none">
                         <h3 id="selected-day-title" style="color:#3b82f6;margin-bottom:0.75rem;font-size:1.1rem"></h3>
@@ -422,7 +622,7 @@
                         </div>
                         
                         <h4 style="color:#e2e8f0;margin:1rem 0 0.5rem;font-size:0.95rem">
-                            <i class="fas fa-clock"></i> Meilleures plages horaires
+                            <i class="fas fa-clock"></i> Meilleures plages horaires (analyse scientifique)
                         </h4>
                         <div class="hourly-forecast-grid" id="hourly-forecast-grid"></div>
 
@@ -447,12 +647,25 @@
     </div>
 </div>
 
+<!-- ===== MODALE MOBILE POUR LES PRÉVISIONS ===== -->
+<div class="mobile-predictions-modal" id="mobilePredictionsModal">
+    <div class="modal-header">
+        <h2 id="modal-prediction-day">Prévisions détaillées</h2>
+        <button class="close-modal" onclick="closePredictionsModal()" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="modal-content" id="prediction-modal-content">
+        <div class="loading-spinner" style="margin: 2rem auto; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // ============================================
 // FISHING PREDICTOR PRO - PRÉVISIONS 10 JOURS
-// Version scientifique corrigée - Mars 2026
+// Version améliorée avec analyse scientifique des plages horaires
 // ============================================
 
 const AppState = {
@@ -477,18 +690,30 @@ const AppState = {
 
 const Config = {
     spots: [
-        { name: 'Tunis Marina', lat: 36.8065, lon: 10.1815, type: 'port', depth: '8-12m' },
-        { name: 'Cap Bon', lat: 36.8475, lon: 11.0940, type: 'rocheux', depth: '15-25m' },
-        { name: 'Bizerte', lat: 37.2747, lon: 9.8739, type: 'port', depth: '10-18m' },
-        { name: 'Sousse', lat: 35.8254, lon: 10.6360, type: 'port', depth: '6-10m' },
-        { name: 'Hammamet', lat: 36.4000, lon: 10.6000, type: 'plage', depth: '5-8m' }
+        { name: 'Tunis Marina', lat: 36.8065, lon: 10.1815, type: 'port', depth: '3-12m' },
+        { name: 'Cap Bon', lat: 36.8475, lon: 11.0940, type: 'rocheux', depth: '5-25m' },
+        { name: 'Bizerte', lat: 37.2747, lon: 9.8739, type: 'port', depth: '3-5m' },
+        { name: 'Sousse', lat: 35.8254, lon: 10.6360, type: 'port', depth: '3-5m' },
+        { name: 'Hammamet', lat: 36.4000, lon: 10.6000, type: 'plage', depth: '1-5m' }
     ],
     species: {
         loup: { name: 'Loup de Mer', icon: '🐟', color: '#3b82f6' },
         daurade: { name: 'Daurade Royale', icon: '🐠', color: '#10b981' },
-        thon: { name: 'Thon Rouge', icon: '🦈', color: '#ef4444' }
+        pageot: { name: 'Pageot', icon: '🐡', color: '#f59e0b' },
+        thon: { name: 'Thon Rouge', icon: '🦈', color: '#ef4444' },
+        sar: { name: 'Sar', icon: '🐠', color: '#8b5cf6' },
+        mulet: { name: 'Mulet', icon: '🐟', color: '#06b6d4' },
+        marbré: { name: 'Marbré', icon: '🐡', color: '#f97316' },
+        rouget: { name: 'Rouget', icon: '🐠', color: '#ef4444' },
+        sériole: { name: 'Sériole', icon: '🦈', color: '#f59e0b' },
+        bonite: { name: 'Bonite', icon: '🐟', color: '#3b82f6' },
+        corbeau: { name: 'Corbeau', icon: '🐠', color: '#1e293b' },
+        espadon: { name: 'Espadon', icon: '🦈', color: '#64748b' },
+        mérou: { name: 'Mérou', icon: '🐡', color: '#475569' },
+        merlan: { name: 'Merlan', icon: '🐟', color: '#cbd5e1' },
+        merlu: { name: 'Merlu', icon: '🐠', color: '#94a3b8' },
+        orphie: { name: 'Orphie', icon: '🐟', color: '#22c55e' }
     },
-    // Seuils de vent par espèce (km/h)
     windThresholds: {
         loup: 30,
         daurade: 25,
@@ -500,17 +725,40 @@ const Config = {
         rouget: 30,
         sériole: 35,
         bonite: 40,
+        corbeau: 30,
+        espadon: 45,
+        mérou: 30,
+        merlan: 35,
+        merlu: 35,
+        orphie: 30,
         default: 30
     }
 };
 
+// ===== AJOUT : Compatibilité avec main.js =====
+if (typeof window.FishingDashboard === 'undefined') {
+    window.FishingDashboard = {
+        selectSpot: (lat, lon, name) => {
+            console.log('FishingDashboard.selectSpot appelé (proxy)', lat, lon, name);
+            if (window.SpotSelector) window.SpotSelector.select(lat, lon, name);
+        },
+        initMap: () => {
+            console.log('FishingDashboard.initMap appelé (proxy)');
+        },
+        loadWeatherDataInternal: () => Promise.resolve(),
+        updatePredictionInternal: () => Promise.resolve(),
+        updateScientificDataInternal: () => Promise.resolve(),
+        load24hForecastInternal: () => Promise.resolve(),
+        userLat: AppState.currentLat,
+        userLon: AppState.currentLon,
+        currentSpecies: AppState.currentSpecies
+    };
+}
+
 // ============================================
-// FONCTIONS UTILITAIRES CORRIGÉES
+// FONCTIONS UTILITAIRES
 // ============================================
 
-/**
- * Calcule la distance entre deux points GPS (formule de Haversine)
- */
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -522,9 +770,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-/**
- * Affiche une notification temporaire
- */
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -537,9 +782,6 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-/**
- * Convertit les degrés en nom de direction du vent (provenance)
- */
 function getWindDirectionName(deg) {
     const directions = ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ouest', 'Ouest', 'Nord-Ouest'];
     deg = parseFloat(deg) || 0;
@@ -548,9 +790,6 @@ function getWindDirectionName(deg) {
     return directions[index];
 }
 
-/**
- * Convertit les degrés en abréviation de direction (provenance)
- */
 function getWindDirectionAbbr(deg) {
     const abbreviations = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
     deg = parseFloat(deg) || 0;
@@ -559,27 +798,14 @@ function getWindDirectionAbbr(deg) {
     return abbreviations[index];
 }
 
-/**
- * Convertit les degrés en icône de direction (provenance)
- * Convention météo : la flèche pointe vers la direction d'où vient le vent
- */
 function getWindDirectionIcon(deg) {
-    // Tableau des icônes dans l'ordre : [N, NE, E, SE, S, SO, O, NO]
     const icons = ['⬇️', '↙️', '⬅️', '↖️', '⬆️', '↗️', '➡️', '↘️'];
-    
-    // S'assurer que deg est un nombre valide entre 0 et 360
     deg = parseFloat(deg) || 0;
     deg = ((deg % 360) + 360) % 360;
-    
-    // Calculer l'index (0-7)
     const index = Math.round(deg / 45) % 8;
-    
     return icons[index];
 }
 
-/**
- * Calcule la catégorie de vitesse du vent
- */
 function getWindSpeedCategory(speed) {
     if (speed < 10) return 'low';
     if (speed < 20) return 'moderate';
@@ -587,9 +813,6 @@ function getWindSpeedCategory(speed) {
     return 'very-high';
 }
 
-/**
- * Calcule la hauteur estimée des vagues en fonction de la vitesse du vent
- */
 function estimateWaveHeight(windSpeed) {
     if (windSpeed < 10) return 0.2;
     if (windSpeed < 20) return 0.2 + (windSpeed - 10) * 0.04;
@@ -746,6 +969,8 @@ const MapManager = {
     init() {
         try {
             AppState.map = L.map('map-container').setView([AppState.currentLat, AppState.currentLon], 10);
+            window.map = AppState.map;
+            
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(AppState.map);
             this._addSpots();
             AppState.map.on('click', (e) => {
@@ -878,14 +1103,13 @@ const ForecastLoader = {
                 const forecast = data.forecast.map((day) => {
                     let hourlyWind = day.hourly_wind || [];
                     
-                    // S'assurer que les données horaires ont les bons champs
                     hourlyWind = hourlyWind.map(w => ({
                         time: w.time,
                         speed_kmh: w.speed_kmh,
                         direction_deg: w.direction_deg,
                         direction_name: w.direction_name || getWindDirectionName(w.direction_deg),
                         direction_abbr: w.direction_abbr || getWindDirectionAbbr(w.direction_deg),
-                        direction_icon: getWindDirectionIcon(w.direction_deg) // Recalculer pour être sûr
+                        direction_icon: getWindDirectionIcon(w.direction_deg)
                     }));
                     
                     const waveHeight = day.weather?.wave_height || 
@@ -943,7 +1167,6 @@ const ForecastLoader = {
             const temperature = 18 + Math.round(random * 10);
             const waveHeight = estimateWaveHeight(windSpeed);
             
-            // Fiabilité décroissante
             let confidence = 0.95;
             if (i === 1) confidence = 0.9;
             else if (i === 2) confidence = 0.85;
@@ -1089,30 +1312,33 @@ const ForecastDisplay = {
             const dayNum = date.getDate();
             const month = date.toLocaleDateString('fr-FR', { month: 'short' });
             const score = day.score;
-            let color = score >= 80 ? '#10b981' : score >= 60 ? '#3b82f6' : score >= 40 ? '#f59e0b' : '#ef4444';
-            let decision = score >= 80 ? 'Excellent' : score >= 60 ? 'Bon' : score >= 40 ? 'Moyen' : 'Faible';
+            let color = score >= 80 ? '#10b981' : 
+                        score >= 60 ? '#3b82f6' : 
+                        score >= 40 ? '#f59e0b' : '#ef4444';
+            let decision = score >= 80 ? 'Excellent' : 
+                           score >= 60 ? 'Bon' : 
+                           score >= 40 ? 'Moyen' : 'Faible';
             let windAlertBadge = '';
             
-            // Seuil de vent espèce-dépendant
             const threshold = Config.windThresholds[AppState.currentSpecies] || Config.windThresholds.default;
             if (i < 3 && day.wind.speed > threshold) {
                 windAlertBadge = `<span class="wind-alert-badge" title="Vent fort prévu : ${day.wind.speed} km/h (seuil ${threshold} km/h pour cette espèce)">⚠️</span>`;
             }
             
-            // Badge de confiance
             let confidenceText = '';
             if (day.confidence) {
                 let confColor = day.confidence > 0.8 ? '#10b981' : day.confidence > 0.6 ? '#f59e0b' : '#94a3b8';
                 confidenceText = `<div class="confidence-badge" style="color:${confColor}">Fiabilité ${Math.round(day.confidence*100)}%</div>`;
             }
             
-            // Note de simulation
             let noteText = '';
             if (day.note) {
                 noteText = `<div class="simulation-note">${day.note}</div>`;
             }
             
-            html += `<div class="forecast-day-card ${i === 0 ? 'active' : ''}" onclick="window.selectDay(${i})">
+            html += `<div class="forecast-day-card ${i === 0 ? 'active' : ''}" 
+                          onclick="window.selectDay(${i})"
+                          title="${day.note ? day.note : ''}">
                 <div class="day-header">${dayName} ${windAlertBadge}</div>
                 <div class="day-date">${dayNum} ${month}</div>
                 <div class="day-score">${score}%</div>
@@ -1125,7 +1351,7 @@ const ForecastDisplay = {
         this.selectDay(0);
     },
     
-    selectDay(index) {
+    async selectDay(index) {
         AppState.selectedDay = index;
         const day = AppState.forecastData[index];
         if (!day) return;
@@ -1139,84 +1365,132 @@ const ForecastDisplay = {
         document.getElementById('detail-temp').textContent = `${day.temperature}°C`;
         document.getElementById('detail-waves').textContent = `${day.wave_height} m`;
         
-        // Affichage des plages horaires selon les données disponibles
+        // ============================================
+        // VERSION SCIENTIFIQUE ULTIME - PLAGES HORAIRES AVEC FACTEURS MULTIPLES
+        // ============================================
         let hoursHtml = '';
         if (index <= 2) {
-            // Extraire les heures depuis les données horaires de vent
-            const hourlyData = day.hourlyWind || [];
-            
-            // Définir les périodes
-            const periods = [
-                { name: 'Matin', start: 5, end: 9, emoji: '🌅' },
-                { name: 'Mi-journée', start: 12, end: 14, emoji: '☀️' },
-                { name: 'Soir', start: 16, end: 19, emoji: '🌆' }
-            ];
-            
-            // Calculer le score pour chaque période basé sur le vent
-            periods.forEach(period => {
-                // Filtrer les heures de la période
-                const periodHours = hourlyData.filter(w => {
-                    const hour = parseInt(w.time);
-                    return hour >= period.start && hour <= period.end;
-                });
+            try {
+                // Récupérer les facteurs scientifiques actuels
+                const moonPhaseElement = document.querySelector('#moon-phase')?.textContent || '';
+                const pressureElement = parseFloat(document.querySelector('#pressure')?.textContent) || 1015;
+                const pressureTrendElement = document.querySelector('#pressure-trend-icon')?.textContent || '➡️';
+                const currentHour = new Date().getHours();
                 
-                // Calculer le score en fonction du vent moyen sur la période
-                let periodScore = day.score; // score de base
+                // Récupérer les prévisions horaires depuis l'API
+                const response = await fetch(`/api/24h_forecast?lat=${AppState.currentLat}&lon=${AppState.currentLon}&species=${AppState.currentSpecies}`);
+                const data = await response.json();
                 
-                if (periodHours.length > 0) {
-                    // Calculer la vitesse moyenne du vent sur la période
-                    const avgWind = periodHours.reduce((sum, w) => sum + w.speed_kmh, 0) / periodHours.length;
+                if (data.status === 'success' && data.scores) {
+                    // Définir les périodes avec leurs heures
+                    const periods = [
+                        { name: 'Aube', hours: [4,5,6,7], emoji: '🌅' },
+                        { name: 'Matin', hours: [8,9,10], emoji: '☀️' },
+                        { name: 'Mi-journée', hours: [11,12,13,14], emoji: '🔆' },
+                        { name: 'Après-midi', hours: [15,16,17], emoji: '⛅' },
+                        { name: 'Crépuscule', hours: [18,19,20], emoji: '🌆' },
+                        { name: 'Nuit', hours: [21,22,23,0,1,2,3], emoji: '🌙' }
+                    ];
                     
-                    // Ajuster le score en fonction du vent
-                    // Vent faible (<15 km/h) = bon pour la pêche
-                    // Vent fort (>25 km/h) = mauvais pour la pêche
-                    if (avgWind < 15) {
-                        periodScore = Math.min(95, day.score + 20);
-                    } else if (avgWind < 20) {
-                        periodScore = Math.min(90, day.score + 10);
-                    } else if (avgWind < 25) {
-                        periodScore = day.score; // neutre
-                    } else if (avgWind < 30) {
-                        periodScore = Math.max(20, day.score - 15);
-                    } else {
-                        periodScore = Math.max(10, day.score - 30);
-                    }
-                    
-                    // Bonus pour le matin et le soir (meilleurs moments biologiques)
-                    if (period.name === 'Matin' || period.name === 'Soir') {
-                        periodScore = Math.min(95, periodScore + 5);
-                    }
-                    
-                    // Pénalité pour la mi-journée (soleil fort)
-                    if (period.name === 'Mi-journée') {
-                        periodScore = Math.max(10, periodScore - 10);
-                    }
+                    periods.forEach(period => {
+                        // Calculer le score de base pour la période
+                        const periodScores = [];
+                        period.hours.forEach(hour => {
+                            const hourIndex = data.hours.indexOf(`${hour}h`);
+                            if (hourIndex !== -1) {
+                                periodScores.push(data.scores[hourIndex]);
+                            }
+                        });
+                        
+                        let baseScore = periodScores.length > 0 
+                            ? Math.round(periodScores.reduce((a,b) => a + b, 0) / periodScores.length)
+                            : day.score;
+                        
+                        // Appliquer les facteurs scientifiques
+                        let scientificBonus = 1.0;
+                        let factors = [];
+                        
+                        // Facteur crépusculaire (aube/crépuscule)
+                        if (period.name === 'Aube' || period.name === 'Crépuscule') {
+                            scientificBonus *= 1.25;
+                            factors.push('crépuscule +25%');
+                        }
+                        
+                        // Facteur nuit et lune
+                        if (period.name === 'Nuit') {
+                            if (moonPhaseElement.includes('Pleine Lune')) {
+                                scientificBonus *= 1.2;
+                                factors.push('pleine lune +20%');
+                            } else if (moonPhaseElement.includes('Nouvelle Lune')) {
+                                scientificBonus *= 1.15;
+                                factors.push('nouvelle lune +15%');
+                            } else if (moonPhaseElement.includes('Gibbeuse')) {
+                                scientificBonus *= 1.1;
+                                factors.push('lune gibbeuse +10%');
+                            }
+                        }
+                        
+                        // Facteur pression
+                        if (pressureTrendElement === '📉' && pressureElement < 1020) {
+                            scientificBonus *= 1.15;
+                            factors.push('pression en baisse +15%');
+                        } else if (pressureTrendElement === '📈' && pressureElement > 1020) {
+                            scientificBonus *= 0.8;
+                            factors.push('pression en hausse -20%');
+                        } else if (pressureElement > 1025) {
+                            scientificBonus *= 0.7;
+                            factors.push('haute pression -30%');
+                        }
+                        
+                        // Facteur heure (cycle circadien)
+                        const startHour = period.hours[0];
+                        if (startHour >= 5 && startHour <= 7) {
+                            scientificBonus *= 1.2;
+                            factors.push('aube +20%');
+                        } else if (startHour >= 11 && startHour <= 14) {
+                            scientificBonus *= 0.8;
+                            factors.push('midi -20%');
+                        } else if (startHour >= 17 && startHour <= 19) {
+                            scientificBonus *= 1.25;
+                            factors.push('crépuscule +25%');
+                        }
+                        
+                        // Score final
+                        let periodScore = Math.round(baseScore * scientificBonus);
+                        periodScore = Math.max(20, Math.min(98, periodScore));
+                        
+                        // Couleur selon le score
+                        let color = periodScore >= 80 ? '#10b981' : 
+                                   periodScore >= 60 ? '#3b82f6' : 
+                                   periodScore >= 40 ? '#f59e0b' : '#ef4444';
+                        
+                        // Créer le tooltip avec les facteurs
+                        const tooltipText = factors.length > 0 
+                            ? `Facteurs: ${factors.join(' · ')}` 
+                            : 'Conditions standard';
+                        
+                        hoursHtml += `<div class="hour-card" style="border-top-color:${color}" title="${tooltipText}">
+                            <div style="font-weight:600;color:#e2e8f0">${period.emoji} ${period.name}</div>
+                            <div style="font-size:1.3rem;font-weight:700;color:${color}">${periodScore}%</div>
+                            <div style="font-size:0.7rem;color:#94a3b8">${period.hours[0]}h-${period.hours[period.hours.length-1]}h</div>
+                        </div>`;
+                    });
                 }
-                
-                // Déterminer la couleur
-                let color = periodScore >= 80 ? '#10b981' : 
-                           periodScore >= 60 ? '#3b82f6' : 
-                           periodScore >= 40 ? '#f59e0b' : '#ef4444';
-                
-                hoursHtml += `<div class="hour-card" style="border-top-color:${color}">
-                    <div style="font-weight:600;color:#e2e8f0">${period.emoji} ${period.name}</div>
-                    <div style="font-size:1.3rem;font-weight:700;color:${color}">${Math.round(periodScore)}%</div>
-                    <div style="font-size:0.7rem;color:#94a3b8">${period.start}h-${period.end}h</div>
-                </div>`;
-            });
-            
+            } catch (e) {
+                console.warn('⚠️ Erreur chargement données horaires:', e);
+                hoursHtml = '<div style="color:#94a3b8;text-align:center">Données horaires indisponibles</div>';
+            }
         } else {
-            // Au-delà de J+3, message de précision limitée
             hoursHtml = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#94a3b8">Précision horaire insuffisante pour ce jour</div>';
         }
+        
         document.getElementById('hourly-forecast-grid').innerHTML = hoursHtml;
         
-        // === SECTION VENT DÉTAILLÉ CORRIGÉE ===
+        // === SECTION VENT DÉTAILLÉ ===
         const windGrid = document.getElementById('hourlyWindGrid');
         if (day.hourlyWind && day.hourlyWind.length) {
             let windHtml = '';
             day.hourlyWind.forEach(item => {
-                // Utiliser la direction en degrés pour calculer l'icône
                 const directionDeg = item.direction_deg || 0;
                 const icon = getWindDirectionIcon(directionDeg);
                 const speedCat = getWindSpeedCategory(item.speed_kmh);
@@ -1232,6 +1506,48 @@ const ForecastDisplay = {
             windGrid.style.display = 'flex';
         } else {
             windGrid.style.display = 'none';
+        }
+        
+        // ===== AJOUT : Explication pour les scores bas (< 40) =====
+        const existingExplain = document.getElementById('score-explanation');
+        if (existingExplain) existingExplain.remove();
+        
+        if (day.score < 40) {
+            let reasons = [];
+            if (day.wind?.speed > 40) reasons.push(`🌪️ Vent très fort (${day.wind.speed} km/h)`);
+            else if (day.wind?.speed > 30) reasons.push(`💨 Vent fort (${day.wind.speed} km/h)`);
+            
+            if (day.wave_height > 2.5) reasons.push(`🌊 Vagues hautes (${day.wave_height}m)`);
+            if (day.temperature > 35) reasons.push(`🔥 Température très élevée (${day.temperature}°C)`);
+            if (day.temperature < 5) reasons.push(`❄️ Température très basse (${day.temperature}°C)`);
+            
+            if (reasons.length === 0) {
+                const speciesName = Config.species[AppState.currentSpecies]?.name || 'sélectionnée';
+                reasons.push(`📉 Faible activité saisonnière pour l'espèce ${speciesName}`);
+            }
+            
+            const explainDiv = document.createElement('div');
+            explainDiv.id = 'score-explanation';
+            explainDiv.style.marginTop = '1rem';
+            explainDiv.style.padding = '1rem';
+            explainDiv.style.background = 'rgba(239,68,68,0.2)';
+            explainDiv.style.borderRadius = '8px';
+            explainDiv.style.borderLeft = '4px solid #ef4444';
+            explainDiv.innerHTML = `
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem">
+                    <i class="fas fa-info-circle" style="color:#ef4444; font-size:1.2rem"></i>
+                    <span style="color:#ef4444; font-weight:600">Pourquoi ce score est bas ?</span>
+                </div>
+                <ul style="margin:0; padding-left:1.5rem; color:#e2e8f0">
+                    ${reasons.map(r => `<li style="margin-bottom:0.25rem">${r}</li>`).join('')}
+                </ul>
+            `;
+            
+            const detailsDiv = document.getElementById('day-details');
+            const statsGrid = detailsDiv.querySelector('.day-stats-grid');
+            if (statsGrid) {
+                statsGrid.insertAdjacentElement('afterend', explainDiv);
+            }
         }
         
         document.getElementById('day-details').style.display = 'block';
@@ -1260,25 +1576,75 @@ const TrendChart = {
             return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }); 
         });
         
+        const scores = AppState.forecastData.map(day => day.score);
+        const minScores = scores.map((s, i) => {
+            const confidence = AppState.forecastData[i].confidence || 0.5;
+            const range = Math.round(15 * (1 - confidence) + 5);
+            return Math.max(5, s - range);
+        });
+        const maxScores = scores.map((s, i) => {
+            const confidence = AppState.forecastData[i].confidence || 0.5;
+            const range = Math.round(15 * (1 - confidence) + 5);
+            return Math.min(98, s + range);
+        });
+        
         AppState.trendChart = new Chart(ctx, {
             type: 'line',
             data: { 
                 labels: labels, 
-                datasets: [{ 
-                    label: 'Score', 
-                    data: AppState.forecastData.map(day => day.score), 
-                    borderColor: '#3b82f6', 
-                    backgroundColor: 'rgba(59,130,246,0.1)', 
-                    borderWidth: 2, 
-                    fill: true, 
-                    tension: 0.4, 
-                    pointRadius: 3 
-                }] 
+                datasets: [
+                    {
+                        label: 'Score',
+                        data: scores,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Max possible',
+                        data: maxScores,
+                        borderColor: '#10b981',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Min possible',
+                        data: minScores,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ] 
             },
             options: { 
                 responsive: true, 
                 maintainAspectRatio: false, 
-                plugins: { legend: { display: false } }, 
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        labels: { color: '#94a3b8' }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#94a3b8',
+                        borderColor: '#3b82f6'
+                    }
+                }, 
                 scales: { 
                     x: { 
                         grid: { color: 'rgba(255,255,255,0.1)' }, 
@@ -1360,7 +1726,6 @@ const HourlyTable = {
         let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem"><thead><tr>';
         html += '<th style="background:#334155;color:#e2e8f0;padding:0.75rem;position:sticky;left:0">Heure</th>';
         
-        // Limiter à 3 jours pour la précision horaire
         const daysToShow = Math.min(3, AppState.forecastData.length);
         AppState.forecastData.slice(0, daysToShow).forEach((day, idx) => { 
             const d = new Date(day.date); 
@@ -1452,6 +1817,125 @@ const SpeciesSelector = {
 };
 
 // ============================================
+// PARTAGE DES PRÉVISIONS
+// ============================================
+window.shareForecast = function() {
+    if (!AppState.forecastData || !AppState.currentSpot) {
+        showNotification('Aucune prévision à partager', 'error');
+        return;
+    }
+    
+    const spotName = AppState.currentSpot.name;
+    const bestDay = AppState.forecastData.reduce((best, day) => day.score > best.score ? day : best);
+    const bestDate = new Date(bestDay.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    let message = `🎣 *Prévisions Fishing Predictor Pro*\n\n`;
+    message += `📍 Spot : ${spotName}\n`;
+    message += `📅 Meilleur jour : ${bestDate} (${bestDay.score}%)\n\n`;
+    message += `📊 Scores sur 10 jours :\n`;
+    
+    AppState.forecastData.forEach((day, i) => {
+        const date = new Date(day.date);
+        const dayStr = date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        let emoji = day.score >= 80 ? '🔥' : day.score >= 60 ? '👍' : day.score >= 40 ? '⚖️' : '❄️';
+        message += `${emoji} ${dayStr} : ${day.score}%\n`;
+    });
+    
+    message += `\n🔗 https://fishing-activity.onrender.com/predictions`;
+    
+    navigator.clipboard.writeText(message).then(() => {
+        showNotification('📋 Prévisions copiées dans le presse-papier !', 'success');
+    }).catch(() => {
+        prompt('📋 Copiez ces prévisions :', message);
+    });
+};
+
+// ============================================
+// MODALE MOBILE POUR LES PRÉVISIONS
+// ============================================
+
+function showPredictionsModal() {
+    if (!AppState.forecastData || AppState.forecastData.length === 0) {
+        showNotification('Aucune donnée de prévision disponible', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('mobilePredictionsModal');
+    const content = document.getElementById('prediction-modal-content');
+    const day = AppState.forecastData[AppState.selectedDay];
+    const date = new Date(day.date);
+    
+    document.getElementById('modal-prediction-day').textContent = 
+        date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    let html = `
+        <div class="score-display" style="margin-top:0">
+            <div class="score-value">${day.score}%</div>
+            <div style="font-size:1.1rem;margin-top:.5rem;color:#94a3b8">Score de pêche</div>
+        </div>
+        
+        <div class="day-stats-grid">
+            <div class="stat-card" style="border-left-color:#10b981">
+                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Score</h4>
+                <div class="stat-value">${day.score}%</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#3b82f6">
+                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Vent</h4>
+                <div class="stat-value">${day.wind.speed} km/h</div>
+                <div style="font-size:0.8rem;color:#94a3b8">${day.wind.direction_name}</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#f59e0b">
+                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Temp.</h4>
+                <div class="stat-value">${day.temperature}°C</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#8b5cf6">
+                <h4 style="margin:0 0 0.25rem;color:#cbd5e1;font-size:0.85rem">Vagues</h4>
+                <div class="stat-value">${day.wave_height} m</div>
+            </div>
+        </div>
+    `;
+    
+    if (day.hourlyWind && day.hourlyWind.length) {
+        html += `<h4 style="color:#e2e8f0;margin:1.5rem 0 0.75rem;font-size:0.95rem">
+            <i class="fas fa-wind"></i> Vent détaillé
+        </h4>
+        <div class="wind-rose-grid" style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center">`;
+        
+        day.hourlyWind.forEach(item => {
+            const icon = getWindDirectionIcon(item.direction_deg);
+            const speedCat = getWindSpeedCategory(item.speed_kmh);
+            html += `<div class="wind-card" data-wind-speed="${speedCat}" style="width:70px;height:70px;margin:0.25rem">
+                <div class="hour">${item.time}</div>
+                <div class="speed">${item.speed_kmh}</div>
+                <div class="direction-icon">${icon}</div>
+                <div class="direction-name">${item.direction_abbr}</div>
+            </div>`;
+        });
+        
+        html += '</div>';
+    }
+    
+    if (day.note) {
+        html += `<div style="margin-top:1rem;padding:1rem;background:#f59e0b;color:white;border-radius:8px;text-align:center">
+            <i class="fas fa-info-circle"></i> ${day.note}
+        </div>`;
+    }
+    
+    content.innerHTML = html;
+    modal.style.display = 'block';
+    modal.classList.remove('closing');
+}
+
+function closePredictionsModal() {
+    const modal = document.getElementById('mobilePredictionsModal');
+    modal.classList.add('closing');
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+    }, 300);
+}
+
+// ============================================
 // RESTAURATION DU DERNIER SPOT
 // ============================================
 
@@ -1490,6 +1974,20 @@ window.loadForecast = () => { ForecastLoader.load(); };
 window.selectDay = (index) => { ForecastDisplay.selectDay(index); };
 window.showHourlyForecastTable = () => { HourlyTable.show(); };
 window.selectSpecies = (species, event) => { SpeciesSelector.select(species, event); };
+window.showPredictionsModal = showPredictionsModal;
+window.closePredictionsModal = closePredictionsModal;
+window.shareForecast = shareForecast;
+
+window.AppState = AppState;
+window.Config = Config;
+window.MapManager = MapManager;
+window.ForecastLoader = ForecastLoader;
+window.ForecastDisplay = ForecastDisplay;
+window.WindAnimation = WindAnimation;
+window.TrendChart = TrendChart;
+window.HourlyTable = HourlyTable;
+window.SpotSelector = SpotSelector;
+window.SpeciesSelector = SpeciesSelector;
 
 // ============================================
 // INITIALISATION
@@ -1513,14 +2011,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Test des fonctions de direction (à supprimer en production)
     console.log("Test des icônes de vent :");
     [0, 45, 90, 135, 180, 225, 270, 315].forEach(deg => {
         console.log(`${deg}°: ${getWindDirectionName(deg)} (${getWindDirectionAbbr(deg)}) → ${getWindDirectionIcon(deg)}`);
     });
     
     window.AppDebug = AppState;
-    console.log('✅ Application initialisée (version scientifique corrigée)');
+    console.log('✅ Application initialisée (version améliorée avec analyse scientifique)');
 });
 </script>
 {% endblock %}

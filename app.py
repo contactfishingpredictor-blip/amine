@@ -1,12 +1,42 @@
 """Fishing Predictor Pro - Application Flask principale (Version scientifique corrigée)"""
-import os, json, logging, time, math, hashlib, random, concurrent.futures
+import os
+import json
+import logging
+import sys
+import time
+import math
+import hashlib
+import random
+import concurrent.futures
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, redirect
-import requests, smtplib
+import requests
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from advanced_predictor import ScientificFishingPredictor
 from config import config
+
+# ===== IMPORT BATHYMÉTRIE GEBCO (AJOUTÉ EN HAUT) =====
+try:
+    from bathymetry_gebco import gebco
+    BATHYMETRY_ENABLED = True
+    print("✅ Module bathymétrie GEBCO chargé")
+except ImportError as e:
+    BATHYMETRY_ENABLED = False
+    print(f"⚠️ Module bathymétrie non disponible: {e}")
+except Exception as e:
+    BATHYMETRY_ENABLED = False
+    print(f"⚠️ Erreur chargement bathymétrie: {e}")
+
+# ===== CONFIGURATION SILENCIEUSE =====
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger('wekeo_handler').setLevel(logging.ERROR)
+logging.getLogger('__main__').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel(logging.INFO)
+logging.getLogger('hda').setLevel(logging.ERROR)
+logging.getLogger('urllib3').setLevel(logging.ERROR)
+logging.getLogger('requests').setLevel(logging.ERROR)
 
 # ===== DONNÉES OCÉANOGRAPHIQUES RÉELLES =====
 try:
@@ -20,13 +50,13 @@ except ImportError as e:
 # ===== INTÉGRATION WEKEO =====
 try:
     from wekeo_handler import get_wind_data, test_connection
-    
+
     class WekeoEnhancerSimple:
         def get_wind_data(self, lat, lon):
             return get_wind_data(lat, lon)
         def test_connection(self):
             return test_connection()
-    
+
     wekeo_enhancer = WekeoEnhancerSimple()
     WEKEO_ENABLED = True
     print("✅ Module WEkEO chargé - Prêt pour données réelles")
@@ -101,6 +131,24 @@ def load_from_cache(api_name: str, params: dict, max_age_hours: int = 24):
 weather_cache = {}
 WEATHER_CACHE_DURATION = config.WEATHER_CACHE_DURATION
 WEATHER_CONDITIONS_FR = {'Clear':'Ciel dégagé','Sunny':'Ensoleillé','Clouds':'Nuageux','Cloudy':'Nuageux','Rain':'Pluie','Drizzle':'Bruine','Thunderstorm':'Orage','Snow':'Neige','Mist':'Brume','Fog':'Brouillard','Haze':'Brume','Dust':'Poussiéreux','Smoke':'Fumée','Ash':'Cendres','Squall':'Rafales','Tornado':'Tornade'}
+
+# ===== CACHE SERVEUR (3 heures) =====
+SERVER_CACHE = {}
+CACHE_DURATION = 3 * 60 * 60  # 3 heures en secondes
+
+def get_cached(key, compute_func, max_age=CACHE_DURATION):
+    """Récupère depuis le cache ou calcule"""
+    import time
+    now = time.time()
+
+    if key in SERVER_CACHE:
+        data, timestamp = SERVER_CACHE[key]
+        if now - timestamp < max_age:
+            return data, True
+
+    data = compute_func()
+    SERVER_CACHE[key] = (data, now)
+    return data, False
 
 # ===== FONCTIONS EMAIL GMAIL UNIQUEMENT =====
 def send_confirmation_email(email: str, confirmation_id: str) -> bool:
@@ -184,11 +232,11 @@ def get_openweather_data_with_limits(lat: float, lon: float):
             wind_deg = data['wind'].get('deg', 0)
             wind_direction = get_wind_direction_name(wind_deg)
             wind_impact = get_wind_fishing_impact(wind_deg, lat, lon)
-            
+
             # Calcul avancé de la hauteur des vagues
             wind_speed_kmh = data['wind']['speed'] * 3.6
             wave_height = calculate_wave_height(wind_speed_kmh)
-            
+
             weather_info = {
                 'temperature':data['main']['temp'],
                 'feels_like':data['main']['feels_like'],
@@ -283,33 +331,33 @@ def generate_consistent_weather(lat: float, lon: float):
     # Utiliser seulement la date, pas l'heure, pour la stabilité
     stable_key = f"{lat:.2f}_{lon:.2f}_{day_of_year}"
     stable_hash = int(hashlib.md5(stable_key.encode()).hexdigest()[:8], 16)
-    
+
     base_temp = 20 + (36.8 - lat) * 0.5
     # Variation diurne approximative mais cohérente
     temp = base_temp + 5  # température moyenne de jour
-    
+
     month = now.month
     if 6 <= month <= 8: temp += 8
     elif 3 <= month <= 5: temp += 4
     elif 9 <= month <= 11: temp += 2
-    
+
     # Vent basé sur la position et la date (stable)
     wind = 8 + (stable_hash % 15)
     pressure = 1015 + (stable_hash % 20) - 10
-    
+
     condition_index = (stable_hash // 1000) % 4
     conditions = ['Clear', 'Clouds', 'Partly Cloudy', 'Mostly Sunny']
     conditions_fr = ['Ciel dégagé', 'Nuageux', 'Partiellement nuageux', 'Très ensoleillé']
-    
+
     wave_height = calculate_wave_height(wind)
-    
+
     # Direction basée sur la position (stable)
     base_direction = (lon * 10 + lat * 5) % 360
     wind_direction = (base_direction + (stable_hash % 30) - 15) % 360
-    
+
     wind_direction_info = get_wind_direction_name(wind_direction)
     wind_impact = get_wind_fishing_impact(wind_direction, lat, lon)
-    
+
     weather_info = {
         'temperature':round(temp,1),
         'feels_like':round(temp-2,1),
@@ -362,23 +410,34 @@ def calculate_wave_height(wind_speed_kmh: float) -> float:
 def get_real_bathymetry(lat: float, lon: float) -> dict:
     """Bathymétrie précise - GEBCO 2025 500m + TES spots"""
     try:
-        from bathymetry_gebco import gebco
-        result = gebco.get_depth_with_fallback(lat, lon)
-        result['seabed_type'] = estimate_seabed_type(lat, lon, result['depth'])
-        seabed_desc = {
-            'sand': 'Sableux',
-            'rock': 'Rocheux',
-            'grass': 'Herbier',
-            'mixed': 'Mixte',
-            'mud': 'Vaseux'
-        }
-        result['seabed_description'] = seabed_desc.get(
-            result['seabed_type'], 
-            'Mixte'
-        )
-        result['success'] = True
-        result['accuracy'] = result.get('accuracy', 'haute')
-        return result
+        if BATHYMETRY_ENABLED:
+            result = gebco.get_depth_with_fallback(lat, lon)
+            result['seabed_type'] = estimate_seabed_type(lat, lon, result['depth'])
+            seabed_desc = {
+                'sand': 'Sableux',
+                'rock': 'Rocheux',
+                'grass': 'Herbier',
+                'mixed': 'Mixte',
+                'mud': 'Vaseux'
+            }
+            result['seabed_description'] = seabed_desc.get(
+                result['seabed_type'],
+                'Mixte'
+            )
+            result['success'] = True
+            result['accuracy'] = result.get('accuracy', 'haute')
+            return result
+        else:
+            # Fallback si module non disponible
+            return {
+                'success': True,
+                'depth': 20.0,
+                'seabed_type': 'mixed',
+                'seabed_description': 'Mixte',
+                'source': 'Modèle par défaut (module non chargé)',
+                'accuracy': 'basse',
+                'confidence': 0.5
+            }
     except Exception as e:
         print(f"⚠️ Erreur bathymétrie GEBCO: {e}")
         return {
@@ -536,7 +595,7 @@ def get_next_low_tide(tide_data) -> dict:
     return {'time':'N/A','height':0}
 
 def get_marine_data_multi_source(lat: float, lon: float) -> dict:
-    """Version utilisant WEkEO pour données RÉELLES quand disponible"""
+    """Version utilisant notre nouveau handler de données réelles"""
     marine_data = {
         'water_temperature': None,
         'chlorophyll': None,
@@ -545,56 +604,47 @@ def get_marine_data_multi_source(lat: float, lon: float) -> dict:
         'wind_speed_kmh': None,
         'wind_direction_deg': None,
         'wave_height': None,
-        'data_quality': 'standard',
-        'data_source': 'simulation'
+        'dissolved_oxygen': None,
+        'data_quality': 'real',
+        'data_source': 'open-meteo'
     }
-    
-    if WEKEO_ENABLED:
-        try:
-            wekeo_wind = wekeo_enhancer.get_wind_data(lat, lon)
-            if wekeo_wind and wekeo_wind.get('wind_speed_kmh'):
-                marine_data['wind_speed_kmh'] = wekeo_wind['wind_speed_kmh']
-                marine_data['wind_direction_deg'] = wekeo_wind['wind_direction_deg']
-                marine_data['data_quality'] = wekeo_wind.get('quality', 'high')
-                marine_data['data_source'] = wekeo_wind.get('source', 'WEkEO')
-        except Exception as e:
-            pass
-    
-    if marine_data['wind_speed_kmh'] is None:
-        try:
-            url = "https://api.open-meteo.com/v1/forecast"
-            params = {
-                'latitude': lat,
-                'longitude': lon,
-                'current': 'wind_speed_10m,wind_direction_10m',
-                'timezone': 'Africa/Tunis'
-            }
-            response = requests.get(url, params=params, timeout=3)
-            if response.status_code == 200:
-                data = response.json()['current']
-                marine_data['wind_speed_kmh'] = data['wind_speed_10m']
-                marine_data['wind_direction_deg'] = data['wind_direction_10m']
-                marine_data['data_source'] = 'Open-Meteo'
-                marine_data['data_quality'] = 'medium'
-        except Exception as e:
-            pass
-    
-    if marine_data['wind_speed_kmh'] is None:
-        weather_result = get_cached_weather(lat, lon)
-        if weather_result['success']:
-            marine_data['wind_speed_kmh'] = weather_result['weather']['wind_speed']
-            marine_data['wind_direction_deg'] = weather_result['weather']['wind_direction']
-            marine_data['data_source'] = weather_result['weather'].get('source', 'simulation')
-            marine_data['data_quality'] = 'low'
-        else:
-            marine_data['wind_speed_kmh'] = 10
-            marine_data['wind_direction_deg'] = 270
-    
-    marine_data['water_temperature'] = predictor.estimate_water_from_position(lat, lon)
-    marine_data['chlorophyll'] = predictor.estimate_chlorophyll(datetime.now().month, lat, lon)
-    current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
-    marine_data['current_speed'] = current_data['speed_mps']
-    
+
+    try:
+        # Utiliser notre nouveau handler
+        from wekeo_handler import get_water_temperature, get_chlorophyll, get_ocean_current, get_wave_height, get_dissolved_oxygen
+
+        # Récupérer les données réelles
+        temp_data = get_water_temperature(lat, lon)
+        if temp_data and 'value' in temp_data:
+            marine_data['water_temperature'] = temp_data['value']
+            marine_data['data_quality'] = temp_data.get('quality', 'high')
+            marine_data['data_source'] = temp_data.get('source', 'open-meteo')
+
+        chl_data = get_chlorophyll(lat, lon)
+        if chl_data and 'value' in chl_data:
+            marine_data['chlorophyll'] = chl_data['value']
+
+        current_data = get_ocean_current(lat, lon)
+        if current_data and 'speed_ms' in current_data:
+            marine_data['current_speed'] = current_data['speed_ms']
+
+        wave_data = get_wave_height(lat, lon)
+        if wave_data and 'value' in wave_data:
+            marine_data['wave_height'] = wave_data['value']
+
+        oxygen_data = get_dissolved_oxygen(lat, lon)
+        if oxygen_data and 'value' in oxygen_data:
+            marine_data['dissolved_oxygen'] = oxygen_data['value']
+
+    except Exception as e:
+        print(f"⚠️ Erreur récupération données réelles: {e}")
+
+    # Récupérer le vent depuis OpenWeatherMap (déjà présent)
+    weather_result = get_cached_weather(lat, lon)
+    if weather_result['success']:
+        marine_data['wind_speed_kmh'] = weather_result['weather']['wind_speed']
+        marine_data['wind_direction_deg'] = weather_result['weather']['wind_direction']
+
     return marine_data
 
 
@@ -604,34 +654,34 @@ def api_24h_forecast_internal(lat, lon, species):
     try:
         current_time = datetime.now()
         hourly_data = []
-        
+
         # Fonction interne pour obtenir TOUTES les données marines
         def get_complete_marine_data(target_time):
             """Retourne toutes les données marines pour une date/heure spécifique"""
             # Météo pour cette heure
             weather_result = get_cached_weather(lat, lon)
             weather = weather_result['weather'] if weather_result['success'] else generate_consistent_weather(lat, lon)['weather']
-            
+
             # Données marines multi-sources
             marine = get_marine_data_multi_source(lat, lon)
-            
+
             # Température de l'eau estimée
             water_temp = predictor.estimate_water_from_position(lat, lon)
-            
+
             # Oxygène dissous
             oxygen = predictor.calculate_dissolved_oxygen(
                 water_temp,
                 config.SALINITY_MEDITERRANEAN,
                 weather['pressure']
             )
-            
+
             # Chlorophylle
-            chlorophyll = marine.get('chlorophyll', 
+            chlorophyll = marine.get('chlorophyll',
                 predictor.estimate_chlorophyll(target_time.month, lat, lon))
-            
+
             # Courant tidal
             current = predictor.calculate_tidal_current(lat, lon, target_time)
-            
+
             return {
                 'temperature': weather['temperature'],
                 'wind_speed': marine.get('wind_speed_kmh', weather['wind_speed']) / 3.6,
@@ -647,36 +697,36 @@ def api_24h_forecast_internal(lat, lon, species):
                 'oxygen': oxygen,
                 'chlorophyll': chlorophyll
             }
-        
+
         # Calculer pour CHAQUE heure avec les données COMPLÈTES
         for hour_offset in range(24):
             forecast_time = current_time + timedelta(hours=hour_offset)
-            
+
             # Données marines COMPLÈTES pour cette heure
             marine_data = get_complete_marine_data(forecast_time)
-            
+
             # Prédiction COMPLÈTE pour cette heure
             prediction = predictor.predict_daily_activity(
-                lat, 
-                lon, 
-                forecast_time, 
-                species, 
+                lat,
+                lon,
+                forecast_time,
+                species,
                 marine_data
             )
-            
+
             # Récupération du score (déjà en pourcentage 0-100)
             score = int(round(prediction['score']))
-            
+
             hourly_data.append({
                 'hour': forecast_time.hour,
                 'time': forecast_time.strftime('%H:%M'),
                 'score': score,
                 'timestamp': forecast_time.timestamp()
             })
-        
+
         hours = [f"{d['hour']}h" for d in hourly_data]
         scores = [d['score'] for d in hourly_data]
-        
+
         return jsonify({
             'status': 'success',
             'hours': hours,
@@ -684,6 +734,93 @@ def api_24h_forecast_internal(lat, lon, species):
             'current_score': scores[0] if scores else 0
         })
     except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+# ===== NOUVELLE ROUTE API POUR LA PRESSION 24h =====
+@app.route('/api/pressure_24h')
+def api_pressure_24h():
+    """Données de pression sur 24h pour le pictogramme"""
+    try:
+        lat = float(request.args.get('lat', 36.8065))
+        lon = float(request.args.get('lon', 10.1815))
+        
+        # Récupérer les données météo actuelles
+        weather_result = get_cached_weather(lat, lon)
+        
+        if not weather_result['success']:
+            return jsonify({'status': 'error', 'message': 'Pas de données météo'})
+        
+        current_pressure = weather_result['weather'].get('pressure', 1015)
+        
+        # Générer une tendance réaliste sur 24h
+        hours = []
+        pressures = []
+        
+        # Heure actuelle
+        now = datetime.now()
+        
+        for i in range(24):
+            hour_time = now + timedelta(hours=i)
+            hour_str = hour_time.strftime('%Hh')
+            hours.append(hour_str)
+            
+            # Variation sinusoïdale réaliste (±3 hPa sur 24h)
+            # + tendance à la baisse ou hausse selon la météo
+            variation = math.sin(i * math.pi / 12) * 2
+            
+            # Simulation d'une tendance (si la pression actuelle est en baisse)
+            trend = 0
+            if i < 12:
+                trend = -0.2 * i  # Baisse progressive
+            else:
+                trend = -2.4 + 0.2 * (i - 12)  # Remontée
+            
+            pressure = current_pressure + variation + trend
+            pressures.append(round(pressure, 1))
+        
+        # Déterminer la tendance globale
+        first_3 = sum(pressures[:3]) / 3
+        last_3 = sum(pressures[-3:]) / 3
+        
+        if last_3 > first_3 + 1:
+            trend = "hausse"
+            icon = "📈"
+            color = "#ef4444"
+        elif last_3 < first_3 - 1:
+            trend = "baisse"
+            icon = "📉"
+            color = "#10b981"
+        else:
+            trend = "stable"
+            icon = "➡️"
+            color = "#f59e0b"
+        
+        # Message selon la tendance
+        if trend == "baisse" and current_pressure < 1020:
+            message = "✅ Pression en baisse - Bon pour la pêche !"
+        elif trend == "baisse":
+            message = "👍 Pression en baisse - Activité stimulée"
+        elif trend == "hausse" and current_pressure > 1020:
+            message = "⚠️ Pression en hausse - Poissons moins actifs"
+        else:
+            message = "➡️ Pression stable - Conditions normales"
+        
+        return jsonify({
+            'status': 'success',
+            'hours': hours,
+            'pressures': pressures,
+            'current': current_pressure,
+            'min': min(pressures),
+            'max': max(pressures),
+            'trend': trend,
+            'trend_icon': icon,
+            'trend_color': color,
+            'message': message,
+            'unit': 'hPa'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erreur API pression: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
 # ===== ROUTES PRINCIPALES =====
@@ -716,6 +853,44 @@ def api_current_weather():
         print(f"❌ Erreur API météo: {e}")
         return jsonify({'status':'error','message':str(e)})
 
+@app.route('/api/quick_score')
+def api_quick_score():
+    """Route ULTRA-RAPIDE - score immédiat depuis cache"""
+    try:
+        lat = float(request.args.get('lat', 36.8065))
+        lon = float(request.args.get('lon', 10.1815))
+        species = request.args.get('species', 'loup')
+
+        cache_key = f"quick_{lat:.4f}_{lon:.4f}_{species}"
+
+        def compute_quick():
+            weather = get_cached_weather(lat, lon)
+            base_score = 65
+            if weather['success']:
+                wind = weather['weather']['wind_speed']
+                if wind < 15:
+                    base_score += 10
+                elif wind > 25:
+                    base_score -= 10
+            return {
+                'score': base_score,
+                'source': 'quick'
+            }
+
+        data, from_cache = get_cached(cache_key, compute_quick)
+
+        return jsonify({
+            'status': 'success',
+            'score': data['score'],
+            'quick': True,
+            'cached': from_cache,
+            'last_update': datetime.now().isoformat(),
+            'next_update': (datetime.now() + timedelta(hours=3)).isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'score': 65})
+
 @app.route('/api/tunisian_prediction')
 def api_tunisian_prediction():
     try:
@@ -723,7 +898,7 @@ def api_tunisian_prediction():
         cache_key = f"prediction_{lat:.4f}_{lon:.4f}_{species}"
         cached_prediction = load_from_cache('prediction', {'lat': lat, 'lon': lon, 'species': species}, max_age_hours=1)
         if cached_prediction: return jsonify(cached_prediction)
-        
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_location = executor.submit(get_location_name_with_cache, lat, lon)
             future_bathymetry = executor.submit(get_real_bathymetry, lat, lon)
@@ -731,9 +906,9 @@ def api_tunisian_prediction():
             location_info = future_location.result()
             bathymetry = future_bathymetry.result()
             weather_result = future_weather.result()
-        
+
         marine_data = get_marine_data_multi_source(lat, lon)
-        
+
         if weather_result['success']:
             real_weather = weather_result['weather']
             predictor_weather = {
@@ -766,21 +941,21 @@ def api_tunisian_prediction():
                 'current_speed':marine_data['current_speed']
             }
             weather_source = 'modèle cohérent'
-        
+
         oxygen_level = predictor.calculate_dissolved_oxygen(marine_data['water_temperature'],marine_data['salinity'],predictor_weather['pressure'])
         chlorophyll_level = marine_data.get('chlorophyll', predictor.estimate_chlorophyll(datetime.now().month, lat, lon))
         current_data = predictor.calculate_tidal_current(lat, lon, datetime.now())
         predictor_weather.update({'oxygen': oxygen_level,'chlorophyll': chlorophyll_level})
-        
+
         prediction = predictor.predict_daily_activity(lat, lon, datetime.now(), species, predictor_weather)
-        
+
         depth = bathymetry.get('depth', 10)
         depth_factor = calculate_depth_factor(depth, species)
         weather_score = calculate_weather_score(predictor_weather)
-        
+
         # Récupérer le score de l'advanced_predictor (déjà en pourcentage 0-100)
         activity_score_percent = prediction['score']
-        
+
         # 👇 NOUVELLE VERSION : Utiliser le pictogramme comme source de vérité
         forecast_response = api_24h_forecast_internal(lat, lon, species)
         if forecast_response.status_code == 200:
@@ -795,7 +970,7 @@ def api_tunisian_prediction():
                         if h == f"{current_hour}h":
                             current_index = i
                             break
-                    
+
                     if current_index >= 0:
                         final_score = forecast_data['scores'][current_index]
                     else:
@@ -806,22 +981,22 @@ def api_tunisian_prediction():
             except Exception as e:
                 print(f"⚠️ Erreur parsing forecast: {e}")
                 final_score = round(
-                    activity_score_percent * 0.35 + 
-                    depth_factor * 25 + 
+                    activity_score_percent * 0.35 +
+                    depth_factor * 25 +
                     weather_score * 40
                 )
         else:
             # Fallback sur l'ancien calcul
             final_score = round(
-                activity_score_percent * 0.35 + 
-                depth_factor * 25 + 
+                activity_score_percent * 0.35 +
+                depth_factor * 25 +
                 weather_score * 40
             )
-        
+
         final_score = max(0, min(100, final_score))
-        
+
         prediction_id = hashlib.md5(f"{lat:.4f}_{lon:.4f}_{species}_{datetime.now().strftime('%Y%m%d')}".encode()).hexdigest()[:12]
-        
+
         response_data = {
             'status':'success',
             'prediction_id':prediction_id,
@@ -901,10 +1076,15 @@ def api_tunisian_prediction():
                 'api_usage_info':{
                     'openweather_calls_today':API_RATE_LIMITS['openweather']['count_today'],
                     'using_cache':weather_result.get('source')=='cache'
+                },
+                'cache': {
+                    'cached_at': datetime.now().isoformat(),
+                    'expires_at': (datetime.now() + timedelta(hours=3)).isoformat(),
+                    'cache_duration_hours': 3
                 }
             }
         }
-        
+
         save_to_cache('prediction', {'lat': lat, 'lon': lon, 'species': species}, response_data, 1)
         return jsonify(response_data)
     except Exception as e:
@@ -918,37 +1098,37 @@ def api_24h_forecast():
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
-        
+
         current_time = datetime.now()
         hourly_data = []
-        
+
         # Fonction interne pour obtenir TOUTES les données marines
         def get_complete_marine_data(target_time):
             """Retourne toutes les données marines pour une date/heure spécifique"""
             # Météo pour cette heure
             weather_result = get_cached_weather(lat, lon)
             weather = weather_result['weather'] if weather_result['success'] else generate_consistent_weather(lat, lon)['weather']
-            
+
             # Données marines multi-sources
             marine = get_marine_data_multi_source(lat, lon)
-            
+
             # Température de l'eau estimée
             water_temp = predictor.estimate_water_from_position(lat, lon)
-            
+
             # Oxygène dissous
             oxygen = predictor.calculate_dissolved_oxygen(
                 water_temp,
                 config.SALINITY_MEDITERRANEAN,
                 weather['pressure']
             )
-            
+
             # Chlorophylle
-            chlorophyll = marine.get('chlorophyll', 
+            chlorophyll = marine.get('chlorophyll',
                 predictor.estimate_chlorophyll(target_time.month, lat, lon))
-            
+
             # Courant tidal
             current = predictor.calculate_tidal_current(lat, lon, target_time)
-            
+
             return {
                 'temperature': weather['temperature'],
                 'wind_speed': marine.get('wind_speed_kmh', weather['wind_speed']) / 3.6,
@@ -964,41 +1144,41 @@ def api_24h_forecast():
                 'oxygen': oxygen,
                 'chlorophyll': chlorophyll
             }
-        
+
         # Calculer pour CHAQUE heure avec les données COMPLÈTES
         for hour_offset in range(24):
             forecast_time = current_time + timedelta(hours=hour_offset)
-            
+
             # Données marines COMPLÈTES pour cette heure
             marine_data = get_complete_marine_data(forecast_time)
-            
+
             # Prédiction COMPLÈTE pour cette heure
             prediction = predictor.predict_daily_activity(
-                lat, 
-                lon, 
-                forecast_time, 
-                species, 
+                lat,
+                lon,
+                forecast_time,
+                species,
                 marine_data
             )
-            
+
             # Récupération du score (déjà en pourcentage 0-100)
             score = int(round(prediction['score']))
-            
+
             hourly_data.append({
                 'hour': forecast_time.hour,
                 'time': forecast_time.strftime('%H:%M'),
                 'score': score,
                 'timestamp': forecast_time.timestamp()
             })
-        
+
         # Extraire les listes
         hours = [f"{d['hour']}h" for d in hourly_data]
         scores = [d['score'] for d in hourly_data]
-        
+
         # Le score actuel est simplement la première heure
         current_score = scores[0]
         current_hour = current_time.hour
-        
+
         # Trouver le meilleur score (parmi toutes les heures)
         best_score = max(scores)
         best_indices = [i for i, s in enumerate(scores) if s == best_score]
@@ -1006,7 +1186,7 @@ def api_24h_forecast():
         best_hour = hours[best_idx]
         best_time = hourly_data[best_idx]['time']
         best_hour_number = hourly_data[best_idx]['hour']
-        
+
         # Comparer avec le score actuel (qui est déjà dans la liste)
         if current_score == best_score and best_idx == 0:
             note = "🔥 Le meilleur moment est MAINTENANT !"
@@ -1014,7 +1194,7 @@ def api_24h_forecast():
             note = f"🔥 Meilleur moment également à {best_hour}"
         else:
             note = None
-        
+
         # Calculer la tendance (comparer les premières heures)
         if len(scores) >= 4:
             if scores[3] > scores[0] + 3:
@@ -1025,7 +1205,7 @@ def api_24h_forecast():
                 trend = 'stable'
         else:
             trend = 'stable'
-        
+
         # Meilleurs créneaux (fenêtres de 3h)
         best_windows = []
         window_size = 3
@@ -1040,9 +1220,9 @@ def api_24h_forecast():
                 'start_hour': hourly_data[i]['hour'],
                 'end_hour': hourly_data[i+window_size-1]['hour']
             })
-        
+
         best_windows.sort(key=lambda x: x['avg_score'], reverse=True)
-        
+
         response = {
             'status': 'success',
             'hours': hours,
@@ -1063,9 +1243,9 @@ def api_24h_forecast():
                 'timestamp': datetime.now().isoformat()
             }
         }
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         print(f"❌ Erreur prévisions 24h: {e}")
         import traceback
@@ -1462,12 +1642,12 @@ def api_prediction_details():
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
-        
+
         prediction_result = predictor.predict_daily_activity(
-            lat, lon, datetime.now(), species, 
+            lat, lon, datetime.now(), species,
             get_cached_weather(lat, lon)['weather']
         )
-        
+
         return jsonify({
             'status': 'success',
             'score': int(round(prediction_result['activity_score'])),
@@ -1490,12 +1670,12 @@ def api_spot_analysis():
     try:
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
-        
+
         bathymetry = get_real_bathymetry(lat, lon)
         weather = get_cached_weather(lat, lon)
         tide = get_tide_data_with_cache(lat, lon)
         location = get_location_name_with_cache(lat, lon)
-        
+
         analysis = {
             'status': 'success',
             'coordinates': {'lat': lat, 'lon': lon},
@@ -1519,7 +1699,7 @@ def api_spot_analysis():
             },
             'timestamp': datetime.now().isoformat()
         }
-        
+
         return jsonify(analysis)
     except Exception as e:
         print(f"❌ Erreur analyse spot: {e}")
@@ -1531,7 +1711,7 @@ def api_wind_forecast():
     try:
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
-        
+
         weather = get_cached_weather(lat, lon)
         if weather['success']:
             wind_data = {
@@ -1551,7 +1731,7 @@ def api_wind_forecast():
                 'is_onshore': False,
                 'impact': 'Neutre'
             }
-        
+
         return jsonify({
             'status': 'success',
             'wind': wind_data,
@@ -1570,19 +1750,19 @@ def api_quick_check():
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
-        
+
         weather = get_cached_weather(lat, lon)
         prediction = predictor.predict_daily_activity(
             lat, lon, datetime.now(), species,
             weather['weather'] if weather['success'] else {}
         )
-        
+
         score = int(round(prediction['activity_score']))
         wind_speed = weather['weather'].get('wind_speed', 10) if weather['success'] else 10
         is_offshore = False
         current_hour = datetime.now().hour
         is_daytime = 6 <= current_hour <= 19
-        
+
         if is_offshore:
             decision = 'danger'
             message = '❌ DANGER VENT OFFSHORE - NE PAS PÊCHER'
@@ -1599,7 +1779,7 @@ def api_quick_check():
             decision = 'poor'
             message = '🔴 CONDITIONS SOUS-OPTIMALES - ATTENDRE'
             color = '#dc2626'
-        
+
         return jsonify({
             'status': 'success',
             'decision': decision,
@@ -1629,16 +1809,16 @@ def api_save_spot():
         data = request.json
         if not data:
             return jsonify({'status': 'error', 'message': 'Données manquantes'})
-        
+
         favorites = []
         if os.path.exists(FAVORITES_FILE):
             with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
                 favorites = json.load(f)
-        
+
         import time
         spot_id_str = f"{data.get('name', '')}{data.get('lat', 0)}{data.get('lon', 0)}{time.time()}"
         spot_id = hashlib.md5(spot_id_str.encode('utf-8')).hexdigest()[:8]
-        
+
         spot_data = {
             'id': spot_id,
             'name': data.get('name', 'Spot sans nom'),
@@ -1650,12 +1830,12 @@ def api_save_spot():
             'details': data.get('details', {}),
             'created_at': datetime.now().isoformat()
         }
-        
+
         favorites.append(spot_data)
-        
+
         with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
             json.dump(favorites, f, ensure_ascii=False, indent=2)
-        
+
         return jsonify({
             'status': 'success',
             'id': spot_id,
@@ -1673,7 +1853,7 @@ def api_distance_calculation():
         lon1 = float(request.args.get('lon1', 10.1815))
         lat2 = float(request.args.get('lat2', 36.8065))
         lon2 = float(request.args.get('lon2', 10.1815))
-        
+
         R = 6371
         dlat = math.radians(lat2 - lat1)
         dlon = math.radians(lon2 - lon1)
@@ -1682,9 +1862,9 @@ def api_distance_calculation():
              math.sin(dlon/2) * math.sin(dlon/2))
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
         distance = R * c
-        
+
         travel_time_minutes = round((distance / 50) * 60)
-        
+
         return jsonify({
             'status': 'success',
             'distance_km': round(distance, 2),
@@ -1961,10 +2141,10 @@ def api_real_ocean_info():
     try:
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
-        
+
         if REAL_OCEAN_ENABLED:
             all_data = real_ocean.get_all_fishing_data(lat, lon)
-            
+
             response = {
                 'status': 'success',
                 'location': {'lat': lat, 'lon': lon},
@@ -1981,7 +2161,7 @@ def api_real_ocean_info():
                 },
                 'timestamp': datetime.now().isoformat()
             }
-            
+
             sst_source = response['sources']['sst'].lower()
             if 'climatologie' in sst_source or 'moyenne' in sst_source:
                 response['data_type'] = 'climatology'
@@ -1992,7 +2172,7 @@ def api_real_ocean_info():
             else:
                 response['data_type'] = 'estimated'
                 response['data_note'] = 'Données estimées par modèle'
-                
+
             return jsonify(response)
         else:
             return jsonify({
@@ -2000,7 +2180,7 @@ def api_real_ocean_info():
                 'message': 'Module données réelles non disponible',
                 'has_real_data': False
             })
-            
+
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
@@ -2011,9 +2191,9 @@ def api_forecast_10days():
         lat = float(request.args.get('lat', 36.8065))
         lon = float(request.args.get('lon', 10.1815))
         species = request.args.get('species', 'loup')
-        
+
         print(f"📊 Prévisions 10 jours demandées pour ({lat}, {lon}) - {species}")
-        
+
         # Essayer d'abord les données réelles Open-Meteo
         try:
             forecast = get_openmeteo_10day_forecast(lat, lon)
@@ -2021,10 +2201,10 @@ def api_forecast_10days():
                 return process_real_forecast(forecast['data'], lat, lon, species)
         except Exception as e:
             print(f"⚠️ Prévisions réelles échouées: {e}")
-        
+
         # Fallback sur simulation
         return api_forecast_10days_fallback(lat, lon, species)
-        
+
     except Exception as e:
         print(f"❌ Erreur prévisions: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
@@ -2041,9 +2221,9 @@ def get_openmeteo_10day_forecast(lat: float, lon: float) -> dict:
             'timezone': 'Africa/Tunis',
             'forecast_days': 10
         }
-        
+
         response = requests.get(url, params=params, timeout=10)
-        
+
         if response.status_code == 200:
             return {
                 'success': True,
@@ -2054,7 +2234,7 @@ def get_openmeteo_10day_forecast(lat: float, lon: float) -> dict:
         else:
             print(f"⚠️ Open-Meteo erreur {response.status_code}")
             return {'success': False}
-            
+
     except Exception as e:
         print(f"⚠️ Open-Meteo exception: {e}")
         return {'success': False}
@@ -2064,9 +2244,9 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
     daily = forecast_data.get('daily', {})
     hourly = forecast_data.get('hourly', {})
     days = len(daily.get('time', []))
-    
+
     results = []
-    
+
     # Récupérer la température de l'eau (si possible)
     water_temp_base = 20.0
     if REAL_OCEAN_ENABLED:
@@ -2075,21 +2255,21 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
             water_temp_base = sst_data.get('value', 20.0)
         except Exception:
             water_temp_base = 20.0
-    
+
     for i in range(days):
         date_str = daily['time'][i]
         date = datetime.strptime(date_str, '%Y-%m-%d')
-        
+
         # Données quotidiennes
         temp_max = daily['temperature_2m_max'][i]
         temp_min = daily['temperature_2m_min'][i]
         temp_avg = (temp_max + temp_min) / 2
-        
+
         wind_speed = daily['windspeed_10m_max'][i]
         wind_direction = daily['winddirection_10m_dominant'][i]
         weather_code = daily.get('weathercode', [0] * days)[i]
         precipitation = daily.get('precipitation_sum', [0] * days)[i]
-        
+
         condition_map = {
             0: 'Ciel dégagé', 1: 'Principalement clair', 2: 'Partiellement nuageux',
             3: 'Couvert', 45: 'Brouillard', 51: 'Bruine légère', 53: 'Bruine modérée',
@@ -2097,13 +2277,13 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
             80: 'Averses légères', 81: 'Averses modérées', 95: 'Orage'
         }
         condition = condition_map.get(weather_code, 'Inconnu')
-        
+
         # Température de l'eau ajustée
         water_temp = water_temp_base + (temp_avg - 20) * 0.1
-        
+
         # Calcul de la hauteur des vagues
         wave_height = calculate_wave_height(wind_speed)
-        
+
         # Construction des données horaires de vent
         hourly_wind = []
         if hourly and 'time' in hourly:
@@ -2121,7 +2301,7 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
                         'direction_abbr': direction_info['abbreviation'],
                         'direction_icon': direction_info['icon']
                     })
-        
+
         # Construction des données pour le prédicteur
         weather_for_prediction = {
             'temperature': temp_avg,
@@ -2136,13 +2316,13 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
             'salinity': config.SALINITY_MEDITERRANEAN,
             'current_speed': 0.2
         }
-        
+
         # Prédiction
         prediction = predictor.predict_daily_activity(lat, lon, date, species, weather_for_prediction)
-        
+
         # Récupérer le score de base (déjà en pourcentage 0-100)
         base_score = prediction['score']
-        
+
         # === CORRECTION : AJOUTER UNE PÉNALITÉ POUR VENT FORT ===
         wind_penalty = 1.0
         if wind_speed > 40:
@@ -2159,15 +2339,15 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
             alert = "Vent sensible"
         else:
             alert = "Vent favorable"
-        
+
         # Appliquer la pénalité
         final_score = int(round(base_score * wind_penalty))
-        
+
         # S'assurer que le score reste dans des limites raisonnables
         final_score = max(10, min(98, final_score))
-        
+
         print(f"📊 Jour {i+1}: vent={wind_speed}km/h, base={base_score}%, penalty={wind_penalty:.2f}, final={final_score}% - {alert}")
-        
+
         # Définir la confiance selon l'échéance
         day_num = i + 1
         if day_num == 1:
@@ -2190,11 +2370,11 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
             confidence = 0.40
         else:
             confidence = 0.35
-        
+
         note = None
         if day_num > 5:
             note = "Données simulées – tendance uniquement"
-        
+
         results.append({
             'day': day_num,
             'date': date_str,
@@ -2221,11 +2401,11 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
             'best_hours': prediction['best_fishing_hours'][:2],
             'recommendation': alert,  # Message d'alerte
             'data_source': 'real_forecast',
-            'hourly_wind': hourly_wind
+            'hourly_wind': hourly_wind  # ← AJOUT CRUCIAL DES DONNÉES HORAIRES
         })
-    
+
     scores = [day['score'] for day in results]
-    
+
     return jsonify({
         'status': 'success',
         'forecast': results,
@@ -2236,160 +2416,6 @@ def process_real_forecast(forecast_data: dict, lat: float, lon: float, species: 
         'trend': 'improving' if len(scores) > 1 and scores[-1] > scores[0] else 'stable',
         'timestamp': datetime.now().isoformat()
     })
-
-def api_forecast_10days_fallback(lat: float, lon: float, species: str):
-    """Fallback avec données saisonnières simulées mais cohérentes"""
-    forecast = []
-    today = datetime.now()
-    
-    # Définir des profils mensuels pour la région (Tunisie)
-    monthly_profiles = {
-        1: {'temp': 14, 'wind': 18, 'precip': 60, 'condition': 'Pluie légère'},
-        2: {'temp': 15, 'wind': 17, 'precip': 50, 'condition': 'Nuageux'},
-        3: {'temp': 17, 'wind': 16, 'precip': 40, 'condition': 'Partiellement nuageux'},
-        4: {'temp': 20, 'wind': 15, 'precip': 30, 'condition': 'Ensoleillé'},
-        5: {'temp': 23, 'wind': 14, 'precip': 20, 'condition': 'Ensoleillé'},
-        6: {'temp': 26, 'wind': 13, 'precip': 10, 'condition': 'Ciel dégagé'},
-        7: {'temp': 29, 'wind': 12, 'precip': 5,  'condition': 'Ciel dégagé'},
-        8: {'temp': 29, 'wind': 12, 'precip': 10, 'condition': 'Ciel dégagé'},
-        9: {'temp': 26, 'wind': 14, 'precip': 30, 'condition': 'Ensoleillé'},
-        10: {'temp': 23, 'wind': 16, 'precip': 40, 'condition': 'Partiellement nuageux'},
-        11: {'temp': 19, 'wind': 18, 'precip': 50, 'condition': 'Nuageux'},
-        12: {'temp': 15, 'wind': 19, 'precip': 70, 'condition': 'Pluie légère'}
-    }
-    
-    for day in range(10):
-        date = today + timedelta(days=day)
-        month = date.month
-        profile = monthly_profiles.get(month, monthly_profiles[1])
-        
-        # Ajouter une variation quotidienne réaliste (bruit)
-        seed = day * 1000 + int(lat * 100) + int(lon * 100)
-        random.seed(seed)
-        temp_variation = random.uniform(-2, 2)
-        wind_variation = random.uniform(-3, 3)
-        
-        temperature = profile['temp'] + temp_variation
-        wind_speed = max(5, profile['wind'] + wind_variation)
-        condition = profile['condition']
-        
-        # Calcul du score de pêche basé sur des règles simples
-        base_score = 50
-        if 18 <= temperature <= 28:
-            base_score += 15
-        elif 12 <= temperature <= 30:
-            base_score += 5
-        else:
-            base_score -= 10
-        
-        if wind_speed < 15:
-            base_score += 10
-        elif wind_speed > 25:
-            base_score -= 15
-        
-        # Facteur saisonnier pour l'espèce
-        if species in ['loup', 'daurade'] and month in [3,4,5,9,10,11]:
-            base_score += 10
-        
-        # Pénalité vent
-        wind_penalty = 1.0
-        if wind_speed > 40:
-            wind_penalty = 0.3
-            alert = "VENT TRÈS FORT - Pêche dangereuse"
-        elif wind_speed > 30:
-            wind_penalty = 0.5
-            alert = "VENT FORT - Conditions difficiles"
-        elif wind_speed > 20:
-            wind_penalty = 0.7
-            alert = "VENT MODÉRÉ - Prudence"
-        elif wind_speed > 15:
-            wind_penalty = 0.9
-            alert = "Vent sensible"
-        else:
-            alert = "Vent favorable"
-        
-        score = max(20, min(95, int(round(base_score * wind_penalty))))
-        
-        # Définir la confiance selon l'échéance
-        day_num = day + 1
-        if day_num == 1:
-            confidence = 0.95
-        elif day_num == 2:
-            confidence = 0.90
-        elif day_num == 3:
-            confidence = 0.85
-        elif day_num == 4:
-            confidence = 0.75
-        elif day_num == 5:
-            confidence = 0.65
-        elif day_num == 6:
-            confidence = 0.55
-        elif day_num == 7:
-            confidence = 0.50
-        elif day_num == 8:
-            confidence = 0.45
-        elif day_num == 9:
-            confidence = 0.40
-        else:
-            confidence = 0.35
-        
-        note = None
-        if day_num > 5:
-            note = "Données simulées – tendance uniquement"
-        
-        # Génération des données horaires (simulées)
-        hourly_wind = []
-        for h in [0,3,6,9,12,15,18,21]:
-            hour_variation = 0.8 + 0.4 * math.sin(h / 3)
-            speed = wind_speed * hour_variation
-            direction = (h * 15) % 360
-            dir_info = get_wind_direction_name(direction)
-            hourly_wind.append({
-                'time': f"{h:02d}h",
-                'speed_kmh': round(speed, 1),
-                'direction_deg': direction,
-                'direction_name': dir_info['name'],
-                'direction_abbr': dir_info['abbreviation'],
-                'direction_icon': dir_info['icon']
-            })
-        
-        forecast.append({
-            'day': day_num,
-            'date': date.strftime('%Y-%m-%d'),
-            'score': score,
-            'confidence': confidence,
-            'note': note,
-            'weather': {
-                'temp_avg': round(temperature, 1),
-                'condition': condition,
-                'wind_speed': round(wind_speed, 1),
-                'wind_direction': get_wind_direction_name((day*30)%360)['name'],
-                'wind_direction_deg': (day*30)%360,
-                'water_temperature': round(temperature - 2, 1),  # eau légèrement plus fraîche
-                'wave_height': round(0.3 + wind_speed*0.05, 2)
-            },
-            'wind': {
-                'speed': round(wind_speed, 1),
-                'direction': (day*30)%360,
-                'direction_name': get_wind_direction_name((day*30)%360)['name']
-            },
-            'best_hours': [{'hour': 6}, {'hour': 18}],  # approximation
-            'recommendation': alert,
-            'data_source': 'model_simulation',
-            'hourly_wind': hourly_wind
-        })
-    
-    return jsonify({
-        'status': 'success',
-        'forecast': forecast,
-        'location': f'Position ({lat:.4f}, {lon:.4f})',
-        'species': species,
-        'average_score': int(round(sum([d['score'] for d in forecast])/len(forecast))),
-        'source': 'modèle saisonnier',
-        'note': 'Données basées sur les moyennes climatologiques',
-        'timestamp': datetime.now().isoformat()
-    })
-
 def generate_forecast_weather(lat: float, lon: float, date: datetime) -> dict:
     """Génère des données météo variées pour les prévisions (fallback)"""
     day_of_year = date.timetuple().tm_yday
@@ -2429,12 +2455,12 @@ def quick_test_wekeo():
     try:
         lat = 36.8065
         lon = 10.1815
-        
+
         print("\n⚡ TEST RAPIDE WEKEO - DÉBUT ⚡")
         print(f"1. WEKEO_ENABLED = {WEKEO_ENABLED}")
-        
+
         result = {}
-        
+
         if WEKEO_ENABLED:
             print("2. Appel direct à wekeo_enhancer.get_wind_data()...")
             try:
@@ -2447,23 +2473,172 @@ def quick_test_wekeo():
         else:
             print("2. WEkEO désactivé")
             result['wekeo'] = "disabled"
-        
+
         print("3. Test get_marine_data_multi_source()...")
         marine_data = get_marine_data_multi_source(lat, lon)
         print(f"   📊 Résultat: source={marine_data.get('data_source')}, vent={marine_data.get('wind_speed_kmh')} km/h")
         result['marine_data'] = marine_data
-        
+
         print("⚡ TEST RAPIDE WEKEO - FIN ⚡\n")
-        
+
         return jsonify({
             'status': 'success',
             'test': result,
             'timestamp': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"❌ ERREUR test rapide: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
+
+# ===== ROUTE API POUR TEST BATHYMÉTRIE DEPUIS F12 =====
+@app.route('/api/depth')
+def api_depth():
+    """API pour tester la bathymétrie depuis la console F12"""
+    try:
+        lat = float(request.args.get('lat', 36.908))
+        lon = float(request.args.get('lon', 10.288))
+        
+        # Vérifier si le module est disponible
+        if not BATHYMETRY_ENABLED:
+            return jsonify({
+                'error': 'Module bathymétrie non disponible',
+                'depth': 4.0,  # Valeur par défaut
+                'source': 'Valeur par défaut',
+                'confidence': 0.5
+            }), 200
+        
+        # Utiliser l'instance globale importée
+        result = gebco.get_depth_with_fallback(lat, lon)
+        
+        # Ajouter des infos de debug
+        try:
+            spot_check = gebco._tunisia_expert(lat, lon)
+            spot_active = spot_check['success']
+            spot_name = spot_check.get('source', 'Aucun')
+        except:
+            spot_active = False
+            spot_name = 'Erreur vérification'
+        
+        response = {
+            'depth': result['depth'],
+            'source': result['source'],
+            'confidence': result.get('confidence', 0),
+            'accuracy': result.get('accuracy', 'moyenne'),
+            'debug': {
+                'spot_expert_active': spot_active,
+                'spot_name': spot_name,
+                'coordinates': {'lat': lat, 'lon': lon},
+                'zone': result.get('zone', 'Inconnue')
+            }
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        print(f"❌ Erreur API depth: {e}")
+        return jsonify({
+            'error': str(e),
+            'depth': 4.0,  # Fallback
+            'source': 'Fallback',
+            'confidence': 0.3
+        }), 200  # 200 pour éviter l'erreur dans la console
+
+
+@app.route('/api/bathymetry_test')
+def api_bathymetry_test():
+    """Page de test HTML pour la bathymétrie"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Bathymétrie</title>
+        <style>
+            body { font-family: Arial; margin: 20px; background: #1a1a2e; color: white; }
+            .container { max-width: 600px; margin: auto; padding: 20px; background: #16213e; border-radius: 10px; }
+            input { padding: 10px; margin: 5px; width: 200px; background: #0f3460; color: white; border: 1px solid #e94560; }
+            button { padding: 10px 20px; background: #e94560; color: white; border: none; cursor: pointer; }
+            #result { margin-top: 20px; padding: 15px; background: #0f3460; border-radius: 5px; white-space: pre-wrap; }
+            .success { color: #4caf50; }
+            .warning { color: #ff9800; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🌊 Test Bathymétrie Tunisie</h1>
+            <div>
+                <label>Latitude:</label>
+                <input type="number" id="lat" step="0.001" value="36.908">
+                <label>Longitude:</label>
+                <input type="number" id="lon" step="0.001" value="10.288">
+                <button onclick="testDepth()">Tester</button>
+            </div>
+            <div>
+                <button onclick="testGammarth()">Marina Gammarth</button>
+                <button onclick="testSousse()">Sousse Port</button>
+                <button onclick="testBizerte()">Bizerte</button>
+            </div>
+            <div id="result"></div>
+        </div>
+        <script>
+            async function testDepth() {
+                const lat = document.getElementById('lat').value;
+                const lon = document.getElementById('lon').value;
+                const resultDiv = document.getElementById('result');
+                
+                resultDiv.innerHTML = 'Chargement...';
+                
+                try {
+                    const response = await fetch(`/api/depth?lat=${lat}&lon=${lon}`);
+                    const data = await response.json();
+                    
+                    let html = '<strong>Résultat:</strong><br>';
+                    html += `Profondeur: <span class="success">${data.depth} m</span><br>`;
+                    html += `Source: ${data.source}<br>`;
+                    html += `Confiance: ${data.confidence*100}%<br>`;
+                    html += `Précision: ${data.accuracy}<br>`;
+                    html += `<hr>`;
+                    html += `<strong>Debug:</strong><br>`;
+                    html += `Spot expert actif: ${data.debug.spot_expert_active ? '✅' : '❌'}<br>`;
+                    html += `Spot: ${data.debug.spot_name}<br>`;
+                    html += `Zone: ${data.debug.zone}<br>`;
+                    
+                    if (data.debug.spot_expert_active) {
+                        html += `<p class="success">✅ SPOT EXPERT ACTIVÉ !</p>`;
+                    } else {
+                        html += `<p class="warning">⚠️ Spot expert NON activé</p>`;
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                } catch (e) {
+                    resultDiv.innerHTML = `Erreur: ${e.message}`;
+                }
+            }
+            
+            function testGammarth() {
+                document.getElementById('lat').value = 36.908;
+                document.getElementById('lon').value = 10.288;
+                testDepth();
+            }
+            
+            function testSousse() {
+                document.getElementById('lat').value = 35.8213;
+                document.getElementById('lon').value = 10.6387;
+                testDepth();
+            }
+            
+            function testBizerte() {
+                document.getElementById('lat').value = 37.27;
+                document.getElementById('lon').value = 9.87;
+                testDepth();
+            }
+            
+            // Test automatique au chargement
+            window.onload = testGammarth;
+        </script>
+    </body>
+    </html>
+    """
 
 # ===== DÉMARRAGE DE L'APPLICATION =====
 if __name__=='__main__':

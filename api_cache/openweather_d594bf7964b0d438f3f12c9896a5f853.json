@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 16.01,
+    "feels_like": 15.96,
+    "pressure": 1022,
+    "humidity": 88,
+    "wind_speed": 14.832,
+    "wind_direction": 60,
+    "wind_direction_abbr": "ENE",
+    "wind_direction_name": "Est-Nord-Est",
+    "wind_direction_icon": "↗️",
+    "wind_fishing_impact": "Vent d'est - Peut rendre la mer agitée, prudence",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.39,
+    "condition": "Clouds",
+    "condition_description": "nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "04n",
+    "clouds": 75,
+    "visibility": 8.0,
+    "sunrise": "2026-03-07T06:39:46",
+    "sunset": "2026-03-07T18:17:13",
+    "location": "Sahline",
+    "country": "TN",
+    "timestamp": "2026-03-07T23:54:03.620003",
+    "score": 1.0
+  },
+  "timestamp": 1772924043.6200037,
+  "expires_at": 1772967243.6200037,
+  "api_name": "openweather",
+  "params": {
+    "lat": 35.78980176087154,
+    "lon": 10.681809311091454
+  }
+}

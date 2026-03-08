@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "هيشر, معتمدية بنزرت الجنوبية, ولاية بنزرت, تونس",
+    "address": {
+      "county": "هيشر",
+      "state_district": "معتمدية بنزرت الجنوبية",
+      "state": "ولاية بنزرت",
+      "ISO3166-2-lvl4": "TN-23",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1772924552.6215017,
+  "expires_at": 1773010952.6215017,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 37.29765341877015,
+    "lon": 9.624580833062346
+  }
+}

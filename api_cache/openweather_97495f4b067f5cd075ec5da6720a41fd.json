@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.86,
+    "feels_like": 14.86,
+    "pressure": 1021,
+    "humidity": 94,
+    "wind_speed": 16.668,
+    "wind_direction": 40,
+    "wind_direction_abbr": "NE",
+    "wind_direction_name": "Nord-Est",
+    "wind_direction_icon": "↗️",
+    "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.47,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01n",
+    "clouds": 0,
+    "visibility": 6.0,
+    "sunrise": "2026-03-08T06:38:36",
+    "sunset": "2026-03-08T18:18:17",
+    "location": "Sousse",
+    "country": "TN",
+    "timestamp": "2026-03-08T05:23:19.632029",
+    "score": 1.0
+  },
+  "timestamp": 1772943799.6320288,
+  "expires_at": 1772986999.6320288,
+  "api_name": "openweather",
+  "params": {
+    "lat": 35.827683359851754,
+    "lon": 10.633052867744738
+  }
+}

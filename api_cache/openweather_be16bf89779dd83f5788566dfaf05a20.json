@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 12.95,
+    "feels_like": 12.91,
+    "pressure": 1022,
+    "humidity": 100,
+    "wind_speed": 7.416,
+    "wind_direction": 330,
+    "wind_direction_abbr": "NNO",
+    "wind_direction_name": "Nord-Nord-Ouest",
+    "wind_direction_icon": "↖️",
+    "wind_fishing_impact": "Vent de nord-ouest - Excellent pour la pêche, mer claire",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.2,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 6.0,
+    "sunrise": "2026-03-07T06:40:36",
+    "sunset": "2026-03-07T18:17:48",
+    "location": "Hergla",
+    "country": "TN",
+    "timestamp": "2026-03-07T23:49:25.990671",
+    "score": 1.0
+  },
+  "timestamp": 1772923765.9906714,
+  "expires_at": 1772966965.9906714,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.034885547133904,
+    "lon": 10.503742944301782
+  }
+}

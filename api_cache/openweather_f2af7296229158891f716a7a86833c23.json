@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.49,
+    "feels_like": 14.45,
+    "pressure": 1022,
+    "humidity": 94,
+    "wind_speed": 1.836,
+    "wind_direction": 0,
+    "wind_direction_abbr": "N",
+    "wind_direction_name": "Nord",
+    "wind_direction_icon": "⬆️",
+    "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.2,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-03-08T06:41:12",
+    "sunset": "2026-03-08T18:19:54",
+    "location": "Manouba",
+    "country": "TN",
+    "timestamp": "2026-03-08T05:50:05.660896",
+    "score": 1.0
+  },
+  "timestamp": 1772945405.660896,
+  "expires_at": 1772988605.660896,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.84588942467835,
+    "lon": 10.104402565037434
+  }
+}

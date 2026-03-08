@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.02,
+    "feels_like": 15.19,
+    "pressure": 1022,
+    "humidity": 100,
+    "wind_speed": 5.5440000000000005,
+    "wind_direction": 100,
+    "wind_direction_abbr": "E",
+    "wind_direction_name": "Est",
+    "wind_direction_icon": "➡️",
+    "wind_fishing_impact": "Vent d'est - Peut rendre la mer agitée, prudence",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.2,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-03-08T06:40:22",
+    "sunset": "2026-03-08T18:19:09",
+    "location": "Radès",
+    "country": "TN",
+    "timestamp": "2026-03-08T04:05:04.133361",
+    "score": 1.0
+  },
+  "timestamp": 1772939104.1333613,
+  "expires_at": 1772982304.1333613,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.767052120145685,
+    "lon": 10.301625485987664
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "data": {
+    "success": true,
+    "name": "قليبية الغربية, معتمدية قليبية, ولاية نابل, 8090, تونس",
+    "address": {
+      "county": "قليبية الغربية",
+      "state_district": "معتمدية قليبية",
+      "state": "ولاية نابل",
+      "ISO3166-2-lvl4": "TN-21",
+      "postcode": "8090",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1772945170.9813185,
+  "expires_at": 1773031570.9813185,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 36.8345965946645,
+    "lon": 11.11363136076897
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "البساتين, معتمدية منيهلة, ولاية أريانة, تونس",
+    "address": {
+      "county": "البساتين",
+      "state_district": "معتمدية منيهلة",
+      "state": "ولاية أريانة",
+      "ISO3166-2-lvl4": "TN-12",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1772945414.1821735,
+  "expires_at": 1773031814.1821735,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 36.84588942467835,
+    "lon": 10.104402565037434
+  }
+}

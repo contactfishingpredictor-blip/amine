@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.94,
+    "feels_like": 14.87,
+    "pressure": 1022,
+    "humidity": 91,
+    "wind_speed": 24.048,
+    "wind_direction": 126,
+    "wind_direction_abbr": "SE",
+    "wind_direction_name": "Sud-Est",
+    "wind_direction_icon": "↘️",
+    "wind_fishing_impact": "Vent de sud/sud-est - Apporte eaux chaudes, bon pour certaines espèces",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.84,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01n",
+    "clouds": 0,
+    "visibility": 10.0,
+    "sunrise": "2026-03-07T06:44:15",
+    "sunset": "2026-03-07T18:19:45",
+    "location": "Bizerte",
+    "country": "TN",
+    "timestamp": "2026-03-07T23:45:57.698955",
+    "score": 0.9999999999999999
+  },
+  "timestamp": 1772923557.698955,
+  "expires_at": 1772966757.698955,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.65947159841627,
+    "lon": 9.805375271848444
+  }
+}

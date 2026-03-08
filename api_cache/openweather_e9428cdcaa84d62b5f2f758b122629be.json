@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 10.39,
+    "feels_like": 9.91,
+    "pressure": 1021,
+    "humidity": 93,
+    "wind_speed": 11.124,
+    "wind_direction": 100,
+    "wind_direction_abbr": "E",
+    "wind_direction_name": "Est",
+    "wind_direction_icon": "➡️",
+    "wind_fishing_impact": "Vent d'est - Peut rendre la mer agitée, prudence",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.24,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-03-08T06:46:01",
+    "sunset": "2026-03-08T18:24:33",
+    "location": "Souk et Tleta",
+    "country": "TN",
+    "timestamp": "2026-03-08T05:46:40.140198",
+    "score": 1.0
+  },
+  "timestamp": 1772945200.1409833,
+  "expires_at": 1772988400.1409833,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.034724374973315,
+    "lon": 8.91942703549988
+  }
+}

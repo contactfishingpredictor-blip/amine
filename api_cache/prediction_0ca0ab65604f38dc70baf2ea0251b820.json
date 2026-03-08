@@ -1,0 +1,145 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "87b48ef9092d",
+    "stable": true,
+    "valid_until": "2026-03-08T07:26:13.607579",
+    "scores": {
+      "final": 66,
+      "environmental": 59,
+      "behavioral": 91,
+      "bathymetry_factor": 100,
+      "weather_factor": 100,
+      "components": {
+        "scientific": 59,
+        "depth": 100,
+        "regional": 50,
+        "weather": 100
+      }
+    },
+    "weather": {
+      "temperature": 14.02,
+      "wind_speed": 0.0,
+      "wind_direction": 0,
+      "wind_direction_abbr": "N",
+      "wind_direction_name": "Nord",
+      "wind_direction_icon": "⬆️",
+      "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+      "wind_offshore": false,
+      "wind_onshore": true,
+      "pressure": 1022,
+      "humidity": 100,
+      "condition": "Clouds",
+      "condition_fr": "Nuageux",
+      "wave_height": 0.2,
+      "updated": "2026-03-08T06:26:13.607579",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.37,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 2.0,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "optimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.054,
+        "speed_knots": 0.105,
+        "direction": "S-N",
+        "tide_height": 0.28,
+        "tide_phase": "descendante",
+        "fishing_impact": "faible",
+        "model": "hydrodynamique régional",
+        "resolution": "2km"
+      },
+      "turbidity": {
+        "value": 3.4,
+        "unit": "NTU",
+        "clarity": "moyenne",
+        "description": "Eau légèrement trouble"
+      },
+      "pressure": {
+        "score": 0.81,
+        "abs_score": 0.88,
+        "gradient_score": 0.7,
+        "zone": "moyenne-haute",
+        "description": "Pression élevée - Activité modérée",
+        "gradient_effect": "stable",
+        "delta": 0,
+        "bonus": null,
+        "user_message": "🟡 Bonnes conditions - Pêche favorable",
+        "pressure": 1022.0,
+        "sensitivity": "moderate"
+      }
+    },
+    "recommendations": {
+      "tips": [
+        "Opportunité: BONNE",
+        "Heures optimales: 6h, 7h, 18h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Nuageux, 14.0°C, Vent: 0.0 km/h"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "success": true,
+      "depth": 4.0,
+      "source": "Expert Tunisie - Marina Gammarth - Port de plaisance",
+      "accuracy": "excellente",
+      "confidence": 0.99,
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": true,
+      "zone": "ولاية تونس",
+      "recommended_fishing": [
+        "Profondeur: 4.0m (optimale)",
+        "Type de fond: Sableux",
+        "Précision: excellente"
+      ]
+    },
+    "location": {
+      "lat": 36.92033465513451,
+      "lon": 10.30777305275307,
+      "name": "قرطاج, تونس, ولاية تونس, 2016, تونس",
+      "type": "city",
+      "region": "ولاية تونس"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-03-08T06:26:13.607579",
+      "data_source": "Expert Tunisie - Marina Gammarth - Port de plaisance",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "07:26",
+      "api_usage_info": {
+        "openweather_calls_today": 4,
+        "using_cache": false
+      },
+      "cache": {
+        "cached_at": "2026-03-08T06:26:13.607579",
+        "expires_at": "2026-03-08T09:26:13.607579",
+        "cache_duration_hours": 3
+      }
+    }
+  },
+  "timestamp": 1772947573.6075795,
+  "expires_at": 1772951173.6075795,
+  "api_name": "prediction",
+  "params": {
+    "lat": 36.92033465513451,
+    "lon": 10.30777305275307,
+    "species": "loup"
+  }
+}

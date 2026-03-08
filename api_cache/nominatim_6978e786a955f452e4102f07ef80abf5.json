@@ -1,0 +1,22 @@
+{
+  "data": {
+    "success": true,
+    "name": "عين مريم, معتمدية بنزرت الشمالية, ولاية بنزرت, تونس",
+    "address": {
+      "county": "عين مريم",
+      "state_district": "معتمدية بنزرت الشمالية",
+      "state": "ولاية بنزرت",
+      "ISO3166-2-lvl4": "TN-23",
+      "country": "تونس",
+      "country_code": "tn"
+    },
+    "type": "administrative"
+  },
+  "timestamp": 1772944421.707491,
+  "expires_at": 1773030821.707491,
+  "api_name": "nominatim",
+  "params": {
+    "lat": 37.3298192396339,
+    "lon": 9.81511652351271
+  }
+}

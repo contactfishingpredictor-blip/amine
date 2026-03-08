@@ -17,7 +17,56 @@ h1{font-size:2.5rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-ba
 
 .card{background:rgba(30,41,59,.9);backdrop-filter:blur(10px);border-radius:16px;padding:1.5rem;border:1px solid #475569;box-shadow:0 10px 25px rgba(0,0,0,.3)}
 .section-title{display:flex;align-items:center;gap:.75rem;font-size:1.5rem;font-weight:700;margin-bottom:1.5rem;color:#e2e8f0}
-#map{width:100%;height:450px;border-radius:12px;overflow:hidden;position:relative}
+
+/* ===== CORRECTION DE LA HAUTEUR DE LA CARTE ===== */
+#map {
+    display: block !important;
+    width: 100% !important;
+    height: 450px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* S'assurer que le conteneur parent est visible */
+.map-container {
+    display: block !important;
+    height: 450px !important;
+    width: 100% !important;
+    position: relative !important;
+}
+
+/* Cacher le skeleton loader si présent */
+#map-skeleton {
+    display: none !important;
+}
+/* Animation pour le canvas de vent */
+#wind-animation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 450px;  /* Même hauteur que la carte */
+    pointer-events: none;
+    z-index: 500;
+    display: none;
+    border-radius: 12px;
+}
+
+/* Correction responsive pour mobile */
+@media (max-width: 768px) {
+    #map,
+    #map-skeleton,
+    #wind-animation-canvas {
+        height: 350px !important;  /* Hauteur réduite sur mobile */
+    }
+    
+    #map-container {
+        height: 350px !important;
+    }
+}
+
 .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:1.5rem}
 .score-display{text-align:center;padding:2rem;background:linear-gradient(135deg,rgba(30,41,59,.9),rgba(15,23,42,.9));border-radius:16px;margin:1rem 0;border:2px solid #475569}
 .score-value{font-size:5rem;font-weight:900;background:linear-gradient(90deg,#10b981,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
@@ -77,8 +126,10 @@ h1{font-size:2.5rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-ba
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
-
-/* Animations supplémentaires */
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 @keyframes pulse-fish {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); color: #10b981; }
@@ -105,6 +156,173 @@ h1{font-size:2.5rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-ba
     display: none;
 }
 
+/* ===== SKELETON LOADER POUR LA CARTE ===== */
+#map-skeleton {
+    display: none;
+    width: 100%;
+    height: 450px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #475569;
+}
+
+.skeleton-filter {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #0f172a;
+    padding: 12px;
+    border-radius: 12px;
+    width: 250px;
+    height: 50px;
+    opacity: 0.7;
+}
+
+.skeleton-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: #0f172a;
+    padding: 12px;
+    border-radius: 12px;
+    width: 180px;
+    height: 40px;
+    opacity: 0.7;
+}
+
+/* ===== TOOLTIP POUR LE COMPTEUR DE POISSONS ===== */
+.info-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip-content {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 300px;
+    font-size: 0.8rem;
+    border: 1px solid #3b82f6;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 1000;
+    margin-bottom: 10px;
+    text-align: left;
+    backdrop-filter: blur(10px);
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #1e293b;
+}
+
+.info-tooltip:hover .tooltip-content {
+    display: block !important;
+    animation: fadeIn 0.2s ease;
+}
+
+.tooltip-header {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #3b82f6;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 0.5rem;
+}
+
+.tooltip-factor {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+
+.tooltip-factor-value {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.tooltip-total {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #334155;
+    display: flex;
+    justify-content: space-between;
+    color: #10b981;
+    font-weight: 600;
+}
+
+.tooltip-note {
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: #64748b;
+    font-style: italic;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(5px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ===== LÉGENDE DU GRAPHIQUE ===== */
+.chart-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #1e293b;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-dot {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.legend-dot.blue { background: #3b82f6; }
+.legend-dot.green { background: #10b981; }
+
+.legend-text {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.best-highlight {
+    color: #f8fafc;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: #334155;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
 .spot-card{transition:all .3s ease;cursor:pointer;border-radius:8px;overflow:hidden}
 .spot-card:hover{transform:translateY(-4px);box-shadow:0 10px 25px rgba(0,0,0,.15);border-color:#3b82f6}
 .status-indicator{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:20px;font-weight:600;font-size:.9rem}
@@ -118,8 +336,8 @@ h1{font-size:2.5rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-ba
 .detail-value{font-size:1rem;font-weight:700;color:#f8fafc;margin-bottom:.25rem}
 .detail-label{font-size:.75rem;color:#94a3b8}
 
-/* Graphique */
-.chart-container{position:relative;height:200px;margin:1rem 0}
+/* Graphique - Style amélioré */
+.chart-container{position:relative;height:200px;margin:1rem 0;background:rgba(15,23,42,0.6);border-radius:12px;padding:0.5rem}
 
 /* Météo compacte */
 .compact-weather-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
@@ -155,11 +373,292 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
     50% { transform: scale(1.5); opacity: 0.7; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* ===== MODALE MOBILE STYLISÉE ===== */
+.mobile-details-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #0a0f1c 0%, #1a2538 100%);
+    z-index: 10000;
+    overflow-y: auto;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
+}
+
+.mobile-details-modal.closing {
+    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-header {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #3b82f6;
+    z-index: 10001;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #f8fafc;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-header .close-modal {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #475569;
+    color: white;
+    font-size: 1.3rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.modal-header .close-modal:hover,
+.modal-header .close-modal:active {
+    background: #ef4444;
+    border-color: #ef4444;
+    transform: scale(1.1) rotate(90deg);
+}
+
+.modal-content {
+    padding: 1.5rem 1.2rem 2rem 1.2rem;
+}
+
+/* Style des sections dans la modale */
+.modal-section {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 1.2rem;
+    margin-bottom: 1.2rem;
+    border: 1px solid #334155;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.modal-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #334155;
+}
+
+.modal-section-title i {
+    color: #3b82f6;
+    font-size: 1.2rem;
+}
+
+/* Grilles dans la modale */
+.modal-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}
+
+.modal-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.8rem;
+}
+
+.modal-card {
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    padding: 0.8rem;
+    text-align: center;
+    border: 1px solid #2d3a4f;
+    transition: transform 0.2s ease;
+}
+
+.modal-card:hover {
+    transform: translateY(-2px);
+    border-color: #3b82f6;
+}
+
+.modal-card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.modal-card-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.2;
+}
+
+.modal-card-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Score dans la modale */
+.modal-score {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(16,185,129,0.2));
+    border-radius: 16px;
+    margin-bottom: 1.2rem;
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 30px rgba(59,130,246,0.3);
+}
+
+.modal-score-value {
+    font-size: 4rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #3b82f6, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.modal-score-label {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+}
+
+/* Graphique dans la modale */
+.modal-chart-container {
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 16px;
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid #334155;
+    height: 220px;
+}
+
+/* Bouton "Voir tous les détails" pour mobile */
+.mobile-details-button {
+    display: none;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+@media (max-width: 768px) {
+    .mobile-details-button {
+        display: flex;
+    }
+}
+
+/* Style pour les plages optimales - Version sans scores */
+.optimal-range-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: #1e293b;
+    border-radius: 8px;
+    border-left: 4px solid;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: help;
+}
+
+.optimal-range-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.optimal-range-time {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.optimal-range-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.optimal-range-icon {
+    font-size: 1.2rem;
+}
+
+/* Style pour le sélecteur d'espèce */
+.species-selector {
+    background: #1e293b;
+    color: white;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.species-selector:hover {
+    border-color: #3b82f6;
+    background: #2d3748;
+}
+
+.species-selector:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- CONTENU HTML INCHANGÉ - IDENTIQUE À LA VERSION PRÉCÉDENTE -->
+<!-- CONTENU HTML -->
 <div id="offshore-danger" style="display:none;position:fixed;top:0;left:0;right:0;background:#dc2626;color:white;padding:1rem;z-index:9999;text-align:center;animation:blink 1s infinite">
     <div style="display:flex;align-items:center;justify-content:center;gap:1rem">
         <i class="fas fa-skull-crossbones" style="font-size:1.5rem"></i>
@@ -197,13 +696,13 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
     <!-- Bannière décision instantanée -->
     <div id="instant-decision-banner" style="margin-bottom:1.5rem"></div>
 
-    <!-- Grille principale à 2 colonnes équilibrées -->
+    <!-- Grille principale à 2 colonnes -->
     <div class="dashboard-grid">
         
         <!-- COLONNE GAUCHE -->
         <div class="left-column">
             
-            <!-- Carte avec bouton effacer -->
+            <!-- Carte avec skeleton loader -->
             <div class="card">
                 <div class="section-title">
                     <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center">
@@ -215,7 +714,13 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                     </div>
                 </div>
                 
-                <div style="position:relative">
+                <div id="map-container" style="position:relative; height:450px; width:100%;">
+                    <!-- SKELETON LOADER -->
+                    <div id="map-skeleton" class="map-skeleton">
+                        <div class="skeleton-filter"></div>
+                        <div class="skeleton-controls"></div>
+                    </div>
+                    
                     <!-- Filtres rapides -->
                     <div style="position:absolute;top:10px;right:15px;z-index:1000">
                         <div style="background:rgba(0,0,0,.8);backdrop-filter:blur(10px);padding:12px;border-radius:12px;border:1px solid #475569">
@@ -236,8 +741,8 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                         </div>
                     </div>
                     
-                    <div id="map"></div>
-                    <canvas id="wind-animation-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:500;display:none"></canvas>
+                    <div id="map" style="display:none;"></div>
+                    <canvas id="wind-animation-canvas" style="display:none;"></canvas>
                 </div>
                 
                 <div style="display:flex;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:.5rem">
@@ -256,7 +761,7 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                 </div>
             </div>
             
-            <!-- Score principal et vérification express -->
+            <!-- Score principal -->
             <div class="card">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:center">
                     <div class="score-display" style="margin:0">
@@ -266,17 +771,24 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                             <i class="fas fa-bolt"></i> Vérification express
                         </button>
                     </div>
-                    <div style="text-align:center">
+                    <div style="text-align:center; position: relative;">
                         <div style="font-size:4rem;background:linear-gradient(90deg,#3b82f6,#10b981);-webkit-background-clip:text;background-clip:text;color:transparent">
                             <i class="fas fa-fish"></i>
                         </div>
-                        <div style="font-size:1.5rem;font-weight:700;color:#f8fafc" id="current-fish-count">--</div>
+                        <div style="font-size:1.5rem;font-weight:700;color:#f8fafc; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" id="current-fish-count">
+                            --
+                        </div>
                         <div style="color:#94a3b8;font-size:.9rem">Poissons actifs estimés</div>
                     </div>
                 </div>
+                
+                <div class="score-footer" style="margin-top: 1rem; text-align: center; color: #94a3b8; font-size: 0.9rem; border-top: 1px solid #334155; padding-top: 1rem;">
+                    <div id="last-update">🔄 Chargement...</div>
+                    <div id="next-update" style="font-size: 0.8rem; color: #64748b;"></div>
+                </div>
             </div>
             
-            <!-- Spot sélectionné + Distance -->
+            <!-- Spot sélectionné -->
             <div class="card">
                 <div class="section-title">
                     <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center">
@@ -290,13 +802,20 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                         <div>Sélectionnez un spot sur la carte</div>
                     </div>
                 </div>
+                
+                <div id="spot-distance" style="display: none; margin: 0.5rem 0 1rem 0; padding: 0.75rem; background: #1e293b; border-radius: 8px; text-align: center; border-left: 4px solid #3b82f6;">
+                    <span style="color: #94a3b8;">Distance: </span>
+                    <span style="color: white; font-weight: 600;">Calcul...</span>
+                </div>
+                
                 <div id="distance-info" style="margin-bottom:1rem"></div>
+                
                 <button onclick="window.FishingDashboard.calculatePreparationTime()" class="btn btn-secondary" style="width:100%">
                     <i class="fas fa-clock"></i> Temps de préparation
                 </button>
             </div>
             
-            <!-- Données scientifiques compactes -->
+            <!-- Données scientifiques -->
             <div class="card">
                 <div class="section-title">
                     <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center">
@@ -342,10 +861,10 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
         <!-- COLONNE DROITE -->
         <div class="right-column">
             
-            <!-- Conteneur de conseils (sera rempli par JavaScript) -->
+            <!-- Conteneur de conseils -->
             <div id="advice-container"></div>
             
-            <!-- Météo compacte -->
+            <!-- Météo -->
             <div class="card">
                 <div class="section-title">
                     <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center">
@@ -376,7 +895,6 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                     </div>
                 </div>
                 
-                <!-- Éléments cachés pour compatibilité -->
                 <div style="display:none">
                     <div id="weather-location-name"></div>
                     <div id="weather-icon"></div>
@@ -391,17 +909,55 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                 </div>
             </div>
             
-            <!-- Graphique activité 24h -->
+            <!-- Graphique activité 24h avec plages horaires et SÉLECTEUR D'ESPÈCE -->
             <div class="card">
-                <div class="section-title">
-                    <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center">
-                        <i class="fas fa-chart-line"></i>
+                <div class="section-title" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                    <div style="display:flex; align-items:center; gap:.75rem;">
+                        <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <span>Activité sur 24h</span>
                     </div>
-                    Activité sur 24h
+                    
+                    <!-- SÉLECTEUR D'ESPÈCE -->
+                    <select id="species-selector" class="species-selector" onchange="window.FishingDashboard.changeSpecies(this.value)">
+                        <option value="loup" selected>🐟 Loup (Bar)</option>
+                        <option value="daurade">🐠 Dorade</option>
+                        <option value="pageot">🐡 Pageot</option>
+                        <option value="thon">🦈 Thon</option>
+                        <option value="sar">🐟 Sar</option>
+                        <option value="mulet">🐟 Mulet</option>
+                        <option value="marbré">🐟 Marbré</option>
+                        <option value="rouget">🐠 Rouget</option>
+                        <option value="sériole">🐟 Sériole</option>
+                        <option value="bonite">🐟 Bonite</option>
+                        <option value="corbeau">🐟 Corbeau</option>
+                        <option value="espadon">🦈 Espadon</option>
+                        <option value="mérou">🐡 Mérou</option>
+                        <option value="merlan">🐟 Merlan</option>
+                        <option value="merlu">🐟 Merlu</option>
+                        <option value="orphie">🐟 Orphie</option>
+                    </select>
                 </div>
+                
                 <div class="chart-container">
-                    <canvas id="activity-chart"></canvas>
+                    <canvas id="activity-chart" style="width:100%; height:200px;"></canvas>
                 </div>
+                
+                <!-- CONTENEUR POUR LES PLAGES HORAIRES OPTIMALES - Version sans scores -->
+                <div id="optimal-time-ranges" style="margin-top:1rem; padding:0.75rem; background:#1e293b; border-radius:8px;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; color:#94a3b8; font-size:0.9rem; margin-bottom:0.75rem; border-bottom:1px solid #334155; padding-bottom:0.5rem;">
+                        <i class="fas fa-chart-line" style="color:#10b981"></i>
+                        <span>Meilleurs créneaux (analyse scientifique)</span>
+                        <span style="margin-left:auto; font-size:0.7rem; background:#334155; padding:0.2rem 0.5rem; border-radius:12px;">Recommandés</span>
+                    </div>
+                    <div id="optimal-ranges-list">
+                        <div style="color:#94a3b8; text-align:center; padding:1rem;">
+                            <i class="fas fa-spinner fa-spin"></i> Calcul des plages optimales...
+                        </div>
+                    </div>
+                </div>
+                
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
                     <div style="text-align:center;padding:.75rem;background:#1e293b;border-radius:8px">
                         <div style="color:#94a3b8;font-size:.8rem">Tendance</div>
@@ -414,9 +970,47 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
                         <div style="color:#94a3b8;font-size:.8rem">Meilleur moment</div>
                         <div style="font-size:1.5rem;font-weight:700;margin-top:.25rem" id="next-window-start">--:--</div>
                         <div style="font-size:.9rem;color:#3b82f6" id="next-window-end"></div>
-                        <div style="font-size:.75rem;color:#94a3b8;margin-top:.25rem">
-                            <span id="window-quality">--</span>
+                        <div style="font-size:.75rem;color:#94a3b8;margin-top:.25rem" id="window-quality">
+                            <span>--</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ===== PICTOGRAMME PRESSION 24h ===== -->
+            <div class="card" style="margin-top: 0;">
+                <div class="section-title" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <span>Pression atmosphérique 24h</span>
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem; background: #1e293b; padding: 0.25rem 0.75rem; border-radius: 20px;" id="pressure-summary">
+                        <span id="pressure-trend-icon" style="font-size: 1.2rem;">➡️</span>
+                        <span id="pressure-current" style="font-weight: 700; color: white;">-- hPa</span>
+                    </div>
+                </div>
+                
+                <!-- Mini graphique pression -->
+                <div class="chart-container" style="height: 70px; position: relative; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                    <canvas id="pressure-chart" style="width: 100%; height: 70px;"></canvas>
+                </div>
+                
+                <!-- Message explicatif -->
+                <div id="pressure-message" style="margin-top: 0.75rem; padding: 0.75rem; background: #1e293b; border-radius: 8px; font-size: 0.9rem; color: #94a3b8; text-align: center; border-left: 4px solid #3b82f6;">
+                    Chargement des données pression...
+                </div>
+                
+                <!-- Info-bulle explicative -->
+                <div style="position: relative; margin-top: 0.5rem; text-align: right;">
+                    <i class="fas fa-info-circle" style="color: #94a3b8; cursor: help;" 
+                       onmouseover="this.nextElementSibling.style.display='block'" 
+                       onmouseout="this.nextElementSibling.style.display='none'"></i>
+                    <div style="display: none; position: absolute; bottom: 100%; right: 0; background: #1e293b; color: white; padding: 0.75rem; border-radius: 8px; width: 250px; font-size: 0.8rem; border: 1px solid #475569; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                        <strong>📊 Interprétation de la pression :</strong><br>
+                        • 📈 Pression en hausse → poissons moins actifs<br>
+                        • 📉 Pression en baisse → activité stimulée<br>
+                        • ✅ Idéal: 1010-1020 hPa avec tendance baissière<br>
+                        • ⚠️ >1025 hPa: poissons inactifs
                     </div>
                 </div>
             </div>
@@ -532,1432 +1126,800 @@ footer{text-align:center;padding:2rem 0;color:#94a3b8;border-top:1px solid #3341
 
 <!-- Élément caché pour les tests -->
 <div id="test-advice" style="display:none"></div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- Élément caché pour le nom du spot -->
+<span id="selected-spot-name" style="display: none;">Spot</span>
+
+<!-- Modale mobile stylisée -->
+<div class="mobile-details-modal" id="mobileDetailsModal">
+    <div class="modal-header">
+        <h2 id="modal-spot-name">Détails du spot</h2>
+        <button class="close-modal" onclick="closeMobileDetailsModal()" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="modal-content" id="modal-content-container">
+        <div style="display:flex; justify-content:center; align-items:center; height:70vh; flex-direction:column;">
+            <div style="width:60px; height:60px; border:4px solid #334155; border-top:4px solid #3b82f6; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:1rem;"></div>
+            <p style="color:#94a3b8; font-size:1rem;">Chargement des données...</p>
+            <p style="color:#64748b; font-size:0.8rem;">Analyse des conditions de pêche</p>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Fishing Dashboard Object - VERSION AVEC ANALYSE DÉTAILLÉE CORRIGÉE
-const FishingDashboard = (function() {
-    // ========== VARIABLES PRIVÉES ==========
-    let map = null;
-    let userLat = 36.8065;        // Position de l'utilisateur (point de départ)
-    let userLon = 10.1815;
-    let currentMarker = null;      // Marqueur de l'utilisateur
-    let selectedSpot = null;       // Spot sélectionné (point d'arrivée)
-    let windAnimationActive = false;
-    let windCanvas = null;
-    let windCtx = null;
-    let windParticles = [];
-    let windAnimationFrame = null;
-    let activityChart = null;
-    let customSpots = [];
-    let currentPredictionData = null;
-    let currentWindDirection = 0;
-    let currentWindSpeed = 10;
+// ============================================
+// FONCTION DE FERMETURE MODALE
+// ============================================
+function closeMobileDetailsModal() {
+    const modal = document.getElementById('mobileDetailsModal');
+    modal.classList.add('closing');
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+    }, 300);
+}
+
+// ============================================
+// FONCTION POUR FORMATER LES HEURES
+// ============================================
+function formatHourToTime(hourStr) {
+    if (!hourStr) return '--:--';
+    if (hourStr.includes('h')) {
+        const parts = hourStr.split('h');
+        const hour = parts[0].padStart(2, '0');
+        const minute = parts[1] ? parts[1].padStart(2, '0') : '00';
+        return `${hour}:${minute}`;
+    }
+    return hourStr;
+}
+
+// ============================================
+// FONCTION POUR EXTRAIRE LES PLAGES OPTIMALES
+// ============================================
+function extractOptimalRanges(scores, hours, percentile = 70) {
+    console.log('📊 Calcul des plages optimales basé sur le graphique');
     
-    // Spots tunisiens
-    const TUNISIAN_SPOTS = [
-        {name:"Tunis Marina",lat:36.8065,lon:10.1815,type:"port",depth:"8-12m",description:"Port de plaisance"},
-        {name:"Cap Bon",lat:36.8475,lon:11.0940,type:"rocheux",depth:"15-25m",description:"Zone rocheuse"},
-        {name:"Sousse",lat:35.8254,lon:10.6360,type:"port",depth:"6-10m",description:"Port de pêche"},
-        {name:"Hammamet Nord",lat:36.4000,lon:10.6000,type:"plage",depth:"5-8m",description:"Plage de sable"},
-        {name:"Bizerte",lat:37.2747,lon:9.8739,type:"port",depth:"10-18m",description:"Canal"}
-    ];
-    
-    // ========== FONCTIONS PRIVÉES ==========
-    
-    // --- FONCTION DE CALCUL DE LA HAUTEUR DES VAGUES ---
-    function calculateWaveHeight(windSpeedKmh) {
-        if (windSpeedKmh === undefined || windSpeedKmh === null) return 0.2;
-        
-        if (windSpeedKmh < 10) return 0.2;
-        else if (windSpeedKmh < 20) return 0.2 + (windSpeedKmh - 10) * 0.04;
-        else if (windSpeedKmh < 30) return 0.6 + (windSpeedKmh - 20) * 0.06;
-        else if (windSpeedKmh < 40) return 1.2 + (windSpeedKmh - 30) * 0.08;
-        else if (windSpeedKmh < 50) return 2.0 + (windSpeedKmh - 40) * 0.10;
-        else if (windSpeedKmh < 60) return 3.0 + (windSpeedKmh - 50) * 0.12;
-        else return 4.2 + (windSpeedKmh - 60) * 0.15;
+    if (!scores || !hours || scores.length === 0 || hours.length === 0) {
+        console.warn('⚠️ Données manquantes pour le calcul des plages');
+        return [];
     }
     
-    // --- FONCTION DE MISE À JOUR DE LA HAUTEUR DES VAGUES ---
-    function updateWaveHeight(value, source) {
-        let waveValue = value;
-        if (typeof waveValue === 'number') {
-            waveValue = waveValue.toFixed(1);
-        }
-        console.log(`🌊 Vague mise à jour: ${waveValue}m (source: ${source})`);
-        document.getElementById('wave-height').textContent = waveValue + ' m';
-        document.getElementById('check-waves').textContent = waveValue + ' m';
-        document.getElementById('detail-wave-height').textContent = waveValue + ' m';
-    }
+    const maxScore = Math.max(...scores);
+    const minScore = Math.min(...scores);
+    const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     
-    // --- MISE À JOUR DE LA POSITION UTILISATEUR ---
-    function updateUserPosition(lat, lon) {
-        userLat = lat;
-        userLon = lon;
-        if (currentMarker) {
-            currentMarker.setLatLng([lat, lon]);
-        }
-        // Optionnel : recentrer la carte
-        if (map) map.setView([lat, lon], map.getZoom());
-        // Recalculer la distance si un spot est sélectionné
-        if (selectedSpot) {
-            calculateDistanceToSpot(selectedSpot.lat, selectedSpot.lon);
-        }
-        // Rafraîchir les données météo pour la nouvelle position
-        loadWeatherDataInternal();
-        updatePredictionInternal();
-        updateScientificDataInternal();
-        load24hForecastInternal();
-    }
+    console.log(`📈 Graphique - Min:${minScore}% Max:${maxScore}% Moy:${avgScore}%`);
     
-    // --- CALCUL DE DISTANCE ---
-    async function calculateDistanceToSpot(lat, lon) {
-        try {
-            const response = await fetch(`/api/distance_calculation?lat1=${userLat}&lon1=${userLon}&lat2=${lat}&lon2=${lon}`);
-            const data = await response.json();
-            if (data.status === 'success') {
-                const distanceKm = parseFloat(data.distance_km);
-                const travelTimeMinutes = data.travel_time_minutes || Math.round((distanceKm / 50) * 60);
-                
-                // Mettre à jour l'affichage dans le bloc "Spot sélectionné"
-                const spotDistanceEl = document.getElementById('spot-distance');
-                if (spotDistanceEl) {
-                    if (distanceKm < 0.1) {
-                        spotDistanceEl.innerHTML = `<span style="color:#94a3b8">Vous êtes ici</span>`;
-                    } else {
-                        spotDistanceEl.innerHTML = `${distanceKm.toFixed(1)} km<br><span style="font-size:.7rem">${formatTime(travelTimeMinutes)}</span>`;
-                    }
-                }
-                
-                // Mettre à jour la zone d'info distance (sous la carte)
-                const distanceInfo = document.getElementById('distance-info');
-                if (distanceInfo) {
-                    if (distanceKm < 0.1) {
-                        distanceInfo.innerHTML = `<div style="color:#94a3b8;padding:.5rem;"><i class="fas fa-check-circle" style="color:#10b981"></i> Vous êtes sur place</div>`;
-                    } else {
-                        distanceInfo.innerHTML = `
-                            <div style="display:flex;align-items:center;gap:.5rem;background:#1e293b;padding:.5rem;border-radius:6px">
-                                <i class="fas fa-route" style="color:#3b82f6"></i>
-                                <div><span style="font-weight:600">${distanceKm.toFixed(1)} km</span> • ${formatTime(travelTimeMinutes)}</div>
-                            </div>
-                        `;
-                    }
-                }
+    const sortedScores = [...scores].sort((a, b) => a - b);
+    const percentileIndex = Math.floor(scores.length * (percentile / 100));
+    let threshold = sortedScores[percentileIndex];
+    
+    console.log(`🎯 Seuil adaptatif (${percentile}ème percentile): ${threshold}%`);
+    
+    let ranges = [];
+    let currentRange = null;
+    
+    for (let i = 0; i < scores.length; i++) {
+        if (scores[i] >= threshold) {
+            if (!currentRange) {
+                currentRange = { 
+                    start: hours[i], 
+                    end: hours[i],
+                    startScore: scores[i],
+                    endScore: scores[i],
+                    scores: [scores[i]]
+                };
+            } else {
+                currentRange.end = hours[i];
+                currentRange.endScore = scores[i];
+                currentRange.scores.push(scores[i]);
             }
-        } catch(error) {
-            console.error('Erreur calcul distance:', error);
-        }
-    }
-    
-    // --- FORMATER LE TEMPS DE TRAJET ---
-    function formatTime(minutes) {
-        if (minutes < 60) return `${minutes} min`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return mins > 0 ? `${hours}h${mins}` : `${hours}h`;
-    }
-    
-    // --- SÉLECTION D'UN SPOT ---
-    async function selectSpot(lat, lon, name) {
-        selectedSpot = { lat, lon, name };
-        
-        // Mettre à jour l'affichage du spot
-        const spotInfo = document.getElementById('spot-info');
-        if (spotInfo) {
-            spotInfo.innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                    <div>
-                        <h3 style="margin:0;color:#3b82f6">${name}</h3>
-                        <div style="color:#94a3b8;font-size:.9rem;margin-top:.25rem">
-                            ${lat.toFixed(4)}, ${lon.toFixed(4)}
-                        </div>
-                    </div>
-                    <div style="background:#1e293b;padding:.5rem;border-radius:8px">
-                        <div style="color:#94a3b8;font-size:.8rem">Distance</div>
-                        <div style="font-weight:700" id="spot-distance">Calcul...</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Centrer la carte sur le spot
-        if (map) map.setView([lat, lon], 13);
-        
-        // Calculer la distance par rapport à la position utilisateur
-        await calculateDistanceToSpot(lat, lon);
-        
-        // Charger les données pour ce spot (en passant les coordonnées)
-        await loadWeatherDataInternal(lat, lon);
-        await updatePredictionInternal(lat, lon);
-        await updateScientificDataInternal(lat, lon);
-        await load24hForecastInternal(lat, lon);
-        
-        // Fermer les popups éventuels
-        if (map) map.closePopup();
-        
-        // Notification
-        showNotification(`Spot "${name}" sélectionné`, 'success');
-    }
-    
-    // --- ANIMATION VENT ---
-    function initWindAnimation() {
-        windCanvas = document.getElementById('wind-animation-canvas');
-        if(!windCanvas) return;
-        windCtx = windCanvas.getContext('2d');
-        if(!windCtx) return;
-        
-        function resizeCanvas() {
-            const mapDiv = document.getElementById('map');
-            if(mapDiv && windCanvas) {
-                windCanvas.width = mapDiv.clientWidth;
-                windCanvas.height = mapDiv.clientHeight;
-                initWindParticles();
-            }
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-    }
-    
-    function initWindParticles() {
-        if(!windCanvas) return;
-        const count = Math.min(100, Math.floor(windCanvas.width * windCanvas.height / 1500));
-        windParticles = [];
-        for(let i = 0; i < count; i++) {
-            windParticles.push({
-                x: Math.random() * windCanvas.width,
-                y: Math.random() * windCanvas.height,
-                size: Math.random() * 2 + 1,
-                speed: (Math.random() * 1.5 + 0.5) * (currentWindSpeed / 15 || 1),
-                opacity: Math.random() * 0.4 + 0.2,
-                life: Math.random() * 100
-            });
-        }
-    }
-    
-    function animateWind() {
-        if(!windAnimationActive || !windCtx || !windCanvas) return;
-        
-        windCtx.clearRect(0, 0, windCanvas.width, windCanvas.height);
-        
-        let windAngle = ((currentWindDirection + 90) * Math.PI / 180);
-        
-        windParticles.forEach(p => {
-            p.x += Math.cos(windAngle) * p.speed;
-            p.y += Math.sin(windAngle) * p.speed;
-            
-            const speedFactor = currentWindSpeed / 20;
-            p.x += Math.cos(windAngle) * (p.speed * speedFactor);
-            p.y += Math.sin(windAngle) * (p.speed * speedFactor);
-            
-            if(p.x > windCanvas.width + 10) p.x = -10;
-            if(p.x < -10) p.x = windCanvas.width + 10;
-            if(p.y > windCanvas.height + 10) p.y = -10;
-            if(p.y < -10) p.y = windCanvas.height + 10;
-            
-            windCtx.save();
-            windCtx.translate(p.x, p.y);
-            windCtx.rotate(windAngle);
-            
-            windCtx.beginPath();
-            windCtx.moveTo(0, 0);
-            windCtx.lineTo(-8, -2);
-            windCtx.lineTo(-8, 2);
-            windCtx.closePath();
-            
-            windCtx.fillStyle = `rgba(59, 130, 246, ${p.opacity * 0.8})`;
-            windCtx.fill();
-            
-            windCtx.beginPath();
-            windCtx.arc(0, 0, p.size, 0, Math.PI * 2);
-            windCtx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`;
-            windCtx.fill();
-            
-            windCtx.restore();
-        });
-        
-        windAnimationFrame = requestAnimationFrame(animateWind);
-    }
-    
-    // --- ALERTE VENT FORT ---
-    function checkStrongWind(windSpeed) {
-        const strongWindThreshold = 30;
-        const veryStrongWindThreshold = 45;
-        
-        let strongWindAlert = document.getElementById('strong-wind-alert');
-        if(!strongWindAlert) {
-            strongWindAlert = document.createElement('div');
-            strongWindAlert.id = 'strong-wind-alert';
-            strongWindAlert.style.cssText = 'display:none;margin-top:1rem;padding:1rem;color:white;border-radius:8px;text-align:center;animation:pulse 1.5s infinite';
-            
-            const offshoreAlert = document.getElementById('wind-offshore-alert');
-            if(offshoreAlert && offshoreAlert.parentNode) {
-                offshoreAlert.parentNode.insertBefore(strongWindAlert, offshoreAlert.nextSibling);
-            }
-        }
-        
-        if(windSpeed >= veryStrongWindThreshold) {
-            strongWindAlert.style.display = 'block';
-            strongWindAlert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <strong>VENT TRÈS FORT - DANGER</strong><br>Pêche déconseillée, risque de sécurité élevé';
-            strongWindAlert.style.background = '#dc2626';
-        } else if(windSpeed >= strongWindThreshold) {
-            strongWindAlert.style.display = 'block';
-            strongWindAlert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <strong>VENT FORT</strong><br>Conditions difficiles pour la pêche, prudence recommandée';
-            strongWindAlert.style.background = '#f59e0b';
         } else {
-            if(strongWindAlert) strongWindAlert.style.display = 'none';
-        }
-    }
-    
-    // --- CHARGEMENT MÉTÉO (accepte des coordonnées optionnelles) ---
-    async function loadWeatherDataInternal(lat = null, lon = null) {
-        const targetLat = lat !== null ? lat : userLat;
-        const targetLon = lon !== null ? lon : userLon;
-        try {
-            const response = await fetch(`/api/current_weather?lat=${targetLat}&lon=${targetLon}`);
-            const data = await response.json();
-            
-            console.log('📦 Données météo reçues:', data);
-            
-            if(data.status === 'success') {
-                const weather = data.weather;
-                
-                currentWindDirection = weather.wind_direction || 0;
-                currentWindSpeed = weather.wind_speed || 10;
-                
-                document.getElementById('temperature').textContent = `${weather.temperature?.toFixed(1) || '--'}°C`;
-                document.getElementById('wind-speed').textContent = `${weather.wind_speed?.toFixed(1) || '--'} km/h`;
-                document.getElementById('wind-direction').textContent = weather.wind_direction_name || '--';
-                document.getElementById('pressure').textContent = `${weather.pressure?.toFixed(0) || '--'} hPa`;
-                document.getElementById('weather-condition').textContent = weather.condition_fr || '--';
-                document.getElementById('cloud-cover').textContent = `Nuages: ${weather.clouds || '--'}%`;
-                
-                // Mise à jour de la hauteur des vagues
-                let waveValue = 0.2;
-                if (weather.wave_height !== undefined && weather.wave_height !== null) {
-                    waveValue = weather.wave_height;
-                    updateWaveHeight(waveValue, 'API directe');
-                } else if (weather.wind_speed) {
-                    waveValue = calculateWaveHeight(weather.wind_speed);
-                    updateWaveHeight(waveValue, 'calculé depuis vent');
-                } else {
-                    updateWaveHeight(waveValue, 'valeur par défaut');
-                }
-                
-                if(document.getElementById('weather-location-name')) {
-                    document.getElementById('weather-location-name').textContent = weather.location || '--';
-                }
-                if(document.getElementById('weather-icon')) {
-                    document.getElementById('weather-icon').innerHTML = weather.icon ? 
-                        `<img src="https://openweathermap.org/img/wn/${weather.icon}@2x.png" alt="${weather.condition_fr}">` : '';
-                }
-                if(document.getElementById('wind-impact')) {
-                    document.getElementById('wind-impact').textContent = weather.wind_fishing_impact || '--';
-                }
-                if(document.getElementById('wind-fishing-tips')) {
-                    document.getElementById('wind-fishing-tips').innerHTML = weather.wind_fishing_impact ? 
-                        `<i class="fas fa-info-circle"></i> ${weather.wind_fishing_impact}` : '--';
-                }
-                if(document.getElementById('weather-updated')) {
-                    document.getElementById('weather-updated').textContent = `Mis à jour: ${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}`;
-                }
-                if(document.getElementById('weather-pressure')) {
-                    document.getElementById('weather-pressure').textContent = `${weather.pressure?.toFixed(0) || '--'} hPa`;
-                }
-                
-                checkOffshoreWind(weather.wind_offshore);
-                checkStrongWind(weather.wind_speed || 0);
-                
-                if(windAnimationActive) {
-                    initWindParticles();
-                }
-                
-                if(weather.wave_height) {
-                    document.getElementById('wave-height').textContent = `${weather.wave_height.toFixed(1)} m`;
-                    document.getElementById('check-waves').textContent = `${weather.wave_height.toFixed(1)} m`;
-                    document.getElementById('detail-wave-height').textContent = `${weather.wave_height.toFixed(1)} m`;
-                }
-                
-                console.log(`🌬️ Vent synchronisé: ${currentWindSpeed} km/h, direction: ${currentWindDirection}° (${weather.wind_direction_name})`);
+            if (currentRange) {
+                currentRange.avgScore = Math.round(
+                    currentRange.scores.reduce((a, b) => a + b, 0) / currentRange.scores.length
+                );
+                ranges.push(currentRange);
+                currentRange = null;
             }
-        } catch(error) {
-            console.error('Erreur météo:', error);
         }
-        updatePredictionInternal(lat, lon);
     }
     
-    // ============================================
-    // RECOMMANDATION ULTRA-PRÉCISE (TEST 5 OK)
-    // ============================================
-    function updateAdvice(currentScore, bestScore, bestHour) {
-        const adviceContainer = document.getElementById('advice-container');
-        if (!adviceContainer) return;
+    if (currentRange) {
+        currentRange.avgScore = Math.round(
+            currentRange.scores.reduce((a, b) => a + b, 0) / currentRange.scores.length
+        );
+        ranges.push(currentRange);
+    }
+    
+    console.log(`✅ ${ranges.length} plage(s) optimale(s) détectée(s)`);
+    return ranges;
+}
+
+// ============================================
+// FONCTION POUR AFFICHER LES PLAGES OPTIMALES - VERSION SANS SCORES
+// ============================================
+function displayOptimalRanges(ranges) {
+    const container = document.getElementById('optimal-ranges-list');
+    if (!container) {
+        console.warn('⚠️ Conteneur optimal-ranges-list non trouvé');
+        return;
+    }
+    
+    // Récupérer les facteurs scientifiques actuels
+    const moonPhase = document.getElementById('moon-phase')?.textContent || '';
+    const pressure = parseFloat(document.getElementById('pressure')?.textContent) || 1015;
+    const pressureTrend = document.getElementById('pressure-trend-icon')?.textContent || '➡️';
+    const currentHour = new Date().getHours();
+    
+    if (!ranges || ranges.length === 0) {
+        const bestHour = document.getElementById('best-period')?.textContent || '--h';
         
-        const diff = currentScore - bestScore;
-        const absDiff = Math.abs(diff);
+        // Calculer la qualité sans afficher de score
+        let qualityIcon = '🎯';
+        let qualityText = '';
+        let borderColor = '#3b82f6';
+        const bestHourNum = parseInt(bestHour);
         
-        let message = '';
-        let bgColor = '';
-        let icon = '';
-        let testCompatible = ''; // Pour passer le test 5
-        
-        if (currentScore >= bestScore) {
-            // Cas 1 : Maintenant est meilleur ou égal
-            icon = '🔥';
-            message = `PÊCHEZ MAINTENANT ! (${currentScore}% vs ${bestScore}%)`;
-            bgColor = 'linear-gradient(135deg, #10b981, #059669)';
-            testCompatible = 'PÊCHEZ MAINTENANT';
-        } else if (bestScore - currentScore < 5) {
-            // Cas 2 : Futur légèrement meilleur (écart < 5%)
-            icon = '👍';
-            message = `Bon maintenant, encore mieux à ${bestHour} (+${absDiff}%)`;
-            bgColor = 'linear-gradient(135deg, #f59e0b, #d97706)';
-            testCompatible = 'Attendez';
+        // Déterminer la qualité basée sur les facteurs
+        if (bestHourNum >= 4 && bestHourNum <= 7) {
+            qualityIcon = '🌅';
+            qualityText = 'Aube - Moment idéal';
+            borderColor = '#10b981';
+        } else if (bestHourNum >= 17 && bestHourNum <= 20) {
+            qualityIcon = '🌆';
+            qualityText = 'Crépuscule - Excellent';
+            borderColor = '#10b981';
+        } else if (bestHourNum >= 21 || bestHourNum <= 4) {
+            if (moonPhase.includes('Pleine Lune')) {
+                qualityIcon = '🌕';
+                qualityText = 'Pleine Lune - Très bon';
+                borderColor = '#3b82f6';
+            } else if (moonPhase.includes('Nouvelle Lune')) {
+                qualityIcon = '🌑';
+                qualityText = 'Nouvelle Lune - Bon';
+                borderColor = '#3b82f6';
+            } else {
+                qualityIcon = '🌙';
+                qualityText = 'Nuit - Potentiel';
+                borderColor = '#f59e0b';
+            }
+        } else if (bestHourNum >= 11 && bestHourNum <= 14) {
+            qualityIcon = '☀️';
+            qualityText = 'Midi - Activité réduite';
+            borderColor = '#ef4444';
         } else {
-            // Cas 3 : Futur nettement meilleur (écart >= 5%)
-            icon = '⏳';
-            message = `Attendez ${bestHour} (+${absDiff}% meilleur)`;
-            bgColor = 'linear-gradient(135deg, #3b82f6, #2563eb)';
-            testCompatible = 'Attendez';
+            qualityIcon = '⏰';
+            qualityText = 'Conditions standard';
+            borderColor = '#94a3b8';
         }
         
-        // ✅ Version pour l'affichage utilisateur (nuancée)
-        adviceContainer.innerHTML = `
-            <div style="
-                background: ${bgColor};
-                color: white;
-                padding: 15px 20px;
-                border-radius: 12px;
-                font-weight: bold;
-                text-align: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                animation: slideIn 0.5s;
-                border: 2px solid rgba(255,255,255,0.2);
-            ">
-                <div style="font-size: 1.3rem; margin-bottom: 5px;">
-                    ${icon} ${message}
+        // Ajouter info pression
+        if (pressureTrend === '📉' && pressure < 1020) {
+            qualityText += ' · Pression en baisse ✅';
+        } else if (pressureTrend === '📈' && pressure > 1020) {
+            qualityText += ' · Pression en hausse ⚠️';
+        }
+        
+        const tooltipText = qualityText;
+        
+        container.innerHTML = `
+            <div class="optimal-range-item" style="border-left-color: ${borderColor};" title="${tooltipText}">
+                <div class="optimal-range-time">
+                    <span class="optimal-range-icon">${qualityIcon}</span>
+                    <span style="color:white; font-weight:600;">${formatHourToTime(bestHour)}</span>
+                    <span style="color:#94a3b8; font-size:0.9rem; margin-left:0.5rem;">${qualityText.split('·')[0]}</span>
                 </div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">
-                    ${currentScore}% maintenant · ${bestScore}% à ${bestHour}
+                <div class="optimal-range-badge" style="background: ${borderColor}; font-size:0.8rem; padding:0.2rem 0.8rem;">
+                    Recommandé
                 </div>
             </div>
         `;
-        
-        // ✅ Version cachée pour le test 5 (format attendu par le test)
-        const testEl = document.getElementById('test-advice');
-        if (testEl) {
-            testEl.setAttribute('data-advice', testCompatible);
-        }
-        
-        console.log(`💬 Conseil: ${message} (test: ${testCompatible})`);
+        return;
     }
     
-    // ============================================
-    // POISSONS ACTIFS ESTIMÉS (VERSION SCIENTIFIQUE)
-    // ============================================
-    function updateFishCountFromScore(score) {
-        const fishCount = document.getElementById('current-fish-count');
-        if (!fishCount) return;
+    let html = '';
+    ranges.forEach((range) => {
+        const startTime = formatHourToTime(range.start);
+        const endTime = formatHourToTime(range.end);
+        const startHour = parseInt(range.start);
+        const endHour = parseInt(range.end);
         
-        const scoreNum = parseInt(score);
+        // Calculer la qualité sans afficher de score
+        let qualityIcon = '🎣';
+        let qualityText = '';
+        let borderColor = '#3b82f6';
         
-        // Modèle scientifique basé sur l'activité des poissons
-        let estimated = 0;
-        let description = '';
+        // 1. Facteur crépusculaire
+        if ((startHour >= 4 && endHour <= 7) || (startHour >= 17 && endHour <= 20)) {
+            qualityIcon = '🌅';
+            qualityText = 'Crépuscule';
+            borderColor = '#10b981';
+        }
         
-        if (scoreNum >= 90) {
-            estimated = Math.floor(200 + (scoreNum - 90) * 5);
-            description = 'Activité exceptionnelle';
-        } else if (scoreNum >= 80) {
-            estimated = Math.floor(160 + (scoreNum - 80) * 4);
-            description = 'Très forte activité';
-        } else if (scoreNum >= 70) {
-            estimated = Math.floor(120 + (scoreNum - 70) * 4);
-            description = 'Forte activité';
-        } else if (scoreNum >= 60) {
-            estimated = Math.floor(90 + (scoreNum - 60) * 3);
-            description = 'Activité modérée';
-        } else if (scoreNum >= 50) {
-            estimated = Math.floor(60 + (scoreNum - 50) * 3);
-            description = 'Activité faible';
+        // 2. Facteur nuit et lune
+        else if (startHour >= 21 || endHour <= 4) {
+            if (moonPhase.includes('Pleine Lune')) {
+                qualityIcon = '🌕';
+                qualityText = 'Pleine Lune';
+                borderColor = '#3b82f6';
+            } else if (moonPhase.includes('Nouvelle Lune')) {
+                qualityIcon = '🌑';
+                qualityText = 'Nouvelle Lune';
+                borderColor = '#3b82f6';
+            } else if (moonPhase.includes('Gibbeuse')) {
+                qualityIcon = '🌔';
+                qualityText = 'Lune gibbeuse';
+                borderColor = '#f59e0b';
+            } else {
+                qualityIcon = '🌙';
+                qualityText = 'Nuit';
+                borderColor = '#94a3b8';
+            }
+        }
+        
+        // 3. Facteur heure
+        else if (startHour >= 5 && startHour <= 7) {
+            qualityIcon = '⏰';
+            qualityText = 'Aube';
+            borderColor = '#10b981';
+        } else if (startHour >= 11 && startHour <= 14) {
+            qualityIcon = '☀️';
+            qualityText = 'Midi';
+            borderColor = '#ef4444';
+        } else if (startHour >= 17 && startHour <= 19) {
+            qualityIcon = '🌆';
+            qualityText = 'Crépuscule';
+            borderColor = '#10b981';
         } else {
-            estimated = Math.floor(30 + scoreNum * 0.6);
-            description = 'Activité très faible';
+            qualityIcon = '⏳';
+            qualityText = 'Journée';
+            borderColor = '#94a3b8';
         }
         
-        estimated = Math.min(350, Math.max(20, estimated));
+        // Ajouter info pression si pertinente
+        let pressureInfo = '';
+        if (pressureTrend === '📉' && pressure < 1020) {
+            pressureInfo = ' · Pression en baisse';
+        } else if (pressureTrend === '📈' && pressure > 1020) {
+            pressureInfo = ' · Pression en hausse';
+        }
         
-        fishCount.textContent = estimated;
-        fishCount.title = `${description} (${scoreNum}%)`;
+        const tooltipText = `${qualityText}${pressureInfo}`;
         
-        fishCount.style.transition = 'all 0.3s ease';
-        fishCount.style.transform = 'scale(1.1)';
-        fishCount.style.color = getScoreColor(scoreNum);
-        
-        setTimeout(() => {
-            fishCount.style.transform = 'scale(1)';
-        }, 300);
-        
-        console.log(`🐟 Poissons actifs: ${estimated} (${description}) - Score ${scoreNum}%`);
-        
-        localStorage.setItem('fishCount', estimated);
-        localStorage.setItem('fishDescription', description);
-    }
+        html += `
+            <div class="optimal-range-item" style="border-left-color: ${borderColor};" title="${tooltipText}">
+                <div class="optimal-range-time">
+                    <span class="optimal-range-icon">${qualityIcon}</span>
+                    <span style="color:white; font-weight:600;">${startTime}</span>
+                    <span style="color:#94a3b8;">→</span>
+                    <span style="color:white; font-weight:600;">${endTime}</span>
+                </div>
+                <div class="optimal-range-badge" style="background: ${borderColor}; font-size:0.75rem; padding:0.2rem 0.6rem;">
+                    ${qualityText}
+                </div>
+            </div>
+        `;
+    });
     
-    // Fonction utilitaire pour la couleur du score
-    function getScoreColor(score) {
-        if (score >= 85) return '#10b981';
-        if (score >= 75) return '#3b82f6';
-        if (score >= 65) return '#f59e0b';
-        if (score >= 50) return '#f97316';
-        return '#ef4444';
-    }
+    container.innerHTML = html;
+}
+
+// ============================================
+// FONCTION MODALE COMPLÈTE - VERSION SANS SCORES
+// ============================================
+async function showMobileDetailsModal() {
+    console.log('📱 OUVERTURE MODALE COMPLÈTE');
     
-    // ============================================
-    // FONCTION POUR LES TESTS (TEST 5 COMPATIBLE)
-    // ============================================
-    function getAdviceForTest() {
-        const testEl = document.getElementById('test-advice');
-        if (testEl) {
-            return testEl.getAttribute('data-advice');
-        }
-        return null;
-    }
+    const modal = document.getElementById('mobileDetailsModal');
+    const content = document.getElementById('modal-content-container');
+    const spotName = document.getElementById('selected-spot-name')?.textContent || 'Spot';
+    const userLat = window.FishingDashboard?.userLat || 36.8065;
+    const userLon = window.FishingDashboard?.userLon || 10.1815;
+    const currentSpecies = window.FishingDashboard?.currentSpecies || 'loup';
     
-    // ============================================
-    // ESTIMATION DE LA HAUTEUR DES VAGUES À PARTIR DU SCORE
-    // ============================================
-    function estimateWaveHeight(score) {
-        // Corrélation approximative entre le score et la hauteur des vagues
-        // Plus le score est élevé, plus les vagues sont faibles (généralement)
-        if (score >= 85) return 0.5;
-        if (score >= 75) return 1.0;
-        if (score >= 65) return 1.5;
-        if (score >= 55) return 2.0;
-        return 2.5;
-    }
+    document.getElementById('modal-spot-name').textContent = spotName;
     
-    // ============================================
-    // MISE À JOUR DE L'ANALYSE DÉTAILLÉE
-    // ============================================
-    function updateDetailedAnalysis(data) {
-        if (!data) return;
-        
-        console.log('📊 Mise à jour analyse détaillée:', data);
-        
-        // Stocker pour réutilisation
-        window.lastDetailedData = data;
-        
-        // Mettre à jour les mini-scores
-        const miniEnv = document.getElementById('mini-env-score');
-        const miniBeh = document.getElementById('mini-beh-score');
-        const miniDepth = document.getElementById('mini-depth');
-        const miniSeabed = document.getElementById('mini-seabed');
-        
-        if (miniEnv && data.scores) {
-            miniEnv.textContent = (data.scores.environmental || 0) + '%';
-        }
-        
-        if (miniBeh && data.scores) {
-            miniBeh.textContent = (data.scores.behavioral || 0) + '%';
-        }
-        
-        if (miniDepth && data.bathymetry) {
-            miniDepth.textContent = (data.bathymetry.depth || '--') + ' m';
-        }
-        
-        if (miniSeabed && data.bathymetry) {
-            miniSeabed.textContent = data.bathymetry.seabed_description || '--';
-        }
-        
-        // Mettre à jour les détails complets
-        const detailEnv = document.getElementById('detail-environmental');
-        const detailBeh = document.getElementById('detail-behavioral');
-        const detailDepth = document.getElementById('detail-depth');
-        const detailDepthOptimal = document.getElementById('detail-depth-optimal');
-        const detailSeabed = document.getElementById('detail-seabed');
-        const detailWaveHeight = document.getElementById('detail-wave-height');
-        const detailCurrent = document.getElementById('detail-current');
-        const detailCurrentImpact = document.getElementById('detail-current-impact');
-        
-        if (detailEnv && data.scores) {
-            detailEnv.textContent = (data.scores.environmental || 0) + '%';
-        }
-        
-        if (detailBeh && data.scores) {
-            detailBeh.textContent = (data.scores.behavioral || 0) + '%';
-        }
-        
-        if (detailDepth && data.bathymetry) {
-            detailDepth.textContent = (data.bathymetry.depth || '--') + ' m';
-        }
-        
-        if (detailDepthOptimal && data.bathymetry) {
-            detailDepthOptimal.textContent = data.bathymetry.optimal_for_species ? '✅ Optimale' : '⚠️ Sous-optimale';
-        }
-        
-        if (detailSeabed && data.bathymetry) {
-            detailSeabed.textContent = data.bathymetry.seabed_description || '--';
-        }
-        
-        if (detailWaveHeight && data.weather) {
-            detailWaveHeight.textContent = (data.weather.wave_height || '--') + ' m';
-        }
-        
-        if (detailCurrent && data.scientific_factors?.tidal_current) {
-            detailCurrent.textContent = (data.scientific_factors.tidal_current.speed_mps || '--') + ' m/s';
-        }
-        
-        if (detailCurrentImpact && data.scientific_factors?.tidal_current) {
-            detailCurrentImpact.textContent = data.scientific_factors.tidal_current.fishing_impact || '--';
-        }
-    }
+    // Afficher un loader stylisé
+    content.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; height:70vh; flex-direction:column;">
+            <div style="width:60px; height:60px; border:4px solid #334155; border-top:4px solid #3b82f6; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:1rem;"></div>
+            <p style="color:#94a3b8; font-size:1rem;">Chargement des données...</p>
+            <p style="color:#64748b; font-size:0.8rem;">Analyse des conditions de pêche</p>
+        </div>
+    `;
     
-    // --- PRÉDICTION (accepte des coordonnées optionnelles) ---
-    async function updatePredictionInternal(lat = null, lon = null) {
-        const targetLat = lat !== null ? lat : userLat;
-        const targetLon = lon !== null ? lon : userLon;
+    modal.style.display = 'block';
+    modal.classList.remove('closing');
+    document.body.style.overflow = 'hidden';
+    
+    // Récupérer les données
+    const score = document.getElementById('prediction-score')?.textContent || '--%';
+    const fishCount = document.getElementById('current-fish-count')?.textContent || '--';
+    const waterTemp = document.getElementById('water-temp')?.textContent || '--°C';
+    const oxygen = document.getElementById('oxygen-level')?.textContent || '-- mg/L';
+    const phytoplankton = document.getElementById('phytoplankton')?.textContent || '--';
+    const waveHeight = document.getElementById('wave-height')?.textContent || '-- m';
+    const moonPhase = document.getElementById('moon-phase')?.textContent || '--';
+    const bestPeriod = document.getElementById('best-period')?.textContent || '--h';
+    
+    const windSpeed = document.getElementById('wind-speed')?.textContent || '--';
+    const windDir = document.getElementById('wind-direction')?.textContent || 'Direction';
+    const temperature = document.getElementById('temperature')?.textContent || '--°C';
+    const pressure = document.getElementById('pressure')?.textContent || '-- hPa';
+    const weatherCondition = document.getElementById('weather-condition')?.textContent || '--';
+    const checkOffshore = document.getElementById('check-offshore')?.textContent || '❌';
+    
+    const envScore = document.getElementById('mini-env-score')?.textContent || '--%';
+    const behScore = document.getElementById('mini-beh-score')?.textContent || '--%';
+    const depth = document.getElementById('mini-depth')?.textContent || '-- m';
+    const seabed = document.getElementById('mini-seabed')?.textContent || '--';
+    
+    // CHARGER LES DONNÉES 24h DEPUIS L'API
+    let chartLabels = [];
+    let chartScores = [];
+    let trendArrow = '➡️';
+    let trend = 'Stable';
+    let bestTime = bestPeriod;
+    let optimalRanges = [];
+    
+    try {
+        const response = await fetch(`/api/24h_forecast?lat=${userLat}&lon=${userLon}&species=${currentSpecies}&_=${Date.now()}`);
+        const data = await response.json();
         
-        try {
-            // 1. Récupérer d'abord le pictogramme (source de vérité)
-            const forecastResponse = await fetch(`/api/24h_forecast?lat=${targetLat}&lon=${targetLon}&species=loup`);
-            const forecastData = await forecastResponse.json();
+        if (data.status === 'success' && data.hours && data.scores) {
+            chartLabels = data.hours;
+            chartScores = data.scores;
+            bestTime = data.best_hour || bestTime;
             
-            if (forecastData.status === 'success') {
-                // 2. Trouver l'index de l'heure actuelle
-                const currentHour = new Date().getHours();
-                let currentIndex = 0;
-                
-                for (let i = 0; i < forecastData.hours.length; i++) {
-                    if (forecastData.hours[i] === currentHour + 'h') {
-                        currentIndex = i;
-                        break;
-                    }
-                }
-                
-                // 3. Le score actuel = score de l'heure actuelle dans le pictogramme
-                const currentScore = forecastData.scores[currentIndex];
-                
-                // 4. Trouver le meilleur score
-                let bestScore = 0;
-                let bestHour = '';
-                for (let i = 0; i < forecastData.scores.length; i++) {
-                    if (forecastData.scores[i] > bestScore) {
-                        bestScore = forecastData.scores[i];
-                        bestHour = forecastData.hours[i];
-                    }
-                }
-                
-                // ✅ Mettre à jour les poissons actifs
-                updateFishCountFromScore(currentScore);
-                
-                // ✅ Mettre à jour la recommandation (TEST 5 compatible)
-                updateAdvice(currentScore, bestScore, bestHour);
-                
-                // ✅ AJOUT : Récupérer les données détaillées pour l'analyse
-                const detailedResponse = await fetch(`/api/tunisian_prediction?lat=${targetLat}&lon=${targetLon}&species=loup&_=${Date.now()}`);
-                const detailedData = await detailedResponse.json();
-                
-                if (detailedData.status === 'success') {
-                    // Fusionner les données du pictogramme avec les données détaillées
-                    detailedData.weather = detailedData.weather || {};
-                    detailedData.weather.wave_height = estimateWaveHeight(currentScore);
-                    
-                    // Mettre à jour l'analyse détaillée
-                    updateDetailedAnalysis(detailedData);
-                }
-                
-                // 5. Mettre à jour l'affichage du score
-                document.getElementById('prediction-score').textContent = currentScore + '%';
-                document.getElementById('header-prediction-score').textContent = currentScore + '%';
-                document.getElementById('check-score').textContent = currentScore + '%';
-                
-                // 6. Mettre à jour le texte
-                let text = '';
-                if (currentScore >= 85) text = 'Excellent ! Conditions optimales';
-                else if (currentScore >= 70) text = 'Bonnes conditions';
-                else if (currentScore >= 50) text = 'Conditions moyennes';
-                else text = 'Conditions difficiles';
-                
-                document.getElementById('prediction-text').textContent = text;
-                document.getElementById('header-prediction-text').textContent = text;
-                
-                console.log(`✅ Score synchronisé avec pictogramme: ${currentScore}% à ${currentHour}h`);
+            if (data.trend === 'rising') {
+                trendArrow = '↗️';
+                trend = 'Hausse';
+            } else if (data.trend === 'falling') {
+                trendArrow = '↘️';
+                trend = 'Baisse';
             } else {
-                // Fallback sur l'ancienne méthode
-                const response = await fetch(`/api/tunisian_prediction?lat=${targetLat}&lon=${targetLon}&species=loup`);
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    currentPredictionData = data;
-                    
-                    let rawScore = data.scores?.final || 0;
-                    if(rawScore > 1000) rawScore = rawScore / 100;
-                    const score = Math.max(0, Math.min(100, Math.round(rawScore)));
-                    
-                    document.getElementById('prediction-score').textContent = `${score}%`;
-                    document.getElementById('header-prediction-score').textContent = `${score}%`;
-                    document.getElementById('check-score').textContent = `${score}%`;
-                    
-                    let text = '';
-                    if(score >= 85) text = 'Excellent ! Conditions optimales';
-                    else if(score >= 70) text = 'Bonnes conditions';
-                    else if(score >= 50) text = 'Conditions moyennes';
-                    else text = 'Conditions difficiles';
-                    
-                    document.getElementById('prediction-text').textContent = text;
-                    document.getElementById('header-prediction-text').textContent = text;
-                    
-                    updateFishCountFromScore(score);
-                    
-                    // Mettre à jour l'analyse détaillée avec les données fallback
-                    updateDetailedAnalysis(data);
-                }
+                trendArrow = '➡️';
+                trend = 'Stable';
             }
-        } catch(error) {
-            console.error('Erreur prédiction:', error);
-        }
-    }
-    
-    // --- DONNÉES SCIENTIFIQUES (accepte des coordonnées optionnelles) ---
-    async function updateScientificDataInternal(lat = null, lon = null) {
-        const targetLat = lat !== null ? lat : userLat;
-        const targetLon = lon !== null ? lon : userLon;
-        try {
-            const response = await fetch(`/api/scientific_factors?lat=${targetLat}&lon=${targetLon}&species=loup`);
-            const data = await response.json();
             
-            if(data.status === 'success') {
-                const factors = data.factors;
-                
-                document.getElementById('water-temp').textContent = factors.water_temperature?.value ? `${factors.water_temperature.value}°C` : '--°C';
-                document.getElementById('oxygen-level').textContent = factors.dissolved_oxygen?.value ? `${factors.dissolved_oxygen.value} mg/L` : '-- mg/L';
-                document.getElementById('phytoplankton').textContent = factors.chlorophyll_a?.value ? `${factors.chlorophyll_a.value} mg/m³` : '--';
-                document.getElementById('moon-phase').textContent = getCurrentMoonPhase();
-            }
-        } catch(error) {
-            console.error('Erreur données scientifiques:', error);
-            document.getElementById('water-temp').textContent = '22°C';
-            document.getElementById('oxygen-level').textContent = '7.2 mg/L';
-            document.getElementById('phytoplankton').textContent = 'Moyenne';
-            document.getElementById('moon-phase').textContent = getCurrentMoonPhase();
-        }
-    }
-    
-    // --- GRAPHIQUE ACTIVITÉ 24h ---
-    async function load24hForecastInternal(lat = null, lon = null) {
-        const targetLat = lat !== null ? lat : userLat;
-        const targetLon = lon !== null ? lon : userLon;
-        
-        // 🔥 Forcer la mise à jour du score avec le pictogramme
-        await updatePredictionInternal(lat, lon);
-        
-        try {
-            const response = await fetch(`/api/24h_forecast?lat=${targetLat}&lon=${targetLon}&species=loup`);
-            const data = await response.json();
+            optimalRanges = extractOptimalRanges(data.scores, data.hours, 70);
             
-            if(data.status === 'success' && activityChart) {
-                // Mettre à jour le graphique
-                activityChart.data.labels = data.hours || [];
-                activityChart.data.datasets[0].data = data.scores || [];
-                activityChart.update();
-                
-                // Mettre à jour la tendance
-                const trendEl = document.getElementById('current-trend');
-                const trendArrow = document.getElementById('trend-arrow');
-                if(trendEl && trendArrow) {
-                    if(data.trend === 'rising') {
-                        trendEl.textContent = 'Hausse';
-                        trendArrow.textContent = '↗️';
-                    } else if(data.trend === 'falling') {
-                        trendEl.textContent = 'Baisse';
-                        trendArrow.textContent = '↘️';
-                    } else {
-                        trendEl.textContent = 'Stable';
-                        trendArrow.textContent = '➡️';
-                    }
-                }
-                
-                // --- MEILLEURE HEURE (sous le pictogramme) ---
-                const bestPeriodEl = document.getElementById('best-period');
-                if (bestPeriodEl && data.best_hour) {
-                    let displayText = data.best_hour;
-                    let emoji = '';
-                    
-                    if (data.best_hour.includes('maintenant')) {
-                        emoji = ' 🔥';
-                    } else if (data.best_score >= 80) {
-                        emoji = ' 🔥';
-                    } else if (data.best_score >= 60) {
-                        emoji = ' 👍';
-                    } else {
-                        emoji = ' 👌';
-                    }
-                    
-                    bestPeriodEl.innerHTML = `${displayText}${emoji} <span style="font-size:0.7rem; color:#94a3b8">${data.best_score}%</span>`;
-                }
-                
-                // --- PROCHAINE FENÊTRE ---
-                const nextWindowStart = document.getElementById('next-window-start');
-                const nextWindowEnd = document.getElementById('next-window-end');
-                const windowQuality = document.getElementById('window-quality');
-                
-                if (nextWindowStart && data.best_time) {
-                    nextWindowStart.textContent = data.best_time;
-                    
-                    if (data.best_hour.includes('maintenant')) {
-                        nextWindowEnd.innerHTML = '<span style="color:#10b981; font-weight:bold;">🔥 PÊCHEZ MAINTENANT !</span>';
-                    } else {
-                        // Calculer le compte à rebours
-                        const now = new Date();
-                        const [hour, minute] = data.best_time.split(':').map(Number);
-                        const bestTime = new Date(now);
-                        bestTime.setHours(hour, minute, 0);
-                        
-                        if (bestTime < now) {
-                            bestTime.setDate(bestTime.getDate() + 1);
-                        }
-                        
-                        const diffMs = bestTime - now;
-                        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                        
-                        if (diffHrs > 0) {
-                            nextWindowEnd.textContent = `dans ${diffHrs}h${diffMins > 0 ? diffMins : ''}`;
-                        } else {
-                            nextWindowEnd.textContent = `dans ${diffMins} min`;
-                        }
-                    }
-                    
-                    // Qualité avec emoji
-                    let quality = 'moyenne';
-                    let emoji = '👌';
-                    if (data.best_score >= 80) {
-                        quality = 'excellente';
-                        emoji = '🔥';
-                    } else if (data.best_score >= 60) {
-                        quality = 'bonne';
-                        emoji = '👍';
-                    }
-                    
-                    windowQuality.innerHTML = `${quality} ${emoji} <span style="font-size:0.7rem; color:#94a3b8">${data.best_score}%</span>`;
-                }
-                
-                // Afficher une note si présente
-                if (data.note) {
-                    const oldNote = document.getElementById('forecast-note');
-                    if (oldNote) oldNote.remove();
-                    
-                    const noteEl = document.createElement('div');
-                    noteEl.id = 'forecast-note';
-                    noteEl.style.cssText = 'margin-top:0.5rem; padding:0.75rem; background:#10b981; color:white; border-radius:6px; text-align:center; font-weight:bold; animation:pulse 2s infinite;';
-                    noteEl.innerHTML = '🔥 ' + data.note + ' 🔥';
-                    
-                    const chartContainer = document.querySelector('.chart-container');
-                    if (chartContainer) {
-                        chartContainer.parentNode.insertBefore(noteEl, chartContainer.nextSibling);
-                    }
-                }
-                
-                // Afficher les meilleurs créneaux (optionnel)
-                if(data.best_windows && data.best_windows.length > 0) {
-                    const oldList = document.getElementById('periods-list');
-                    if(oldList) oldList.remove();
-                    
-                    let periodsHtml = '<div id="periods-list" style="margin-top:1rem;padding:.5rem;background:#1e293b;border-radius:6px">';
-                    periodsHtml += '<div style="color:#94a3b8;font-size:.8rem;margin-bottom:.5rem">📋 Meilleurs créneaux :</div>';
-                    
-                    data.best_windows.slice(0, 3).forEach(p => {
-                        let qualityEmoji = p.avg_score >= 80 ? '🔥' : p.avg_score >= 60 ? '👍' : '👌';
-                        periodsHtml += `
-                            <div style="display:flex;justify-content:space-between;font-size:.9rem;padding:.25rem 0;border-bottom:1px solid #334155">
-                                <span>${p.start} → ${p.end}</span>
-                                <span style="color:${p.avg_score >= 80 ? '#10b981' : '#f59e0b'}">
-                                    ${qualityEmoji} ${p.avg_score}%
-                                </span>
-                            </div>
-                        `;
-                    });
-                    
-                    periodsHtml += '</div>';
-                    
-                    const chartContainer = document.querySelector('.chart-container');
-                    if(chartContainer) {
-                        const periodsDiv = document.createElement('div');
-                        periodsDiv.innerHTML = periodsHtml;
-                        chartContainer.parentNode.insertBefore(periodsDiv.firstChild, chartContainer.nextSibling);
-                    }
-                }
-            }
-        } catch(error) {
-            console.error('Erreur prévisions 24h:', error);
-        }
-    }
-    
-    // --- UTILITAIRES ---
-    function updateFishCount(score) {
-        const fishCount = document.getElementById('current-fish-count');
-        if(fishCount) {
-            const estimated = Math.floor(score * 2.5);
-            fishCount.textContent = estimated;
-        }
-    }
-    
-    function checkOffshoreWind(isOffshore) {
-        const alertDiv = document.getElementById('wind-offshore-alert');
-        const dangerDiv = document.getElementById('offshore-danger');
-        const checkOffshore = document.getElementById('check-offshore');
-        
-        if(isOffshore === true) {
-            if(alertDiv) {
-                alertDiv.style.display = 'block';
-                alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>VENT OFFSHORE - DANGER DE NOYADE</strong><br>Vent soufflant de la terre vers la mer - ${currentWindSpeed.toFixed(1)} km/h`;
-            }
-            if(dangerDiv) dangerDiv.style.display = 'block';
-            if(checkOffshore) checkOffshore.textContent = '⚠️';
+            console.log('✅ Données 24h chargées:', chartLabels.length, 'points');
         } else {
-            if(alertDiv) alertDiv.style.display = 'none';
-            if(dangerDiv) dangerDiv.style.display = 'none';
-            if(checkOffshore) checkOffshore.textContent = '✅';
+            throw new Error('Données API invalides');
         }
-    }
-    
-    function getCurrentMoonPhase() {
-        const now = new Date();
-        const daysInCycle = 29.530588853;
-        const knownNewMoon = new Date(2024, 0, 11);
-        const daysSince = (now - knownNewMoon) / (1000 * 60 * 60 * 24);
-        const daysInCurrent = daysSince % daysInCycle;
+    } catch (error) {
+        console.warn('⚠️ Erreur chargement API, utilisation données secours');
         
-        if(daysInCurrent < 1.84566) return 'Nouvelle Lune';
-        if(daysInCurrent < 5.53699) return 'Premier Croissant';
-        if(daysInCurrent < 9.22831) return 'Premier Quartier';
-        if(daysInCurrent < 12.91963) return 'Gibbeuse Croissante';
-        if(daysInCurrent < 16.61096) return 'Pleine Lune';
-        if(daysInCurrent < 20.30228) return 'Gibbeuse Décroissante';
-        if(daysInCurrent < 23.99361) return 'Dernier Quartier';
-        return 'Dernier Croissant';
+        chartLabels = [];
+        chartScores = [];
+        
+        for (let i = 0; i < 24; i++) {
+            const hour = i.toString().padStart(2, '0') + 'h';
+            chartLabels.push(hour);
+            
+            let baseScore = 50;
+            if (i >= 5 && i <= 8) baseScore = 75 + Math.sin(i) * 5;
+            else if (i >= 17 && i <= 20) baseScore = 80 + Math.cos(i) * 5;
+            else if (i >= 11 && i <= 14) baseScore = 40 + Math.random() * 10;
+            else baseScore = 50 + Math.random() * 15;
+            
+            chartScores.push(Math.round(baseScore));
+        }
+        
+        optimalRanges = extractOptimalRanges(chartScores, chartLabels, 70);
+        
+        const firstHalf = chartScores.slice(0, 12);
+        const secondHalf = chartScores.slice(12);
+        const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / 12;
+        const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / 12;
+        
+        if (avgSecond > avgFirst + 2) {
+            trendArrow = '↗️';
+            trend = 'Hausse';
+        } else if (avgSecond < avgFirst - 2) {
+            trendArrow = '↘️';
+            trend = 'Baisse';
+        }
+        
+        const maxScore = Math.max(...chartScores);
+        const maxIndex = chartScores.indexOf(maxScore);
+        bestTime = chartLabels[maxIndex] || '06h';
     }
     
-    function startValidityCountdown(minutes = 30) {
-        let timeLeft = minutes * 60;
-        const timer = setInterval(() => {
-            timeLeft--;
-            const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-            const countdown = document.getElementById('countdown');
-            if(countdown) {
-                countdown.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-                if(timeLeft <= 300) countdown.style.color = '#ef4444';
+    // Plages optimales HTML - Version sans scores
+    let rangesHtml = '<div style="margin:1rem 0;">';
+    
+    const pressureTrend = document.getElementById('pressure-trend-icon')?.textContent || '➡️';
+    const pressureValue = parseFloat(document.getElementById('pressure')?.textContent) || 1015;
+    
+    if (optimalRanges.length === 0) {
+        const fallbackTime = formatHourToTime(bestTime);
+        const fallbackHour = parseInt(bestTime);
+        
+        // Déterminer la qualité sans score
+        let qualityIcon = '🎯';
+        let qualityText = 'Recommandé';
+        let borderColor = '#3b82f6';
+        
+        if (fallbackHour >= 4 && fallbackHour <= 7) {
+            qualityIcon = '🌅';
+            qualityText = 'Aube';
+            borderColor = '#10b981';
+        } else if (fallbackHour >= 17 && fallbackHour <= 20) {
+            qualityIcon = '🌆';
+            qualityText = 'Crépuscule';
+            borderColor = '#10b981';
+        } else if (fallbackHour >= 21 || fallbackHour <= 4) {
+            if (moonPhase.includes('Pleine Lune')) {
+                qualityIcon = '🌕';
+                qualityText = 'Pleine Lune';
+                borderColor = '#3b82f6';
+            } else {
+                qualityIcon = '🌙';
+                qualityText = 'Nuit';
+                borderColor = '#f59e0b';
             }
-            if(timeLeft <= 0) {
-                clearInterval(timer);
-                loadWeatherDataInternal();
-                updatePredictionInternal();
-                updateScientificDataInternal();
-                load24hForecastInternal();
-                startValidityCountdown(30);
+        }
+        
+        // Ajouter info pression
+        if (pressureTrend === '📉' && pressureValue < 1020) {
+            qualityText += ' ✓';
+        }
+        
+        rangesHtml += `
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; padding:0.5rem; background:#1e293b; border-radius:8px; border-left:4px solid ${borderColor};">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <span style="font-size:1.3rem;">${qualityIcon}</span>
+                    <span style="color:white; font-weight:600;">${fallbackTime}</span>
+                </div>
+                <div style="background: ${borderColor}; padding:0.25rem 0.75rem; border-radius:20px; color:white; font-weight:600; font-size:0.9rem;">
+                    ${qualityText}
+                </div>
+            </div>
+        `;
+    } else {
+        optimalRanges.forEach(range => {
+            const startTime = formatHourToTime(range.start);
+            const endTime = formatHourToTime(range.end);
+            const startHour = parseInt(range.start);
+            
+            // Déterminer la qualité sans score
+            let qualityIcon = '🎣';
+            let qualityText = 'Recommandé';
+            let borderColor = '#3b82f6';
+            
+            if (startHour >= 4 && startHour <= 7) {
+                qualityIcon = '🌅';
+                qualityText = 'Aube';
+                borderColor = '#10b981';
+            } else if (startHour >= 17 && startHour <= 20) {
+                qualityIcon = '🌆';
+                qualityText = 'Crépuscule';
+                borderColor = '#10b981';
+            } else if (startHour >= 21 || startHour <= 4) {
+                if (moonPhase.includes('Pleine Lune')) {
+                    qualityIcon = '🌕';
+                    qualityText = 'Pleine Lune';
+                    borderColor = '#3b82f6';
+                } else if (moonPhase.includes('Nouvelle Lune')) {
+                    qualityIcon = '🌑';
+                    qualityText = 'Nouvelle Lune';
+                    borderColor = '#3b82f6';
+                } else {
+                    qualityIcon = '🌙';
+                    qualityText = 'Nuit';
+                    borderColor = '#f59e0b';
+                }
+            } else if (startHour >= 11 && startHour <= 14) {
+                qualityIcon = '☀️';
+                qualityText = 'Midi';
+                borderColor = '#ef4444';
             }
-        }, 1000);
-    }
-    
-    // --- SPOTS (FONCTION AVEC CLIC DIRECT) ---
-    function addSpotToMap(spot, isCustom = false) {
-        if(!spot || !spot.lat || !spot.lon) return;
-        
-        let iconColor = {port:'#3b82f6',plage:'#10b981',rocheux:'#f59e0b',custom:'#ef4444'}[spot.type] || '#6b7280';
-        
-        const icon = L.divIcon({
-            html: `<div style="background:${iconColor};width:${isCustom?14:12}px;height:${isCustom?14:12}px;border-radius:50%;border:2px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);${isCustom?'animation:pulse 1.5s infinite':''}"></div>`,
-            className: 'spot-icon',
-            iconSize: [isCustom?18:16, isCustom?18:16]
+            
+            // Ajouter info pression
+            if (pressureTrend === '📉' && pressureValue < 1020) {
+                qualityText += ' ✓';
+            }
+            
+            rangesHtml += `
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; padding:0.5rem; background:#1e293b; border-radius:8px; border-left:4px solid ${borderColor};">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <span style="font-size:1.3rem;">${qualityIcon}</span>
+                        <div>
+                            <span style="color:white; font-weight:600;">${startTime}</span>
+                            <span style="color:#94a3b8; margin:0 0.25rem;">→</span>
+                            <span style="color:white; font-weight:600;">${endTime}</span>
+                        </div>
+                    </div>
+                    <div style="background: ${borderColor}; padding:0.25rem 0.75rem; border-radius:20px; color:white; font-weight:600; font-size:0.9rem;">
+                        ${qualityText}
+                    </div>
+                </div>
+            `;
         });
-        
-        const marker = L.marker([spot.lat, spot.lon], {icon}).addTo(map);
-        
-        // Attacher les données du spot au marqueur
-        marker.spotData = {
-            name: spot.name,
-            lat: spot.lat,
-            lon: spot.lon,
-            type: spot.type,
-            description: spot.description
-        };
-        
-        // Ajouter l'écouteur de clic DIRECT sur le marqueur
-        marker.on('click', function() {
-            console.log('📍 Clic sur marqueur:', this.spotData.name);
-            if (typeof window.selectSpot === 'function') {
-                window.selectSpot(this.spotData.lat, this.spotData.lon, this.spotData.name);
-            }
-        });
-        
-        // Créer le popup avec le bouton
-        const popupDiv = document.createElement('div');
-        popupDiv.style.minWidth = '200px';
-        
-        const title = document.createElement('h3');
-        title.style.margin = '0 0 5px';
-        title.style.color = '#1e40af';
-        title.textContent = spot.name;
-        popupDiv.appendChild(title);
-        
-        const typeSpan = document.createElement('span');
-        typeSpan.style.background = iconColor;
-        typeSpan.style.color = 'white';
-        typeSpan.style.padding = '2px 8px';
-        typeSpan.style.borderRadius = '12px';
-        typeSpan.style.fontSize = '12px';
-        typeSpan.style.display = 'inline-block';
-        typeSpan.style.marginBottom = '5px';
-        typeSpan.textContent = isCustom ? 'Personnalisé' : spot.type;
-        popupDiv.appendChild(typeSpan);
-        
-        if (spot.description) {
-            const desc = document.createElement('p');
-            desc.style.margin = '5px 0';
-            desc.textContent = spot.description;
-            popupDiv.appendChild(desc);
-        }
-        
-        const selectBtn = document.createElement('button');
-        selectBtn.style.marginTop = '10px';
-        selectBtn.style.padding = '5px 10px';
-        selectBtn.style.background = '#3b82f6';
-        selectBtn.style.color = 'white';
-        selectBtn.style.border = 'none';
-        selectBtn.style.borderRadius = '4px';
-        selectBtn.style.width = '100%';
-        selectBtn.style.cursor = 'pointer';
-        selectBtn.innerHTML = '<i class="fas fa-check"></i> Sélectionner';
-        
-        selectBtn.onclick = function(e) {
-            e.stopPropagation();
-            window.selectSpot(spot.lat, spot.lon, spot.name);
-            map.closePopup();
-        };
-        
-        popupDiv.appendChild(selectBtn);
-        
-        if (isCustom) {
-            const deleteBtn = document.createElement('button');
-            deleteBtn.style.marginTop = '5px';
-            deleteBtn.style.padding = '5px 10px';
-            deleteBtn.style.background = '#dc2626';
-            deleteBtn.style.color = 'white';
-            deleteBtn.style.border = 'none';
-            deleteBtn.style.borderRadius = '4px';
-            deleteBtn.style.width = '100%';
-            deleteBtn.style.cursor = 'pointer';
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
-            
-            deleteBtn.onclick = function(e) {
-                e.stopPropagation();
-                if (confirm(`Supprimer "${spot.name}" ?`)) {
-                    const customSpots = JSON.parse(localStorage.getItem('fishingPredictorCustomSpots') || '[]');
-                    const updatedSpots = customSpots.filter(s => 
-                        !(Math.abs(s.lat - spot.lat) < 0.0001 && Math.abs(s.lon - spot.lon) < 0.0001)
-                    );
-                    localStorage.setItem('fishingPredictorCustomSpots', JSON.stringify(updatedSpots));
-                    window.location.reload();
-                }
-            };
-            
-            popupDiv.appendChild(deleteBtn);
-        }
-        
-        marker.bindPopup(popupDiv);
-        marker.spotType = spot.type;
-        marker.isCustom = isCustom;
     }
     
-    function loadCustomSpots() {
-        try {
-            const saved = localStorage.getItem('fishingPredictorCustomSpots');
-            if(saved) {
-                customSpots = JSON.parse(saved);
-                customSpots.forEach(s => addSpotToMap(s, true));
-            }
-        } catch(e) { console.error('Erreur chargement spots:', e); customSpots = []; }
-    }
+    rangesHtml += '</div>';
     
-    function saveCustomSpots() {
-        localStorage.setItem('fishingPredictorCustomSpots', JSON.stringify(customSpots));
-    }
-    
-    // ========== API PUBLIQUE ==========
-    return {
-        // Initialisation
-        initMap() {
-            if(!document.getElementById('map')) return;
-            
-            // Rendre la carte accessible globalement
-            window.fishingMap = L.map('map').setView([userLat, userLon], 10);
-            map = window.fishingMap;
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution:'© OpenStreetMap'
-            }).addTo(map);
-            
-            // ✅ Créer le conteneur de conseils s'il n'existe pas
-            if (!document.getElementById('advice-container')) {
-                const adviceContainer = document.createElement('div');
-                adviceContainer.id = 'advice-container';
-                const rightColumn = document.querySelector('.right-column');
-                if (rightColumn) {
-                    rightColumn.prepend(adviceContainer);
-                }
-            }
-            
-            // ✅ Créer l'élément caché pour les tests
-            if (!document.getElementById('test-advice')) {
-                const testEl = document.createElement('div');
-                testEl.id = 'test-advice';
-                testEl.style.display = 'none';
-                document.body.appendChild(testEl);
-            }
-            
-            loadCustomSpots();
-            TUNISIAN_SPOTS.forEach(s => addSpotToMap(s, false));
-            
-            currentMarker = L.marker([userLat, userLon], {
-                icon: L.divIcon({
-                    html: '<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(59,130,246,0.7);"></div>',
-                    className: 'user-location-icon',
-                    iconSize: [22, 22]
-                })
-            }).addTo(map).bindPopup('Votre position actuelle');
-            
-            // Clic partout sur la carte
-            map.on('click', function(e) {
-                const lat = e.latlng.lat;
-                const lon = e.latlng.lng;
-                const spotName = `Spot ${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-                
-                // Marqueur temporaire
-                const tempMarker = L.marker([lat, lon], {
-                    icon: L.divIcon({
-                        html: `<div style="background:#ef4444; width:16px; height:16px; border-radius:50%; border:3px solid white; animation:pulse-marker 1s infinite;"></div>`,
-                        className: 'temp-marker',
-                        iconSize: [22, 22]
-                    })
-                }).addTo(map);
-                setTimeout(() => map.removeLayer(tempMarker), 2000);
-                
-                localStorage.setItem('currentSpotName', spotName);
-                localStorage.setItem('currentLat', lat);
-                localStorage.setItem('currentLon', lon);
-                window.selectSpot(lat, lon, spotName);
-            });
-            
-            initWindAnimation();
-            
-            const ctx = document.getElementById('activity-chart');
-            if(ctx) {
-                activityChart = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels: [], datasets: [{
-                        label: 'Activité (%)',
-                        data: [],
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 3
-                    }]},
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8', maxTicksLimit: 8 } },
-                            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8', stepSize: 20 } }
-                        }
-                    }
-                });
-            }
-            
-            loadWeatherDataInternal();
-            updateScientificDataInternal();
-            load24hForecastInternal();
-            startValidityCountdown(30);
-            
-            const now = new Date();
-            document.getElementById('check-hour').textContent = `${now.getHours()}h`;
-            
-            setInterval(() => {
-                if(document.visibilityState === 'visible') {
-                    loadWeatherDataInternal();
-                    updatePredictionInternal();
-                    updateScientificDataInternal();
-                    load24hForecastInternal();
-                }
-            }, 5 * 60000);
-            
-            // Création des marqueurs par défaut
-            function createDefaultMarkers() {
-                const spots = [
-                    { name: "Tunis Marina", lat: 36.8065, lon: 10.1815, color: '#3b82f6' },
-                    { name: "Cap Bon", lat: 36.8475, lon: 11.094, color: '#f59e0b' },
-                    { name: "Sousse", lat: 35.8254, lon: 10.636, color: '#10b981' },
-                    { name: "Hammamet", lat: 36.4, lon: 10.6, color: '#ef4444' },
-                    { name: "Bizerte", lat: 37.2747, lon: 9.8739, color: '#8b5cf6' }
-                ];
-                
-                spots.forEach(spot => {
-                    const icon = L.divIcon({
-                        html: `<div style="background:${spot.color}; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.5); cursor:pointer;"></div>`,
-                        className: 'custom-marker',
-                        iconSize: [26, 26]
-                    });
-                    
-                    const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(map);
-                    
-                    marker.on('click', () => {
-                        localStorage.setItem('currentSpotName', spot.name);
-                        localStorage.setItem('currentLat', spot.lat);
-                        localStorage.setItem('currentLon', spot.lon);
-                        window.selectSpot(spot.lat, spot.lon, spot.name);
-                    });
-                    
-                    marker.bindPopup(`<b>${spot.name}</b>`);
-                });
-            }
-            createDefaultMarkers();
-        },
-        
-        // VENT - Activation/désactivation
-        toggleWindAnimation(e) {
-            windAnimationActive = !windAnimationActive;
-            const canvas = document.getElementById('wind-animation-canvas');
-            const btn = e?.currentTarget || document.getElementById('windToggleBtn');
-            
-            if(windAnimationActive) {
-                canvas.style.display = 'block';
-                if(btn) {
-                    btn.innerHTML = '<i class="fas fa-wind"></i> Masquer vent';
-                    btn.classList.add('btn-primary');
-                    btn.classList.remove('btn-secondary');
-                }
-                initWindParticles();
-                animateWind();
-                console.log(`🌪️ Animation vent activée - Direction: ${currentWindDirection}°, Vitesse: ${currentWindSpeed} km/h`);
-            } else {
-                canvas.style.display = 'none';
-                if(btn) {
-                    btn.innerHTML = '<i class="fas fa-wind"></i> Afficher vent';
-                    btn.classList.add('btn-secondary');
-                    btn.classList.remove('btn-primary');
-                }
-                if(windAnimationFrame) cancelAnimationFrame(windAnimationFrame);
-            }
-        },
-        
-        toggleSpotType(type) {
-            const isChecked = event?.target?.checked || false;
-            if(map) map.eachLayer(layer => { if(layer.spotType === type) layer.setOpacity(isChecked ? 1 : 0); });
-        },
-        
-        // SÉLECTION SPOT (exposée publiquement)
-        selectSpot(lat, lon, name) {
-            return selectSpot(lat, lon, name);
-        },
-        
-        // CALCUL DISTANCE (exposée publiquement)
-        calculateDistanceToSpot(lat, lon) {
-            return calculateDistanceToSpot(lat, lon);
-        },
-        
-        // GESTION DES SPOTS PERSONNALISÉS
-        deleteCustomSpot(lat, lon, name) {
-            if(confirm(`Voulez-vous vraiment supprimer le spot "${name}" ?`)) {
-                customSpots = customSpots.filter(spot => 
-                    !(Math.abs(spot.lat - lat) < 0.0001 && Math.abs(spot.lon - lon) < 0.0001)
-                );
-                saveCustomSpots();
-                this.reloadMap();
-                this.showNotification(`Spot "${name}" supprimé`, 'success');
-            }
-        },
-        
-        clearCustomSpots() {
-            if(confirm("⚠️ Voulez-vous vraiment supprimer TOUS vos spots personnalisés ?\nCette action est irréversible.")) {
-                customSpots = [];
-                saveCustomSpots();
-                this.reloadMap();
-                this.showNotification('Tous vos spots ont été supprimés', 'info');
-            }
-        },
-        
-        reloadMap() {
-            if(!map) return;
-            
-            const center = map.getCenter();
-            const zoom = map.getZoom();
-            
-            map.eachLayer((layer) => {
-                if(layer instanceof L.Marker && layer !== currentMarker) {
-                    map.removeLayer(layer);
-                }
-            });
-            
-            TUNISIAN_SPOTS.forEach(s => addSpotToMap(s, false));
-            customSpots.forEach(s => addSpotToMap(s, true));
-            
-            map.setView(center, zoom);
-        },
-        
-        // Actions
-        getCurrentLocation() {
-            if(navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        updateUserPosition(pos.coords.latitude, pos.coords.longitude);
-                        this.showNotification('Position mise à jour !', 'success');
-                    },
-                    (err) => {
-                        console.error('Erreur géolocalisation:', err);
-                        this.showNotification('Impossible d\'obtenir votre position', 'error');
-                    }
-                );
-            } else {
-                this.showNotification('Géolocalisation non supportée', 'error');
-            }
-        },
-        
-        saveCurrentSpot() {
-            if(selectedSpot) {
-                const name = prompt("Nom du spot :", `Spot ${selectedSpot.lat.toFixed(4)},${selectedSpot.lon.toFixed(4)}`);
-                if(name) {
-                    const newSpot = {
-                        name, lat: selectedSpot.lat, lon: selectedSpot.lon,
-                        type: "custom", depth: "?", description: "Spot sauvegardé"
-                    };
-                    fetch('/api/save_spot', {
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body:JSON.stringify(newSpot)
-                    }).then(r=>r.json()).then(d=>{
-                        if(d.status === 'success') {
-                            customSpots.push(newSpot);
-                            saveCustomSpots();
-                            addSpotToMap(newSpot, true);
-                            this.showNotification(`Spot "${name}" sauvegardé !`, 'success');
-                        }
-                    }).catch(e=>this.showNotification("Erreur sauvegarde", 'error'));
-                }
-            } else {
-                this.showNotification("Sélectionnez d'abord un spot", 'error');
-            }
-        },
-        
-        calculatePreparationTime() {
-            this.showNotification('⏱️ Préparation: 45 min • Départ dans 10 min', 'info');
-        },
-        
-        quickCheck() {
-            this.checkGoNowDecision();
-            this.showNotification('Vérification effectuée !', 'info');
-            if('vibrate' in navigator) navigator.vibrate(100);
-        },
-        
-        async checkGoNowDecision() {
-            try {
-                const r = await fetch(`/api/quick_check?lat=${userLat}&lon=${userLon}`);
-                const d = await r.json();
-                if(d.status === 'success') {
-                    const banner = document.getElementById('instant-decision-banner');
-                    if(banner) {
-                        banner.innerHTML = `
-                            <div style="background:${d.color};color:white;padding:1rem;border-radius:8px;display:flex;align-items:center;gap:1rem">
-                                <i class="fas fa-${d.decision==='danger'?'skull-crossbones':d.decision==='excellent'?'check-circle':'thumbs-up'}" style="font-size:1.5rem"></i>
-                                <div style="font-weight:700;flex:1">${d.message}</div>
-                                <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.2);border:none;color:white;padding:.5rem;border-radius:4px;cursor:pointer">×</button>
-                            </div>
-                        `;
-                    }
-                }
-            } catch(e) { console.error(e); }
-        },
-        
-        toggleDetailedAnalysis: function() {
-            const mini = document.getElementById('detailed-analysis-mini');
-            const full = document.getElementById('detailed-analysis-full');
-            const btn = event?.currentTarget;
-            
-            if (!mini || !full) return;
-            
-            if (mini.style.display === 'none') {
-                mini.style.display = 'grid';
-                full.style.display = 'none';
-                if (btn) btn.innerHTML = '<i class="fas fa-chevron-down"></i> Voir';
-            } else {
-                mini.style.display = 'none';
-                full.style.display = 'block';
-                if (btn) btn.innerHTML = '<i class="fas fa-chevron-up"></i> Réduire';
-                
-                // Si on a des données en cache, les utiliser
-                if (window.lastDetailedData) {
-                    updateDetailedAnalysis(window.lastDetailedData);
-                }
-            }
-        },
-        
-        updateDetailedAnalysis: updateDetailedAnalysis,
-        
-        showNotification(message, type = 'info') {
-            const notif = document.createElement('div');
-            notif.style.cssText = `position:fixed;top:20px;right:20px;padding:1rem 1.5rem;background:${type==='success'?'#10b981':type==='error'?'#ef4444':'#3b82f6'};color:white;border-radius:8px;z-index:9999;animation:slideIn .3s;max-width:300px`;
-            notif.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><i class="fas fa-${type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle'}"></i>${message}</div>`;
-            document.body.appendChild(notif);
-            setTimeout(() => {
-                notif.style.animation = 'slideOut .3s';
-                setTimeout(() => notif.remove(), 300);
-            }, 5000);
-        },
-        
-        // Fonction de test
-        getAdviceForTest: getAdviceForTest,
-        
-        // Méthodes de compatibilité
-        addWindAnimation: function() { 
-            if(!windAnimationActive) this.toggleWindAnimation();
-        },
-        removeWindAnimation: function() {
-            if(windAnimationActive) this.toggleWindAnimation();
-        },
-        updateWindAnimation: function() {
-            if(windAnimationActive) {
-                initWindParticles();
-            }
-        },
-        
-        // Méthodes d'export
-        refreshWeather: loadWeatherDataInternal,
-        refreshPrediction: updatePredictionInternal,
-        refreshScientific: updateScientificDataInternal,
-        refreshForecast: load24hForecastInternal,
-        
-        getCurrentWindInfo() {
-            return {
-                speed: currentWindSpeed,
-                direction: currentWindDirection,
-                animationActive: windAnimationActive,
-                animationAngle: (currentWindDirection + 90) % 360
-            };
-        }
+    // SÉLECTEUR D'ESPÈCE DANS LA MODALE
+    const speciesNames = {
+        'loup': 'Loup', 'daurade': 'Dorade', 'pageot': 'Pageot',
+        'thon': 'Thon', 'sar': 'Sar', 'mulet': 'Mulet',
+        'marbré': 'Marbré', 'rouget': 'Rouget', 'sériole': 'Sériole',
+        'bonite': 'Bonite', 'corbeau': 'Corbeau', 'espadon': 'Espadon',
+        'mérou': 'Mérou', 'merlan': 'Merlan', 'merlu': 'Merlu',
+        'orphie': 'Orphie'
     };
+    
+    let speciesOptions = '';
+    for (const [key, name] of Object.entries(speciesNames)) {
+        const selected = key === currentSpecies ? 'selected' : '';
+        let emoji = '🐟';
+        if (key === 'daurade' || key === 'rouget') emoji = '🐠';
+        if (key === 'pageot' || key === 'mérou') emoji = '🐡';
+        if (key === 'thon' || key === 'espadon') emoji = '🦈';
+        speciesOptions += `<option value="${key}" ${selected}>${emoji} ${name}</option>`;
+    }
+    
+    // Créer le HTML complet de la modale avec structure stylisée
+    let html = `
+        <!-- Score principal -->
+        <div class="modal-score">
+            <div class="modal-score-value">${score}</div>
+            <div class="modal-score-label">Score de pêche</div>
+        </div>
+        
+        <!-- Sélecteur d'espèce -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                <i class="fas fa-fish"></i>
+                <span>Espèce ciblée</span>
+            </div>
+            <select id="modal-species-selector" class="species-selector" style="width:100%;" onchange="window.FishingDashboard.changeSpecies(this.value)">
+                ${speciesOptions}
+            </select>
+        </div>
+        
+        <!-- Stats rapides -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                <i class="fas fa-chart-bar"></i>
+                <span>Aperçu rapide</span>
+            </div>
+            <div class="modal-grid-2">
+                <div class="modal-card">
+                    <div class="modal-card-icon">🐟</div>
+                    <div class="modal-card-value">${fishCount}</div>
+                    <div class="modal-card-label">Poissons actifs</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">${checkOffshore === '✅' ? '✓' : '⚠️'}</div>
+                    <div class="modal-card-value" style="color: ${checkOffshore === '✅' ? '#10b981' : '#ef4444'}">${checkOffshore}</div>
+                    <div class="modal-card-label">Vent offshore</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Météo actuelle -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                <i class="fas fa-cloud-sun"></i>
+                <span>Météo actuelle</span>
+            </div>
+            <div class="modal-grid-2">
+                <div class="modal-card">
+                    <div class="modal-card-icon">💨</div>
+                    <div class="modal-card-value">${windSpeed}</div>
+                    <div class="modal-card-label">${windDir}</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🌡️</div>
+                    <div class="modal-card-value">${temperature}</div>
+                    <div class="modal-card-label">Air</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">💧</div>
+                    <div class="modal-card-value">${pressure}</div>
+                    <div class="modal-card-label">Pression</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">☁️</div>
+                    <div class="modal-card-value">${weatherCondition}</div>
+                    <div class="modal-card-label">Nuages</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Données scientifiques -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                <i class="fas fa-flask"></i>
+                <span>Données scientifiques</span>
+            </div>
+            <div class="modal-grid-3">
+                <div class="modal-card">
+                    <div class="modal-card-icon">🌡️</div>
+                    <div class="modal-card-value">${waterTemp}</div>
+                    <div class="modal-card-label">Eau</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">💧</div>
+                    <div class="modal-card-value">${oxygen}</div>
+                    <div class="modal-card-label">Oxygène</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🌿</div>
+                    <div class="modal-card-value">${phytoplankton}</div>
+                    <div class="modal-card-label">Phyto.</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🌊</div>
+                    <div class="modal-card-value">${waveHeight}</div>
+                    <div class="modal-card-label">Vagues</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🌙</div>
+                    <div class="modal-card-value">${moonPhase}</div>
+                    <div class="modal-card-label">Lune</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🎣</div>
+                    <div class="modal-card-value">${bestPeriod}</div>
+                    <div class="modal-card-label">Meilleur</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analyse détaillée -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                <i class="fas fa-chart-pie"></i>
+                <span>Analyse détaillée</span>
+            </div>
+            <div class="modal-grid-2">
+                <div class="modal-card">
+                    <div class="modal-card-icon">🌍</div>
+                    <div class="modal-card-value" style="color:#3b82f6">${envScore}</div>
+                    <div class="modal-card-label">Score env.</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🐟</div>
+                    <div class="modal-card-value" style="color:#10b981">${behScore}</div>
+                    <div class="modal-card-label">Score comp.</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">📏</div>
+                    <div class="modal-card-value">${depth}</div>
+                    <div class="modal-card-label">Profondeur</div>
+                </div>
+                <div class="modal-card">
+                    <div class="modal-card-icon">🪨</div>
+                    <div class="modal-card-value">${seabed}</div>
+                    <div class="modal-card-label">Fond</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Graphique activité 24h -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                <i class="fas fa-chart-line"></i>
+                <span>Activité sur 24h</span>
+                <span style="margin-left:auto; font-size:0.8rem; background:#334155; padding:0.2rem 0.5rem; border-radius:12px;">${trendArrow} ${trend}</span>
+            </div>
+            
+            <div class="modal-chart-container">
+                <canvas id="modal-activity-chart" style="width:100%; height:200px;"></canvas>
+            </div>
+            
+            <!-- Meilleurs créneaux - Version sans scores -->
+            <div style="margin-top:1rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem; color:#94a3b8; font-size:0.9rem; margin-bottom:0.75rem;">
+                    <i class="fas fa-clock" style="color:#10b981"></i>
+                    <span>Meilleurs créneaux</span>
+                </div>
+                ${rangesHtml}
+            </div>
+            
+            <!-- Meilleur moment -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:1rem; padding:0.75rem; background:rgba(59,130,246,0.2); border-radius:8px; border:1px solid #3b82f6;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fas fa-star" style="color:#f59e0b"></i>
+                    <span style="color:#94a3b8">Meilleur moment:</span>
+                </div>
+                <span style="color:white; font-weight:700; font-size:1.2rem;">${formatHourToTime(bestTime)}</span>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+    
+    // Créer le graphique dans la modale
+    setTimeout(() => {
+        const canvas = document.getElementById('modal-activity-chart');
+        if (!canvas) return;
+        
+        if (window.modalChart) window.modalChart.destroy();
+        
+        window.modalChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    data: chartScores,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.2)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#3b82f6',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#94a3b8',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: { 
+                        grid: { color: 'rgba(255,255,255,0.1)' }, 
+                        ticks: { 
+                            color: '#94a3b8',
+                            maxRotation: 45,
+                            minRotation: 45,
+                            maxTicksLimit: 8
+                        } 
+                    },
+                    y: { 
+                        beginAtZero: true, 
+                        max: 100, 
+                        grid: { color: 'rgba(255,255,255,0.1)' }, 
+                        ticks: { 
+                            color: '#94a3b8',
+                            stepSize: 20
+                        } 
+                    }
+                }
+            }
+        });
+    }, 100);
+}
+
+// ===== BOUTON MOBILE =====
+(function() {
+    if (window.innerWidth <= 768) {
+        const checkExist = setInterval(function() {
+            const leftColumn = document.querySelector('.left-column');
+            if (leftColumn && !document.querySelector('.mobile-details-button')) {
+                clearInterval(checkExist);
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-primary mobile-details-button';
+                btn.innerHTML = '<i class="fas fa-info-circle"></i> Voir tous les détails';
+                btn.onclick = function() { 
+                    if (typeof window.showMobileDetailsModal === 'function') {
+                        window.showMobileDetailsModal();
+                    }
+                };
+                leftColumn.appendChild(btn);
+                console.log('📱 Bouton mobile ajouté');
+            }
+        }, 500);
+    }
 })();
-
-// Initialisation
-document.addEventListener('DOMContentLoaded', () => FishingDashboard.initMap());
-
-// Export global
-window.FishingDashboard = FishingDashboard;
-window.getCurrentLocation = () => FishingDashboard.getCurrentLocation();
-window.quickCheck = () => FishingDashboard.quickCheck();
-window.toggleWindLayer = (e) => FishingDashboard.toggleWindAnimation(e);
-window.toggleSpotType = (t) => FishingDashboard.toggleSpotType(t);
 </script>
 {% endblock %}

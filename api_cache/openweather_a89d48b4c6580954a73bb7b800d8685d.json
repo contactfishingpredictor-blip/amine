@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 13.38,
+    "feels_like": 13.38,
+    "pressure": 1022,
+    "humidity": 100,
+    "wind_speed": 11.124,
+    "wind_direction": 180,
+    "wind_direction_abbr": "S",
+    "wind_direction_name": "Sud",
+    "wind_direction_icon": "⬇️",
+    "wind_fishing_impact": "Vent du sud - Chaud, peut réduire l'activité des poissons",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.24,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 6.0,
+    "sunrise": "2026-03-08T06:43:20",
+    "sunset": "2026-03-08T18:21:36",
+    "location": "Douar Tindja",
+    "country": "TN",
+    "timestamp": "2026-03-08T00:02:30.275070",
+    "score": 1.0
+  },
+  "timestamp": 1772924550.2750704,
+  "expires_at": 1772967750.2750704,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.29765341877015,
+    "lon": 9.624580833062346
+  }
+}

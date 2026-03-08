@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 14.51,
+    "feels_like": 14.34,
+    "pressure": 1022,
+    "humidity": 89,
+    "wind_speed": 22.284000000000002,
+    "wind_direction": 123,
+    "wind_direction_abbr": "ESE",
+    "wind_direction_name": "Est-Sud-Est",
+    "wind_direction_icon": "↘️",
+    "wind_fishing_impact": "Vent d'est - Peut rendre la mer agitée, prudence",
+    "wind_offshore": false,
+    "wind_onshore": false,
+    "wave_height": 0.74,
+    "condition": "Clear",
+    "condition_description": "ciel dégagé",
+    "condition_fr": "Ciel dégagé",
+    "icon": "01n",
+    "clouds": 0,
+    "visibility": 10.0,
+    "sunrise": "2026-03-08T06:43:35",
+    "sunset": "2026-03-08T18:21:40",
+    "location": "Bizerte",
+    "country": "TN",
+    "timestamp": "2026-03-08T00:02:56.821642",
+    "score": 0.9999999999999999
+  },
+  "timestamp": 1772924576.8216426,
+  "expires_at": 1772967776.8216426,
+  "api_name": "openweather",
+  "params": {
+    "lat": 37.49403737284166,
+    "lon": 9.586297189099422
+  }
+}

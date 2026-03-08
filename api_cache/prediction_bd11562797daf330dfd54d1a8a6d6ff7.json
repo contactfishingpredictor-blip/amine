@@ -1,0 +1,145 @@
+{
+  "data": {
+    "status": "success",
+    "prediction_id": "2b08eb003b60",
+    "stable": true,
+    "valid_until": "2026-03-08T07:27:07.843971",
+    "scores": {
+      "final": 67,
+      "environmental": 62,
+      "behavioral": 91,
+      "bathymetry_factor": 100,
+      "weather_factor": 100,
+      "components": {
+        "scientific": 62,
+        "depth": 100,
+        "regional": 50,
+        "weather": 100
+      }
+    },
+    "weather": {
+      "temperature": 14.14,
+      "wind_speed": 12.996,
+      "wind_direction": 63,
+      "wind_direction_abbr": "ENE",
+      "wind_direction_name": "Est-Nord-Est",
+      "wind_direction_icon": "↗️",
+      "wind_fishing_impact": "Vent d'est - Peut rendre la mer agitée, prudence",
+      "wind_offshore": false,
+      "wind_onshore": true,
+      "pressure": 1022,
+      "humidity": 94,
+      "condition": "Clouds",
+      "condition_fr": "Nuageux",
+      "wave_height": 0.32,
+      "updated": "2026-03-08T06:27:07.843971",
+      "source": "OpenWeatherMap"
+    },
+    "scientific_factors": {
+      "dissolved_oxygen": {
+        "value": 5.36,
+        "unit": "mg/L",
+        "optimal_range": "5.0-8.0 mg/L",
+        "status": "optimal"
+      },
+      "chlorophyll_a": {
+        "value": 1.93,
+        "unit": "mg/m³",
+        "optimal_range": "0.8-3.0 mg/m³",
+        "status": "optimal"
+      },
+      "tidal_current": {
+        "speed_mps": 0.112,
+        "speed_knots": 0.217,
+        "direction": "SE-NO",
+        "tide_height": 0.27,
+        "tide_phase": "descendante",
+        "fishing_impact": "optimal",
+        "model": "hydrodynamique régional",
+        "resolution": "2km"
+      },
+      "turbidity": {
+        "value": 3.4,
+        "unit": "NTU",
+        "clarity": "moyenne",
+        "description": "Eau légèrement trouble"
+      },
+      "pressure": {
+        "score": 0.81,
+        "abs_score": 0.88,
+        "gradient_score": 0.7,
+        "zone": "moyenne-haute",
+        "description": "Pression élevée - Activité modérée",
+        "gradient_effect": "stable",
+        "delta": 0,
+        "bonus": null,
+        "user_message": "🟡 Bonnes conditions - Pêche favorable",
+        "pressure": 1022.0,
+        "sensitivity": "moderate"
+      }
+    },
+    "recommendations": {
+      "tips": [
+        "Opportunité: BONNE",
+        "Heures optimales: 6h, 19h, 7h",
+        "Profondeur optimale: 3-20m",
+        "Type de fond recommandé: rocheux/mixte",
+        "Météo: Nuageux, 14.1°C, Vent: 13.0 km/h"
+      ],
+      "techniques": [
+        "surfcasting",
+        "pêche à soutenir",
+        "pêche au leurre"
+      ]
+    },
+    "bathymetry": {
+      "success": true,
+      "depth": 8.0,
+      "source": "Modèle côtier Tunisie",
+      "accuracy": "bonne",
+      "confidence": 0.8,
+      "seabed_type": "sand",
+      "seabed_description": "Sableux",
+      "optimal_for_species": true,
+      "zone": "ولاية نابل",
+      "recommended_fishing": [
+        "Profondeur: 8.0m (optimale)",
+        "Type de fond: Sableux",
+        "Précision: bonne"
+      ]
+    },
+    "location": {
+      "lat": 36.39602793151217,
+      "lon": 10.611817624941962,
+      "name": "الحمامات, الحمامات الشرقية, معتمدية الحمامات, ولاية نابل, 8050, تونس",
+      "type": "city",
+      "region": "ولاية نابل"
+    },
+    "metadata": {
+      "species": "loup",
+      "timestamp": "2026-03-08T06:27:07.843971",
+      "data_source": "Modèle côtier Tunisie",
+      "weather_source": "OpenWeatherMap",
+      "prediction_stable": true,
+      "cache_duration_minutes": 60,
+      "next_update_recommended": "07:27",
+      "api_usage_info": {
+        "openweather_calls_today": 8,
+        "using_cache": false
+      },
+      "cache": {
+        "cached_at": "2026-03-08T06:27:07.843971",
+        "expires_at": "2026-03-08T09:27:07.843971",
+        "cache_duration_hours": 3
+      }
+    }
+  },
+  "timestamp": 1772947627.8439717,
+  "expires_at": 1772951227.8439717,
+  "api_name": "prediction",
+  "params": {
+    "lat": 36.39602793151217,
+    "lon": 10.611817624941962,
+    "species": "loup"
+  }
+}

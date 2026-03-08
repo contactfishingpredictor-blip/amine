@@ -1,0 +1,36 @@
+{
+  "data": {
+    "temperature": 15.02,
+    "feels_like": 15.19,
+    "pressure": 1022,
+    "humidity": 100,
+    "wind_speed": 3.708,
+    "wind_direction": 0,
+    "wind_direction_abbr": "N",
+    "wind_direction_name": "Nord",
+    "wind_direction_icon": "⬆️",
+    "wind_fishing_impact": "Vent de nord - Bon pour la pêche côtière, apporte des nutriments",
+    "wind_offshore": false,
+    "wind_onshore": true,
+    "wave_height": 0.2,
+    "condition": "Clouds",
+    "condition_description": "peu nuageux",
+    "condition_fr": "Nuageux",
+    "icon": "02n",
+    "clouds": 20,
+    "visibility": 10.0,
+    "sunrise": "2026-03-08T06:40:25",
+    "sunset": "2026-03-08T18:19:03",
+    "location": "Dar Sidi M’hamed ech Cherif",
+    "country": "TN",
+    "timestamp": "2026-03-08T05:07:55.398245",
+    "score": 1.0
+  },
+  "timestamp": 1772942875.3982453,
+  "expires_at": 1772986075.3982453,
+  "api_name": "openweather",
+  "params": {
+    "lat": 36.920703482359,
+    "lon": 10.30777005709263
+  }
+}

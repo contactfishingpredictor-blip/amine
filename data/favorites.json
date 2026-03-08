@@ -9,5 +9,194 @@
     "date": "2026-02-07T18:58:05.139Z",
     "id": "c9c4c00d",
     "added_date": "2026-02-07T19:58:05.213254"
+  },
+  {
+    "name": "Spot 37.15, 10.15",
+    "lat": 37.148741938027676,
+    "lon": 10.15410117292781,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "d4d36e0d",
+    "added_date": "2026-03-07T00:28:42.112592"
+  },
+  {
+    "name": "Spot 36.92, 10.32",
+    "lat": 36.91506323234427,
+    "lon": 10.319804533674219,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "6dc90b5e",
+    "added_date": "2026-03-07T01:05:26.603488"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "eb2d8e11",
+    "added_date": "2026-03-07T01:08:19.472556"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "e82d2fa1",
+    "added_date": "2026-03-07T01:10:18.721684"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "abf6bbb5",
+    "added_date": "2026-03-07T01:12:19.392794"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "828d78e5",
+    "added_date": "2026-03-07T01:14:39.587921"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "409e7a92",
+    "added_date": "2026-03-07T01:15:48.622140"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "b96dbf40",
+    "added_date": "2026-03-07T01:16:42.336515"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "260def06",
+    "added_date": "2026-03-07T01:19:28.482701"
+  },
+  {
+    "name": "Spot Test",
+    "lat": 36.8065,
+    "lon": 10.1815,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "58b233c9",
+    "added_date": "2026-03-07T01:19:33.709810"
+  },
+  {
+    "name": "Spot 37.12, 10.22",
+    "lat": 37.11538319210486,
+    "lon": 10.217247766968132,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "11d2d606",
+    "added_date": "2026-03-07T01:20:09.043822"
+  },
+  {
+    "name": "Spot 37.12, 10.22",
+    "lat": 37.11538319210486,
+    "lon": 10.217247766968132,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "158f16ec",
+    "added_date": "2026-03-07T01:20:12.942980"
+  },
+  {
+    "name": "Spot 36.92, 10.31",
+    "lat": 36.92075280224588,
+    "lon": 10.307663188372118,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "5781ff36",
+    "added_date": "2026-03-07T01:44:41.817406"
+  },
+  {
+    "name": "Spot 36.92, 10.31",
+    "lat": 36.920777247681436,
+    "lon": 10.30773217078454,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "13a63bd5",
+    "added_date": "2026-03-07T02:02:06.175838"
+  },
+  {
+    "name": "Spot 36.92, 10.31",
+    "lat": 36.920466746909554,
+    "lon": 10.307818852705621,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "034ad023",
+    "added_date": "2026-03-07T02:34:27.429741"
+  },
+  {
+    "name": "Spot 37.34, 9.83",
+    "lat": 37.336971401597545,
+    "lon": 9.834649307559076,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "99b7d9cf",
+    "added_date": "2026-03-07T02:35:28.919103"
+  },
+  {
+    "name": "Spot 37.30, 9.62",
+    "lat": 37.29765341877015,
+    "lon": 9.624580833062346,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "b7ad4d30",
+    "added_date": "2026-03-08T00:02:33.535738"
+  },
+  {
+    "name": "Spot 37.14, -709.82",
+    "lat": 37.13930033139157,
+    "lon": -709.8175943402665,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "1d4caa58",
+    "added_date": "2026-03-08T03:03:02.388790"
+  },
+  {
+    "name": "gammarth",
+    "lat": 36.92035009460787,
+    "lon": 10.307839402046449,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "1abec28a",
+    "added_date": "2026-03-08T03:59:30.294081"
+  },
+  {
+    "name": "Spot 36.92, 10.31",
+    "lat": 36.920734359615416,
+    "lon": 10.307942213057954,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "a24bab19",
+    "added_date": "2026-03-08T05:14:33.734258"
+  },
+  {
+    "name": "Spot 37.33, 9.82",
+    "lat": 37.3298192396339,
+    "lon": 9.81511652351271,
+    "type": "custom",
+    "description": "Spot favori",
+    "id": "0bf4490c",
+    "added_date": "2026-03-08T05:33:45.779107"
   }
 ]
